@@ -88,7 +88,7 @@ void _fmt_trans(const char *confname, const char *jsonname)
 	sis_conf_close(_server.conf_h);
 }
 // 读取配置文件
-bool _server_open(const char *cmdinfo)
+bool _server_open(const char *cmdinfo, const char *dayinfo)
 {
 	char config[1024];
 	if (_server.load_mode )
@@ -126,7 +126,30 @@ bool _server_open(const char *cmdinfo)
 		}
 		_server.cfgnode = _server.conf_h->node;	
 	}
-
+	if (sis_strlen(dayinfo) > 0)
+	{
+		// 只做3级渗透
+		s_sis_json_node *node = sis_json_search_node(_server.cfgnode, "work-date", 3);
+		if (node)
+		{
+			s_sis_json_node *nptr = sis_json_create_array();
+			int nums = sis_str_substr_nums(dayinfo, sis_strlen(dayinfo), ',');
+			for (int i = 0; i < nums; i++)
+			{
+				char ptr[128];
+				sis_str_substr(ptr, 128, dayinfo, ',', i);
+				sis_json_array_add_string(nptr, ptr, sis_strlen(ptr));
+			}
+			s_sis_json_node *father = sis_json_father_node(node);
+			sis_json_delete_node(node);
+			sis_json_object_add_node(father, "work-date", nptr);
+			
+			// char *str = NULL;
+			// size_t olen;
+			// str = sis_json_output(_server.cfgnode, &olen);
+			// printf(str);
+		}
+	}
 	if (sis_strlen(cmdinfo) > 0)
 	{
 		s_sis_json_handle *hcmd = sis_json_open(cmdinfo);
@@ -243,6 +266,7 @@ void _server_help()
 	printf("		-t xxxx.conf xxxx.json : trans conf to json. \n");
 	printf("		-d           : debug mode run. \n");
 	printf("		-w workinfo.json : install workinfo config. \n");
+	printf("		-r 20220101,20221011 : replace work-date. \n");
 	printf("		-h           : help. \n");
 }
 /**
@@ -277,6 +301,8 @@ int main(int argc, char *argv[])
 	int c = 1;
 	char cmdinfo[255]; 
 	cmdinfo[0] = 0;
+	char dayinfo[255]; 
+	dayinfo[0] = 0;
 	while (c < argc)
 	{
 		if (argv[c][0] == '-' && argv[c][1] == 't' && argv[c + 1])
@@ -307,6 +333,11 @@ int main(int argc, char *argv[])
 			sis_strcpy(cmdinfo, 255, argv[c + 1]);
 			c++;
 		}
+		else if (argv[c][0] == '-' && argv[c][1] == 'r' && argv[c + 1])
+		{
+			sis_strcpy(dayinfo, 255, argv[c + 1]);
+			c++;
+		}
 		else if (argv[c][0] == '-' && argv[c][1] == 'p')
 		{
 			_server.work_mode = _server.work_mode | SERVER_WORK_MODE_DEBUG;
@@ -330,7 +361,7 @@ int main(int argc, char *argv[])
 
 	safe_memory_start();
 
-	if (!_server_open(cmdinfo))
+	if (!_server_open(cmdinfo, dayinfo))
 	{
 		printf("config file %s load error.\n", _server.load_mode ? _server.json_name : _server.conf_name);
 		return 0;

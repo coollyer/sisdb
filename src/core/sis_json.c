@@ -1583,6 +1583,19 @@ s_sis_json_node *sis_json_last_node(s_sis_json_node *node_)
 	}
 	return c;
 }
+s_sis_json_node *sis_json_father_node(s_sis_json_node *node_)
+{
+	s_sis_json_node *c = node_;
+	while (c && !c->father)
+	{
+		c = c->prev;
+	}
+	while (c && !c->father)
+	{
+		c = c->next;
+	}
+	return c->father;
+}
 
 s_sis_json_node *sis_json_cmp_child_node(s_sis_json_node *object_, const char *key_)
 {
@@ -1615,6 +1628,32 @@ s_sis_json_node *sis_json_find_node(s_sis_json_node *node_, const char *path_)
 		return sis_json_find_node(node_, str);
 	}
 	return sis_json_cmp_child_node(node_, path_);
+}
+
+s_sis_json_node *sis_json_search_node(s_sis_json_node *node_, const char *key_, int level_)
+{
+	if (node_ == NULL || level_ <= 0)
+	{
+		return NULL;
+	}	
+	s_sis_json_node *c = node_->child;
+	while (c)
+	{
+		if (!sis_strcasecmp(c->key, key_))
+		{
+			return c;
+		}
+		else
+		{
+			s_sis_json_node *cs = sis_json_search_node(c, key_, level_ - 1);
+			if (cs)
+			{
+				return cs;
+			}
+		}
+		c = c->next;
+	}
+	return NULL;
 }
 
 void sis_json_show(s_sis_json_node *node_, int *i)

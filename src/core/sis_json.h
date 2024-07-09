@@ -139,9 +139,12 @@ int sis_json_get_size(s_sis_json_node *node_);
 s_sis_json_node *sis_json_first_node(s_sis_json_node *node_);
 s_sis_json_node *sis_json_next_node(s_sis_json_node *node_);
 s_sis_json_node *sis_json_last_node(s_sis_json_node *node_);
+
+s_sis_json_node *sis_json_father_node(s_sis_json_node *node_);
 //根据路径读取数据，路径为 aaa.bbb.ccc
 s_sis_json_node *sis_json_cmp_child_node(s_sis_json_node *object_, const char *key_);
 s_sis_json_node *sis_json_find_node(s_sis_json_node *node_, const char *path_);
+s_sis_json_node *sis_json_search_node(s_sis_json_node *node_, const char *key_, int level);
 
 void sis_json_show(s_sis_json_node *node_, int *i);
 
