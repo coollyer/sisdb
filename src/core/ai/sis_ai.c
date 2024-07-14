@@ -1237,7 +1237,7 @@ double sis_ai_series_chance(double in, double avg, double vari)
     {
         return 0.0;
     }
-    return exp(-1*pow(in - avg, 2)/(2*pow(vari,2))) / (sqrt(2*SIS_AI_CONST_PAI)*vari);
+    return exp(-1*pow(in - avg, 2)/(2*pow(vari,2))) / (sqrt(2*SIS_PI)*vari);
 }
 // 16 个数最大
 static  double __fibonacci[] = {

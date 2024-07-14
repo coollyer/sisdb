@@ -190,6 +190,100 @@ s_sis_sds sis_sdb_to_csv_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_)
 	}
 	return o;
 }
+// 表字段转 csv 标头
+s_sis_sds sis_sdbinfo_to_csv_sds(s_sis_dynamic_db *db_)
+{
+	int fnums = sis_map_list_getsize(db_->fields);
+	s_sis_sds o = sis_sdsempty();
+	for (int k = 0; k < fnums; k++)
+	{
+		s_sis_dynamic_field *fu = (s_sis_dynamic_field *)sis_map_list_geti(db_->fields, k);
+		for (int i = 0; i < fu->count; i++)
+		{
+			if (sis_sdslen(o) > 0)
+			{
+				o = sis_sdscat(o, ",");
+			}
+			if (fu->count > 1)
+			{
+				o = sis_sdscatfmt(o, "%s%i", fu->fname, i);
+			}
+			else
+			{
+				o = sis_sdscatfmt(o, "%s", fu->fname);
+			}
+		}
+	}
+	return o;
+}
+
+s_sis_sds sis_fhead_to_csv_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_)
+{
+	// int count = (int)(ilen_ / db_->size);
+	const char *val = (const char *)in_;
+	s_sis_sds o = sis_sdsempty();
+	int fnums = sis_map_list_getsize(db_->fields);
+	// for (int k = 0; k < count; k++)
+	{
+		for (int i = 0; i < fnums; i++)
+		{
+			s_sis_dynamic_field *inunit = (s_sis_dynamic_field *)sis_map_list_geti(db_->fields, i);
+			if (inunit->style == SIS_DYNAMIC_TYPE_MSEC && inunit->len == 8 && inunit->count == 1)
+			{
+				// 对时间字段特殊处理
+				char wmsec[32];
+				uint64 v64 = *(uint64 *)(in_ + inunit->offset);
+        		sis_time_format_msec_longstr(wmsec, 32, v64);
+				if (sis_sdslen(o) > 0)
+				{
+					o = sis_sdscatfmt(o, ",%s\t", wmsec);
+				}
+				else
+				{
+					o = sis_sdscatfmt(o, "%s\t", wmsec);
+				}
+			}
+			else
+			{
+				o = sis_dynamic_field_to_csv(o, inunit, val);
+			}
+		}
+		// o = sis_csv_make_end(o);
+		// val += db_->size;
+	}
+	return o;
+}
+
+s_sis_sds sis_fhead_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_)
+{
+	// int count = (int)(ilen_ / db_->size);
+	const char *val = in_;
+	int fnums = sis_map_list_getsize(db_->fields);
+	s_sis_json_node *jone = sis_json_create_object();
+	// for (int k = 0; k < count; k++)
+	{
+		for (int i = 0; i < fnums; i++)
+		{
+			s_sis_dynamic_field *inunit = (s_sis_dynamic_field *)sis_map_list_geti(db_->fields, i);
+			if (inunit->style == SIS_DYNAMIC_TYPE_MSEC && inunit->len == 8 && inunit->count == 1)
+			{
+				// 对时间字段特殊处理
+				char wmsec[32];
+				uint64 v64 = *(uint64 *)(in_ + inunit->offset);
+        		sis_time_format_msec_longstr(wmsec, 32, v64);
+				sis_json_object_add_string(jone, inunit->fname, wmsec, sis_strlen(wmsec));
+			}
+			else
+			{
+				sis_dynamic_field_to_object(jone, inunit, val);
+			}
+		}
+		// val += db_->size;
+	}
+	s_sis_sds o = sis_json_to_sds(jone, 1);
+	sis_json_delete_node(jone);	
+	return o;	
+}
 
 s_sis_sds sis_sdb_to_array_of_conf_sds(const char *confstr_, void *in_, size_t ilen_)
 {

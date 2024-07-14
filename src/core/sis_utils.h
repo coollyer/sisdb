@@ -10,6 +10,7 @@
 #include "sis_os.h"
 #include "sis_dynamic.h"
 #include "sis_map.h"
+#include "sis_time.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +27,14 @@ s_sis_json_node *sis_sdbinfo_to_json(s_sis_dynamic_db *db_);
 s_sis_sds sis_sdb_to_array_sds(s_sis_dynamic_db *db_, const char *key_, void *in_, size_t ilen_); 
 // 数据转换为csv
 s_sis_sds sis_sdb_to_csv_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_);
+// 表字段转 csv 标头
+s_sis_sds sis_sdbinfo_to_csv_sds(s_sis_dynamic_db *db_);
+// 数据转换为csv 单条数据 对时间特殊处理
+s_sis_sds sis_fhead_to_csv_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_);
+// 数据转换json 单条数据 对时间特殊处理
+s_sis_sds sis_fhead_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_);
+
+
 // 直接通过配置转数据格式
 s_sis_sds sis_sdb_to_array_of_conf_sds(const char *confstr_, void *in_, size_t ilen_); 
 

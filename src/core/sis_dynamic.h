@@ -473,6 +473,53 @@ static inline void sis_dynamic_field_to_array(s_sis_json_node *in_, s_sis_dynami
 		}
 	}
 }
+
+static inline void sis_dynamic_field_to_object(s_sis_json_node *in_, s_sis_dynamic_field *field_, const char *val_)
+{
+	if(field_) 
+	{
+		char nname[255];
+		char *fname = field_->fname;
+		for(int index = 0; index < field_->count; index++)
+		{
+			if (field_->count > 1)
+			{
+				sis_sprintf(nname, 255, "%s%d", field_->fname, index);
+				fname = nname;
+			}
+			switch (field_->style)
+			{
+			case SIS_DYNAMIC_TYPE_INT:
+				sis_json_object_add_int(in_, fname, _sis_field_get_int(field_, val_, index));
+				break;
+			case SIS_DYNAMIC_TYPE_TSEC:
+			case SIS_DYNAMIC_TYPE_MSEC:
+			case SIS_DYNAMIC_TYPE_MINU:
+			case SIS_DYNAMIC_TYPE_DATE:
+			case SIS_DYNAMIC_TYPE_UINT:
+				sis_json_object_add_uint(in_, fname, _sis_field_get_uint(field_, val_, index));
+				break;
+			case SIS_DYNAMIC_TYPE_FLOAT:
+				{
+					sis_json_object_add_double(in_, fname, _sis_field_get_float(field_, val_, index), field_->dot);
+				}
+				break;
+			case SIS_DYNAMIC_TYPE_PRICE:
+				{
+					int dot = _sis_field_get_price_dot(field_, val_, index);
+					sis_json_object_add_double(in_, fname, _sis_field_get_price(field_, val_, index), dot > 0 ? dot : field_->dot);
+				}
+				break;
+			case SIS_DYNAMIC_TYPE_CHAR:
+				sis_json_object_add_string(in_, fname, val_ + field_->offset + index*field_->len, field_->len);
+				break;
+			default:
+				// sis_json_object_add_string(in_, fname, " ", 1);
+				break;
+			}
+		}
+	}
+}
 // index_ 表示为当前字段的第几个 默认为 0 必须保证 out足够大
 static inline void sis_dynamic_field_json_to_struct(s_sis_sds out_, s_sis_dynamic_field *field_, int index_,
 			char *key_, s_sis_json_node *innode_)
