@@ -179,10 +179,8 @@ bool snodb_init(void *worker_, void *argv_)
 	context->map_sdbs = sis_map_list_create(sis_dynamic_db_destroy);
 
 	// 每个读者都自行压缩数据 并把压缩的数据回调出去
-	context->ago_reader_map = sis_map_kint_create();
-	context->ago_reader_map->type->vfree = snodb_reader_destroy;
-	context->cur_reader_map = sis_map_kint_create();
-	context->cur_reader_map->type->vfree = snodb_reader_destroy;
+	context->ago_reader_map = sis_map_kint_create(snodb_reader_destroy);
+	context->cur_reader_map = sis_map_kint_create(snodb_reader_destroy);
 
     s_sis_json_node *wlognode = sis_json_cmp_child_node(node, "wlog");
     if (wlognode)

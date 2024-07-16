@@ -248,8 +248,7 @@ int sis_map_list_getsize(s_sis_map_list *mlist_)
 s_sis_map_sort *sis_map_sort_create(void *vfree_)
 {
 	s_sis_map_sort *o = SIS_MALLOC(s_sis_map_sort, o);
-	o->map = sis_map_kint_create();
-	o->map->type->vfree = vfree_;
+	o->map = sis_map_kint_create(vfree_);
 	o->list = sis_pint_slist_create();
 	return o;
 }
@@ -407,11 +406,12 @@ int sis_map_sds_set(s_sis_map_sds *map_, const char *key_, char *val_)
 //  s_sis_map_kint 基础定义
 //////////////////////////////////////////
 /** 创建一个键类型为int的字典 */
-s_sis_map_kint *sis_map_kint_create()
+s_sis_map_kint *sis_map_kint_create(void *vfree_)
 {
 	s_sis_dict_type *type = SIS_MALLOC(s_sis_dict_type, type);
 	memmove(type, &_sis_dict_type_int_key_s, sizeof(s_sis_dict_type));
 	s_sis_map_kint *map = sis_dict_create(type, NULL);
+	map->type->vfree = vfree_;
 	return map;
 
 }
@@ -459,7 +459,7 @@ s_sis_map_kobj *sis_map_kobj_create()
 #if 0
 int main()
 {
-	s_sis_map_kint *map = sis_map_kint_create();
+	s_sis_map_kint *map = sis_map_kint_create(NULL);
 	for (size_t i = 0; i < 10000000; i++)
 	{
 		sis_map_kint_set(map, i, i);
@@ -611,8 +611,7 @@ int main()
 int main()
 {
 	safe_memory_start();
-	s_sis_map_kint *map = sis_map_kint_create();
-	map->type->vfree = sis_free_call;
+	s_sis_map_kint *map = sis_map_kint_create(sis_free_call);
 
 	{
 		char *str = sis_malloc(200);

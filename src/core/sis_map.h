@@ -111,7 +111,7 @@ s_sis_map_sds *sis_map_sds_create();
 int sis_map_sds_set(s_sis_map_sds *, const char *key_, char *val_);
 
 // key为整数
-s_sis_map_kint *sis_map_kint_create();
+s_sis_map_kint *sis_map_kint_create(void *vfree_);
 #define sis_map_kint_destroy sis_map_pointer_destroy
 #define sis_map_kint_clear sis_map_pointer_clear
 void *sis_map_kint_get(s_sis_map_kint *, int64 );

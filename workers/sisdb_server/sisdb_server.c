@@ -204,7 +204,7 @@ void sisdb_server_work_init(void *worker_)
     {
         if (!context->user_access)
         {
-            context->user_access = sis_map_kint_create();
+            context->user_access = sis_map_kint_create(NULL);
         }
     }
 

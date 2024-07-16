@@ -99,8 +99,7 @@ bool  subdb_init(void *worker_, void *argv_)
         }     
     }
     context->work_sub_cxt = sisdb_sub_cxt_create();
-    context->map_users = sis_map_kint_create();
-    context->map_users->type->vfree = subdb_userinfo_destroy;
+    context->map_users = sis_map_kint_create(subdb_userinfo_destroy);
 
 
     return true;

@@ -64,10 +64,8 @@ bool frwdb_init(void *worker_, void *argv_)
 	context->map_data = sis_map_pointer_create_v(sis_node_list_destroy); // 可能单条数据大
 
 	// 每个读者都自行压缩数据 并把压缩的数据回调出去
-	context->map_reader_curr = sis_map_kint_create();
-	context->map_reader_curr->type->vfree = frwdb_reader_destroy;
-	context->map_reader_disk = sis_map_kint_create();
-	context->map_reader_disk->type->vfree = frwdb_reader_destroy;
+	context->map_reader_curr = sis_map_kint_create(frwdb_reader_destroy);
+	context->map_reader_disk = sis_map_kint_create(frwdb_reader_destroy);
 	// 是否写LOG
     s_sis_json_node *wlognode = sis_json_cmp_child_node(node, "wlog");
     if (wlognode)

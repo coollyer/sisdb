@@ -256,8 +256,7 @@ s_sis_net_class *sis_net_class_create(s_sis_url *url_)
 		sis_strcpy(o->client->ip, 128, o->url->ip4);
 	}
 
-	o->cxts = sis_map_kint_create();
-	o->cxts->type->vfree = sis_net_context_destroy;
+	o->cxts = sis_map_kint_create(sis_net_context_destroy);
 
 	o->cb_source = o;
 	o->work_status = SIS_NET_NONE;
