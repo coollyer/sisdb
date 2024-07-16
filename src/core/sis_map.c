@@ -241,6 +241,56 @@ int sis_map_list_getsize(s_sis_map_list *mlist_)
 	return count;
 }
 
+//////////////////////////////////////////
+//  s_sis_map_sort 基础定义
+//////////////////////////////////////////
+
+s_sis_map_sort *sis_map_sort_create(void *vfree_)
+{
+	s_sis_map_sort *o = SIS_MALLOC(s_sis_map_sort, o);
+	o->map = sis_map_kint_create();
+	o->map->type->vfree = vfree_;
+	o->list = sis_pint_slist_create();
+	return o;
+}
+void sis_map_sort_destroy(void *mlist_)
+{
+	s_sis_map_sort *mlist = (s_sis_map_sort *)mlist_;
+	sis_pint_slist_destroy(mlist->list);
+	sis_map_kint_destroy(mlist->map);
+	sis_free(mlist);
+}
+
+void sis_map_sort_clear(s_sis_map_sort *mlist_)
+{
+	sis_map_kint_clear(mlist_->map);
+	sis_pint_slist_clear(mlist_->list);
+}
+
+void *sis_map_sort_geti(s_sis_map_sort *mlist_, int index_)
+{
+	void *r = sis_pint_slist_get(mlist_->list, index_);
+	return r;
+}
+
+void *sis_map_sort_get(s_sis_map_sort *mlist_, int64 key_)
+{
+	return sis_map_kint_get(mlist_->map, key_);
+}
+
+// map有变化必须全部重索引
+int sis_map_sort_set(s_sis_map_sort *mlist_, int64 key_, void *value_)
+{
+	sis_map_kint_set(mlist_->map, key_, value_);
+	sis_pint_slist_set(mlist_->list, key_, value_);
+	// printf("||| %d %d\n", sis_map_kint_getsize(mlist_->map), sis_pint_slist_getsize(mlist_->list));
+	return mlist_->list->count;
+}
+int sis_map_sort_getsize(s_sis_map_sort *mlist_)
+{	
+	return mlist_->list->count;
+}
+
 // 创建并初始化一个HASH表
 s_sis_map_pointer *sis_map_pointer_create()
 {

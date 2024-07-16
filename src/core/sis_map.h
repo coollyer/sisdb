@@ -30,9 +30,15 @@ typedef struct s_sis_kv_pair{
 typedef struct s_sis_map_list{
 	int                 safe;   // 0 不锁 1 锁
 	s_sis_mutex_t       rwlock; // 是否增加读写锁
-	s_sis_map_int      *map;   // 存入的整数就是list的索引
-	s_sis_pointer_list *list;  // 实际数据存在这里
+	s_sis_map_int      *map;    // 存入的整数就是list的索引
+	s_sis_pointer_list *list;   // 实际数据存在这里
 }s_sis_map_list;
+
+// 键值为数值的排序表
+typedef struct s_sis_map_sort{
+	s_sis_map_kint      *map;   // 存入的整数就是list的索引
+	s_sis_pint_slist    *list;  // 实际数据存在这里
+}s_sis_map_sort;
 
 // typedef struct s_sis_pointer_list {
 // 	int		     maxcount; // 总数
@@ -65,6 +71,16 @@ void *sis_map_list_geti(s_sis_map_list *, int );
 int sis_map_list_get_index(s_sis_map_list *mlist_, const char *key_);
 int sis_map_list_set(s_sis_map_list *, const char *key_, void *value_); 
 int sis_map_list_getsize(s_sis_map_list *);
+
+s_sis_map_sort *sis_map_sort_create(void *vfree_);
+void sis_map_sort_destroy(void *);
+void sis_map_sort_clear(s_sis_map_sort *);
+
+void *sis_map_sort_get(s_sis_map_sort *, int64);
+void *sis_map_sort_geti(s_sis_map_sort *, int );
+int sis_map_sort_set(s_sis_map_sort *, int64, void *value_); 
+int sis_map_sort_getsize(s_sis_map_sort *);
+
 
 s_sis_map_pointer *sis_map_pointer_create();
 s_sis_map_pointer *sis_map_pointer_create_v(void *vfree_);

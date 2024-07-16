@@ -844,6 +844,15 @@ void sis_pint_slist_clear(s_sis_pint_slist *list_)
 {
 	list_->count = 0;
 }
+void sis_pint_slist_grow(s_sis_pint_slist *list_, int adds)
+{
+	if (list_->maxcount >= list_->count + adds)
+	{
+		return;
+	}
+	int maxcount = sis_max(list_->count + adds, list_->maxcount * 1.382);
+	sis_pint_slist_set_maxsize(list_, maxcount);
+}
 void sis_pint_slist_set_maxsize(s_sis_pint_slist *list_, int rows_)
 {
 	if (rows_ > list_->maxcount)
@@ -912,12 +921,17 @@ int sis_pint_slist_set(s_sis_pint_slist *list_, int key_, void *in_)
 			}
 		}
 	}
+	// printf("== %d %d %d %d\n", key_, finded, index, list_->count);
 	if (finded >= 0)
 	{
 		list_->keys[finded] = key_;
 		char **ptr = (char **)list_->value;
 		ptr[finded] = (char *)in_;
 		return finded;
+	}
+	else
+	{
+		sis_pint_slist_grow(list_, 1);
 	}
 	if (index >= list_->count)
 	{
@@ -928,11 +942,11 @@ int sis_pint_slist_set(s_sis_pint_slist *list_, int key_, void *in_)
 			ptr[list_->count] = (char *)in_;
 			list_->count ++;
 		}
-		else
-		{
-			// 表示设置的值在区间范围外了
-			return -1;
-		}
+		// else
+		// {
+		// 	// 表示设置的值在区间范围外了
+		// 	return -1;
+		// }
 	}
 	else
 	{
