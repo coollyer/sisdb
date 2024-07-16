@@ -272,6 +272,11 @@ void *sis_map_sort_geti(s_sis_map_sort *mlist_, int index_)
 	void *r = sis_pint_slist_get(mlist_->list, index_);
 	return r;
 }
+void sis_map_sort_del(s_sis_map_sort *mlist_, int64 key_)
+{
+	sis_map_kint_del(mlist_->map, key_);
+	sis_pint_slist_delk(mlist_->list, key_);
+}	
 
 void *sis_map_sort_get(s_sis_map_sort *mlist_, int64 key_)
 {

@@ -76,9 +76,10 @@ s_sis_map_sort *sis_map_sort_create(void *vfree_);
 void sis_map_sort_destroy(void *);
 void sis_map_sort_clear(s_sis_map_sort *);
 
-void *sis_map_sort_get(s_sis_map_sort *, int64);
-void *sis_map_sort_geti(s_sis_map_sort *, int );
-int sis_map_sort_set(s_sis_map_sort *, int64, void *value_); 
+void sis_map_sort_del(s_sis_map_sort *, int64 key);
+void *sis_map_sort_get(s_sis_map_sort *, int64 key);
+void *sis_map_sort_geti(s_sis_map_sort *, int index);
+int sis_map_sort_set(s_sis_map_sort *, int64 key, void *value_); 
 int sis_map_sort_getsize(s_sis_map_sort *);
 
 
