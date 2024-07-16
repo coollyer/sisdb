@@ -5,6 +5,17 @@
 // 对 s_sis_dynamic_db 信息的提取和转换
 /////////////////////////////////////////////////
 
+s_sis_dynamic_db *sis_sdbinfo_load(const char *fdbstr)
+{
+	s_sis_dynamic_db *db = NULL;
+	s_sis_conf_handle *handle = sis_conf_load(fdbstr, sis_strlen(fdbstr));
+	if (handle)
+	{
+		db = sis_dynamic_db_create(handle->node);
+		sis_conf_close(handle);
+	}
+	return db;
+}
 s_sis_sds sis_sdbinfo_to_conf(s_sis_dynamic_db *db_, s_sis_sds in_)
 {
 	if (!in_)
@@ -804,6 +815,29 @@ int sis_get_map_keys(s_sis_sds keys_, s_sis_map_list *map_keys_)
 	}
 	sis_string_list_destroy(klist);
 	return sis_map_list_getsize(map_keys_);
+}
+int sis_match_map_sdbs(const char *sdbs_, s_sis_sds match_sdbs, s_sis_map_list *map_sdbs_)
+{
+	s_sis_json_handle *injson = sis_json_load(sdbs_, sis_strlen(sdbs_));
+	if (!injson)
+	{
+		return 0;
+	}
+	s_sis_json_node *innode = sis_json_first_node(injson->node);
+	while (innode)
+	{
+		if (!sis_strcasecmp(match_sdbs, "*") || sis_str_subcmp_strict(innode->key, match_sdbs, ',') >= 0)
+		{
+			s_sis_dynamic_db *db = sis_dynamic_db_create(innode);
+			if (db)
+			{
+				sis_map_list_set(map_sdbs_, db->name, db);
+			}
+		}
+		innode = sis_json_next_node(innode);
+	}
+	sis_json_close(injson);
+	return sis_map_list_getsize(map_sdbs_);
 }
 
 int sis_get_map_sdbs(s_sis_sds sdbs_, s_sis_map_list *map_sdbs_)

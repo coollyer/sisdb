@@ -19,6 +19,8 @@ extern "C" {
 /////////////////////////////////////////////////
 // 对 s_sis_dynamic_db 信息的提取和转换
 /////////////////////////////////////////////////
+// 从字符串加载结构
+s_sis_dynamic_db *sis_sdbinfo_load(const char *fdbstr);
 // 表字段转 conf
 s_sis_sds sis_sdbinfo_to_conf(s_sis_dynamic_db *db_, s_sis_sds in_);
 // 表字段转 json 
@@ -84,6 +86,9 @@ s_sis_sds sis_match_sdb_of_map(s_sis_sds match_sdbs, s_sis_map_list *whole_sdbs)
 
 int sis_get_map_keys(s_sis_sds keys_, s_sis_map_list *map_keys_);
 
+// 解析 sdbs_ 并 match 后转到 map_sdbs_ 中
+int sis_match_map_sdbs(const char *sdbs_, s_sis_sds match_sdbs, s_sis_map_list *map_sdbs_);
+// 解析 sdbs_ 并转到 map_sdbs_ 中
 int sis_get_map_sdbs(s_sis_sds sdbs_, s_sis_map_list *map_sdbs_);
 
 s_sis_sds sis_map_as_keys(s_sis_map_list *map_keys_);
