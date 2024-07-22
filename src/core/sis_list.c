@@ -698,27 +698,90 @@ void sis_sort_list_clone(s_sis_sort_list *src_,s_sis_sort_list *des_)
 	sis_struct_list_clone(src_->value, des_->value);
 }
 
+// 返回 返回插入位置 finded >= 0 表示值相同 -1 表示为新数据
+int _sort_slist_search_insert(s_sis_sort_list *list_, int64 key_, int *finded) 
+{
+    int left = 0;
+    int right = list_->key->count;
+	while (left < right) 
+	{
+		int mid = left + (right - left) / 2;
+		int64 *midv = (int64 *)sis_struct_list_get(list_->key, mid);
+		if (*midv == key_)
+		{
+			*finded = mid;
+			return mid;
+		}
+		else
+		{
+			if (list_->isascend)
+			{
+				if (*midv < key_) 
+				{
+					left = mid + 1;
+				} 
+				else 
+				{
+					right = mid;
+				}
+
+			}
+			else
+			{
+				if (*midv > key_) 
+				{
+					left = mid + 1;
+				} 
+				else 
+				{
+					right = mid;
+				}
+			}
+		}
+	}
+    return left;
+}
 void *sis_sort_list_set(s_sis_sort_list *list_, int64 key_, void *in_)
 {
-	void *unit = sis_sort_list_find(list_, key_);
-	if (unit)
+	int finded = -1;
+	int index = _sort_slist_search_insert(list_, key_, &finded);
+	if (finded >= 0)
 	{
+		void *unit = sis_struct_list_get(list_->value, finded);
 		memmove(unit, in_, list_->value->len);
 		return unit;
 	}
-	for (int i = 0; i < list_->key->count; i++)
+	if (index >= list_->key->count)
 	{
-		int64 *key = (int64 *)sis_struct_list_get(list_->key, i);
-		if ((list_->isascend && *key > key_) || (!list_->isascend && *key < key_))
-		{
-			sis_struct_list_insert(list_->key, i, &key_);
-			sis_struct_list_insert(list_->value, i, in_);
-			return sis_struct_list_get(list_->value, i);
-		}
+		sis_struct_list_push(list_->key, &key_);
+		sis_struct_list_push(list_->value, in_);
+		return sis_struct_list_get(list_->value, list_->key->count - 1);
 	}
-	sis_struct_list_push(list_->key, &key_);
-	sis_struct_list_push(list_->value, in_);
-	return sis_struct_list_get(list_->value, list_->key->count - 1);
+	else
+	{
+		sis_struct_list_insert(list_->key, index, &key_);
+		sis_struct_list_insert(list_->value, index, in_);
+		return sis_struct_list_get(list_->value, index);
+	}
+	// void *unit = sis_sort_list_find(list_, key_);
+	// if (unit)
+	// {
+	// 	memmove(unit, in_, list_->value->len);
+	// 	return unit;
+	// }
+	// for (int i = 0; i < list_->key->count; i++)
+	// {
+	// 	int64 *key = (int64 *)sis_struct_list_get(list_->key, i);
+	// 	if ((list_->isascend && *key > key_) || (!list_->isascend && *key < key_))
+	// 	{
+	// 		sis_struct_list_insert(list_->key, i, &key_);
+	// 		sis_struct_list_insert(list_->value, i, in_);
+	// 		return sis_struct_list_get(list_->value, i);
+	// 	}
+	// }
+	// sis_struct_list_push(list_->key, &key_);
+	// sis_struct_list_push(list_->value, in_);
+	// return sis_struct_list_get(list_->value, list_->key->count - 1);
 }
 void *sis_sort_list_first(s_sis_sort_list *list_)
 {
@@ -737,17 +800,19 @@ void *sis_sort_list_prev(s_sis_sort_list *list_, void *value_)
 	return sis_struct_list_offset(list_->value, value_, -1);
 }
 // 二分法查找 从高向低
-int _sort_list_find(s_sis_sort_list *list, int64 key, int start, int stop)
+int _sort_list_find(s_sis_sort_list *list, int64 key)
 {	
-	while(start <= stop)
+	int start = 0;
+	int stop = list->key->count;
+	while(start < stop)
 	{
-		int mid = (stop - start) / 2 + start;
+		int mid = start + (stop - start) / 2;
 		int64 *midv = (int64 *)sis_struct_list_get(list->key, mid);
 		if (list->isascend)
 		{
 			if (*midv > key)
 			{
-				stop = mid - 1;
+				stop = mid;
 			}
 			else if (*midv < key)
 			{
@@ -762,7 +827,7 @@ int _sort_list_find(s_sis_sort_list *list, int64 key, int start, int stop)
 		{
 			if (*midv < key)
 			{
-				stop = mid - 1;
+				stop = mid;
 			}
 			else if (*midv > key)
 			{
@@ -778,7 +843,8 @@ int _sort_list_find(s_sis_sort_list *list, int64 key, int start, int stop)
 }
 void *sis_sort_list_find(s_sis_sort_list *list_, int64 key_)
 {
-	int index = _sort_list_find(list_, key_, 0, list_->key->count - 1);
+	int index = _sort_list_find(list_, key_);
+	// int index = _sort_list_find(list_, key_, 0, list_->key->count - 1);
 	if (index >= 0)
 	{
 		return sis_struct_list_get(list_->value, index);
@@ -884,43 +950,53 @@ void sis_pint_slist_set_maxsize(s_sis_pint_slist *list_, int rows_)
 
 	// }
 }
+// 返回 返回插入位置 finded >= 0 表示值相同 -1 表示为新数据
+int _pint_slist_search_insert(s_sis_pint_slist *list_, int key_, int *finded) 
+{
+    int left = 0;
+    int right = list_->count;
+	while (left < right) 
+	{
+		int mid = left + (right - left) / 2;
+		if (list_->keys[mid] == key_)
+		{
+			*finded = mid;
+			return mid;
+		}
+		else
+		{
+			if (list_->isascend)
+			{
+				if (list_->keys[mid] < key_) 
+				{
+					left = mid + 1;
+				} 
+				else 
+				{
+					right = mid;
+				}
+
+			}
+			else
+			{
+				if (list_->keys[mid] > key_) 
+				{
+					left = mid + 1;
+				} 
+				else 
+				{
+					right = mid;
+				}
+			}
+		}
+	}
+    return left;
+}
 
 int sis_pint_slist_set(s_sis_pint_slist *list_, int key_, void *in_)
 {
 	int finded = -1;
-	int index = list_->count;
-	if (list_->isascend)
-	{
-		for (int i = 0; i < list_->count; i++)
-		{
-			if (list_->keys[i] == key_)
-			{
-				finded = i;
-			}
-			if (list_->keys[i] > key_)
-			{
-				index = i;
-				// 插入
-				break;
-			}
-		}
-	}
-	else
-	{
-		for (int i = 0; i < list_->count; i++)
-		{
-			if (list_->keys[i] == key_)
-			{
-				finded = i;
-			}
-			if (list_->keys[i] < key_)
-			{
-				index = i;
-				// 插入
-				break;
-			}
-		}
-	}
+	int index = _pint_slist_search_insert(list_, key_, &finded);
 	// printf("== %d %d %d %d\n", key_, finded, index, list_->count);
 	if (finded >= 0)
 	{
@@ -942,26 +1018,14 @@ int sis_pint_slist_set(s_sis_pint_slist *list_, int key_, void *in_)
 			ptr[list_->count] = (char *)in_;
 			list_->count ++;
 		}
-		// else
-		// {
-		// 	// 表示设置的值在区间范围外了
-		// 	return -1;
-		// }
 	}
 	else
 	{
-		// char **ptr = (char **)list_->value;
 		int count = list_->count;
 		if (list_->count >= list_->maxcount)
 		{
 			count = list_->maxcount - 1;
 		}
-		// for (int i = index; i < count; i++)
-		// {
-		// 	list_->keys[index + 1]
-		// }
-		
-
 		// 向后方移动内存
 		memmove((char *)list_->keys + ((index + 1) * sizeof(int)),
 			(char *)list_->keys + (index * sizeof(int)),
