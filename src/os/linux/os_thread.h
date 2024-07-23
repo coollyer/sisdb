@@ -45,6 +45,7 @@ extern "C" {
 #endif
 
 bool sis_thread_create(cb_thread_working func_, void* val_, s_sis_thread *thread_);
+bool sis_thread_create_wait(cb_thread_working func_, void* val_, s_sis_thread *thread_);
 // 等待线程结束
 void sis_thread_finish(s_sis_thread *thread_);
 void sis_thread_join(s_sis_thread *thread_); 

@@ -238,6 +238,7 @@ void sis_wait_thread_stop(s_sis_wait_thread *swt_)
 	sis_thread_wait_stop(swt_->work_wait);
 	sis_thread_finish(&swt_->work_thread);
     swt_->work_status = SIS_WAIT_STATUS_NONE;
+	// sis_thread_join(&swt_->work_thread);
 }
 
 #if 0

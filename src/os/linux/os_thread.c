@@ -199,6 +199,40 @@ bool sis_thread_create(cb_thread_working func_, void* val_, s_sis_thread *thread
 	// sis_thread_auto_cpu(thread_);
 	return true;	
 }
+
+bool sis_thread_create_wait(cb_thread_working func_, void* val_, s_sis_thread *thread_)
+{
+	s_sis_thread_id_t result = 0;
+	pthread_attr_t attr;
+	int irc;
+	irc = pthread_attr_init(&attr);
+	if (irc)
+	{
+		return false;
+	}
+	irc = pthread_attr_setstacksize(&attr, 1024 * 64); //测试2008-07-15
+	if (irc)
+	{
+		return false;
+	}
+	irc = pthread_create(&result, &attr, func_, val_);
+	if (irc)
+	{
+		return false;
+	}
+	pthread_attr_destroy(&attr);
+	thread_->argv = val_;
+	thread_->worker = func_;
+	thread_->thread_id = result;
+	thread_->working = true;
+	// sis_thread_auto_cpu(thread_);
+
+	pthread_join(thread_->thread_id, NULL);
+
+	thread_->working = false;
+
+	return true;	
+}
 void sis_thread_finish(s_sis_thread *thread_)
 {
 	if (thread_)
@@ -222,6 +256,7 @@ void sis_thread_join(s_sis_thread *thread_)
 		}
 	}
 	pthread_join(thread_->thread_id, 0);
+	thread_->working = false;
 }
 
 void sis_thread_clear(s_sis_thread *thread_)

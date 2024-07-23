@@ -333,6 +333,7 @@ static void *_thread_snos_read_sub(void *argv_)
     }
     LOG(5)("sub sno stop. ok [%d] %d\n", context->work_date, context->status);
     context->status = SIS_RSNO_NONE;
+    // 这里设置状态 重新创建线程后需要等待一会儿
     return NULL;
 }
 /**
@@ -348,6 +349,7 @@ void sisdb_rsno_sub_start(s_sisdb_rsno_cxt *context)
     }
     else
     {
+        // 这里用同步方式
         sis_thread_create(_thread_snos_read_sub, context, &context->work_thread);
     }
 }
@@ -357,12 +359,14 @@ void sisdb_rsno_sub_stop(s_sisdb_rsno_cxt *context)
     {
         printf("stop sub..0.. %d %d\n", context->status, context->work_reader->status_sub);
         sis_disk_reader_unsub(context->work_reader);
-        // 下面代码在线程中死锁
-        while (context->status != SIS_RSNO_NONE)
-        {
-            printf("stop sub... %d %d\n", context->status, context->work_reader->status_sub);
-            sis_sleep(1000);
-        }
+        // 下面代码在线程中死锁 
+        // while (context->status != SIS_RSNO_NONE)
+        // {
+        //     printf("stop sub... %d %d\n", context->status, context->work_reader->status_sub);
+        //     sis_sleep(100);
+        // }
+        // sis_thread_create sis_thread_join 应该配对出现
+        // sis_thread_join(&context->work_thread);
         printf("stop sub..1.. %d\n", context->status);
     }
 }
@@ -420,7 +424,7 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     s_sis_message *msg = (s_sis_message *)argv_; 
     // 设置表结构
     // 设置数据对象
-    context->work_reader = sis_disk_reader_create(
+    s_sis_disk_reader *wreader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
         SIS_DISK_TYPE_SNO, NULL);
@@ -432,17 +436,16 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     const char *subkeys = sis_message_get_str(msg, "sub-keys");
     const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
     LOG(5)("get sno open. [%d] %d %s %s\n", context->work_date, subdate, subkeys, subsdbs);
-    s_sis_object *obj = sis_disk_reader_get_obj(context->work_reader, subkeys, subsdbs, &pair);
+    s_sis_object *obj = sis_disk_reader_get_obj(wreader, subkeys, subsdbs, &pair);
 
-    s_sis_dynamic_db *db = sis_disk_reader_getdb(context->work_reader, subsdbs);
-    LOG(5)("get sno stop. [%d] %p %p %p\n", context->work_date, context->work_reader, obj, db);
+    s_sis_dynamic_db *db = sis_disk_reader_getdb(wreader, subsdbs);
+    LOG(5)("get sno stop. [%d] %p %p %p\n", context->work_date, wreader, obj, db);
     if (db)
     {
         sis_dynamic_db_incr(db);
         sis_message_set(msg, "dbinfo", db, sis_dynamic_db_destroy);
     }
-    sis_disk_reader_destroy(context->work_reader);
-    context->work_reader = NULL;
+    sis_disk_reader_destroy(wreader);
 
     LOG(5)("get sno stop. ok [%d] %d %d\n", context->work_date, subdate, context->status);
     if (!obj)
@@ -492,6 +495,8 @@ int cmd_sisdb_rsno_sub(void *worker_, void *argv_)
     s_sisdb_rsno_cxt *context = (s_sisdb_rsno_cxt *)worker->context;
 
     SIS_WAIT_OR_EXIT(context->status == SIS_RSNO_NONE);  
+    // 可能上一个线程还未结束
+    sis_sleep(3);
 
     s_sis_message *msg = (s_sis_message *)argv_; 
     if (!msg)
@@ -550,7 +555,74 @@ void sisdb_rsno_working(void *worker_)
         LOG(5)("sub history end. [%d]\n", context->work_date);
     }
 }
+#if 0
+#include <stdio.h>
+#include <unistd.h>
+#include <pthread.h>
 
+void* thread_function(void* arg) {
+    printf("Thread started\n");
+    usleep(2000000); // sleep for 1 second
+    printf("Thread ended\n");
+    return NULL;
+}
+
+int main() {
+    pthread_t thread;
+    printf("Creating thread\n");
+    pthread_create(&thread, NULL, thread_function, NULL);
+    // usleep(100000);
+
+    printf("Main thread sleeping\n");
+    usleep(5000000); // sleep for 0.5 second
+    printf("Main thread awake\n");
+
+    pthread_join(thread, 0);
+    printf("Thread joined\n");
+
+    printf("============\n");
+    s_sis_thread       work_thread;
+    printf("Creating thread\n");
+    sis_thread_create_sync(thread_function, NULL, &work_thread);
+    printf("Main thread sleeping\n");
+    usleep(5000000); // sleep for 0.5 second
+    printf("Main thread awake\n");
+
+    sis_thread_join(&work_thread);
+    // sis_thread_clear(&work_thread);
+    printf("Thread joined\n");
+    return 0;
+}
+// 主线程运行时间长
+// Creating thread
+// Main thread sleeping
+// Thread started
+// Thread ended
+// Main thread awake
+// Thread joined
+// ============
+// Creating thread
+// Main thread sleeping
+// Thread started
+// Thread ended
+// Main thread awake
+// Thread joined
+// 主线程运行时间短
+// Creating thread
+// Main thread sleeping
+// Thread started
+// Main thread awake
+// Thread ended
+// Thread joined
+// ============
+// Creating thread
+// Main thread sleeping
+// Thread started
+// Main thread awake
+// Thread ended
+// Thread joined
+// 线程执行顺序
+#endif
 #if 0
 // 测试 snapshot 转 新格式的例子
 const char *sisdb_rsno = "\"sisdb_rsno\" : { \
