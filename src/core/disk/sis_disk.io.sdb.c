@@ -575,10 +575,10 @@ int cb_sis_disk_io_read_sdb_widx(void *source_, s_sis_disk_head *head_, char *im
                     unit.stop   = unit.start + sis_memory_get_ssize(memory);   
                     unit.ipage  = 0;
                     sis_struct_list_push(node->idxs, &unit);
-                    printf("::: %d %d %s %s\n", i, unit.fidx, (char *)node->kname->ptr, (char *)node->sname->ptr);
+                    // printf("::: %d %d %s %s\n", i, unit.fidx, (char *)node->kname->ptr, (char *)node->sname->ptr);
                 }
                 sis_map_list_set(cls_->map_idxs, name, node);   
-                printf("== %d %s %s %s\n", cls_->style, name, SIS_OBJ_GET_CHAR(node->kname), SIS_OBJ_GET_CHAR(node->sname));
+                // printf("== %d %s %s %s\n", cls_->style, name, SIS_OBJ_GET_CHAR(node->kname), SIS_OBJ_GET_CHAR(node->sname));
             }        
             break;    
         default:

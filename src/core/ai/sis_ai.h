@@ -138,6 +138,8 @@ void   sis_ai_series_argv(int n, double ins[], double *avg, double *vari);
 double sis_ai_series_chance(double in, double avg, double vari);
 // 求菲数列的均值, 最近的值权重最高
 double sis_ai_fibonacci_avg(int n, double ins[]);
+// 求等权均值
+double sis_ai_get_avg(int n, double ins[]);
 
 // 判断类型
 #define JUDGE_STYLE_NONE     0  // 

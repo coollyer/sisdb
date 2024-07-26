@@ -1006,6 +1006,10 @@ void sis_ai_polyfit(int n, double x[], double y[], int poly_n, double a[])
 }
 double sis_ai_slope(int n, double ins[])
 {
+    if (n < 3) 
+    {
+        return  0.0;
+    }
     double a[3];
     double *x = (double *)sis_calloc(sizeof(double) * n);
     for (int m = 0; m < n; m++)
@@ -1266,6 +1270,19 @@ double sis_ai_fibonacci_avg(int n, double ins[])
     }
     avg /= denominator; 
     return avg;
+}
+double sis_ai_get_avg(int n, double ins[])
+{
+    if ( n < 1 )
+    {
+        return 0.0;
+    }
+    double avg = 0.0;
+    for (int i = 0; i < n; i++)
+    {
+        avg += ins[i];
+    }
+    return avg / n;
 }
 
 /////////////////////////////////////////////////////

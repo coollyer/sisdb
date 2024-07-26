@@ -461,7 +461,6 @@ s_sis_conf_handle *sis_conf_open(const char *fn_)
 	handle->err_lines = 1;
 	if (!_sis_conf_parse(handle, buffer))
 	{
-
 		LOG(1)("[%3d]  %s \n", handle->err_lines, handle->err_msg);
 		sis_conf_close(handle);
 		handle = NULL;
@@ -537,6 +536,10 @@ s_sis_conf_handle *sis_conf_load(const char *content_, size_t len_)
 		s_sis_json_node *node = sis_json_create_node();
 		handle->node = node;
 		value = _sis_conf_skip(handle, _sis_parse_value(handle, node, value));
+	}
+	if (value && *value && *value != '{')
+	{
+		_sis_conf_parse(handle, content);
 	}
 	sis_free(content);
 	// size_t i;

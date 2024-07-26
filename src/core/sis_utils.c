@@ -8,11 +8,23 @@
 s_sis_dynamic_db *sis_sdbinfo_load(const char *fdbstr)
 {
 	s_sis_dynamic_db *db = NULL;
-	s_sis_conf_handle *handle = sis_conf_load(fdbstr, sis_strlen(fdbstr));
-	if (handle)
+	s_sis_conf_handle *injson = sis_conf_load(fdbstr, sis_strlen(fdbstr));
+	if (injson)
 	{
-		db = sis_dynamic_db_create(handle->node);
-		sis_conf_close(handle);
+		db = sis_dynamic_db_create(sis_json_first_node(injson->node));
+		sis_conf_close(injson);
+	}
+	
+	if (!db)
+	{
+		LOG(5)("load conf info fail. %s \n", fdbstr);
+	}
+	else
+	{
+		s_sis_sds str = sis_sdsempty();
+		str = sis_sdbinfo_to_conf(db, str);
+		printf("%s\n", str);
+
 	}
 	return db;
 }
