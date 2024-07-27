@@ -61,6 +61,8 @@ const char *sis_str_split(const char *s, size_t *len_, char c);
 void sis_str_merge(char *in_, size_t ilen_, char ch_, const char *one_, const char *two_);
 // 切割字符串
 int sis_str_divide(const char *in_, char ch_, char *one_, char *two_);
+// 找字符串最后一个ch 并前后分割
+int sis_str_divide_last(const char *in_, char ch_, char *one_, char *two_);
 // 切分长字符串
 int sis_str_divide_sds(const char *in_, char ch_, s_sis_sds *one_,  s_sis_sds *two_);
 // 返回字符所在位置

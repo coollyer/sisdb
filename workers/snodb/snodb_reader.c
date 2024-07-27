@@ -76,7 +76,7 @@ int snodb_register_reader(s_snodb_cxt *context_, s_sis_net_message *netmsg)
 	{
 		reader->sub_whole = false;
 	}
-	printf("%s %d %d | %d\n", __func__, reader->sub_date ,context->work_date, context->status);
+	// printf("%s %d %d | %d\n", __func__, reader->sub_date ,context->work_date, context->status);
 	if (reader->sub_date < context->work_date ||  
 		(reader->sub_date == context->work_date && context->status == SIS_SUB_STATUS_STOP))
 	{
@@ -249,7 +249,7 @@ static msec_t _bitzip_msec = 0;
 #endif
 static int cb_sub_incrzip(void *source, void *argv)
 {
-    printf("%s\n", __func__);
+    // printf("%s\n", __func__);
     s_snodb_reader *reader = (s_snodb_reader *)source;
     s_snodb_cxt *context = (s_snodb_cxt *)reader->father;
     s_sis_db_incrzip *inmem = (s_sis_db_incrzip *)argv;

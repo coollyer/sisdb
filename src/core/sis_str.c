@@ -206,6 +206,46 @@ int sis_str_divide(const char *in_, char ch_, char *one_, char *two_)
 	one_[index] = 0;
 	return 1;
 }
+// 找字符串最后一个ch 并前后分割
+int sis_str_divide_last(const char *in_, char ch_, char *one_, char *two_)
+{
+	one_[0] = 0;
+	two_[0] = 0;
+	const char *ptr = in_;
+	int oneidx = 0;
+    int twoidx = 0;
+    int agoidx = -1;
+	while (ptr && *ptr)
+	{
+		if (*ptr == ch_)
+		{
+            agoidx = oneidx;
+            twoidx = 0;
+		}
+		else
+		{
+            if (agoidx >= 0)
+            {
+                two_[twoidx] = *ptr;
+                twoidx++;
+            }
+		}
+        one_[oneidx] = *ptr;
+        oneidx++;
+        ptr++;
+	}
+    if (agoidx >= 0)
+	{
+        one_[agoidx] = 0;
+        two_[twoidx] = 0;
+    }
+    else
+    {
+        sis_strcpy(two_, sis_strlen(in_), in_);
+        one_[0] = 0;
+    }
+	return 1;
+}
 int sis_str_divide_sds(const char *in_, char ch_, s_sis_sds *one_,  s_sis_sds *two_)
 {
     const char *start = in_;

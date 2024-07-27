@@ -207,7 +207,7 @@ static int cb_dict_sdbs(void *worker_, void *argv_)
     {
         context->maps_sdbs = sis_map_list_create(sis_dynamic_db_destroy);
     }
-    printf("%s %s\n", __func__, context->wsno_sdbs);
+    // printf("%s %s\n", __func__, context->wsno_sdbs);
     sis_map_list_clear(context->maps_sdbs);
     sis_get_map_sdbs(context->wsno_sdbs, context->maps_sdbs);
 
