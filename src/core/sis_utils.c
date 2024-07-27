@@ -833,6 +833,7 @@ int sis_match_map_sdbs(const char *sdbs_, s_sis_sds match_sdbs, s_sis_map_list *
 	s_sis_json_handle *injson = sis_json_load(sdbs_, sis_strlen(sdbs_));
 	if (!injson)
 	{
+		LOG(5)("format fail. %s\n", sdbs_);
 		return 0;
 	}
 	s_sis_json_node *innode = sis_json_first_node(injson->node);
