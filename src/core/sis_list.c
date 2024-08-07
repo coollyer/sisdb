@@ -1786,6 +1786,10 @@ void *sis_pointer_list_first(s_sis_pointer_list *list_)
 {
 	return sis_pointer_list_get(list_, 0);
 }
+void *sis_pointer_list_last(s_sis_pointer_list *list_)
+{
+	return sis_pointer_list_get(list_, list_->count - 1);
+}
 // void *sis_pointer_list_next(s_sis_pointer_list *list_, void *current_)
 // {
 // 	int offset = 1;

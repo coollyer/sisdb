@@ -47,6 +47,7 @@ s_sis_file_handle sis_csv_write_open(const char *name_, int isnew_);
 size_t sis_csv_write(s_sis_file_handle, s_sis_sds);
 void sis_csv_write_close(s_sis_file_handle);
 
+s_sis_sds sis_csv_make_msec(s_sis_sds in_, uint64 val_);
 s_sis_sds sis_csv_make_str(s_sis_sds in_, const char *str_, size_t len_);
 s_sis_sds sis_csv_make_int(s_sis_sds in_, int64 val_);
 s_sis_sds sis_csv_make_uint(s_sis_sds in_, uint64 val_);

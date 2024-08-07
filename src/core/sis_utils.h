@@ -35,7 +35,8 @@ s_sis_sds sis_sdbinfo_to_csv_sds(s_sis_dynamic_db *db_);
 s_sis_sds sis_fhead_to_csv_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_);
 // 数据转换json 单条数据 对时间特殊处理
 s_sis_sds sis_fhead_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_);
-
+// 数据转换json node 
+s_sis_json_node *sis_fhead_to_json_node(s_sis_dynamic_db *db_, void *in_, size_t ilen_);
 
 // 直接通过配置转数据格式
 s_sis_sds sis_sdb_to_array_of_conf_sds(const char *confstr_, void *in_, size_t ilen_); 

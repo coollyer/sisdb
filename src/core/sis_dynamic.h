@@ -433,7 +433,49 @@ static inline s_sis_sds sis_dynamic_field_to_csv(s_sis_sds in_, s_sis_dynamic_fi
 	}
 	return in_;
 }
-
+static inline s_sis_sds sis_dynamic_field_to_msec_csv(s_sis_sds in_, s_sis_dynamic_field *field_, const char *val_)
+{
+	if(field_) 
+	{
+		for(int index = 0; index < field_->count; index++)
+		{
+			switch (field_->style)
+			{
+			case SIS_DYNAMIC_TYPE_INT:
+				in_ = sis_csv_make_int(in_, _sis_field_get_int(field_, val_, index));
+				break;
+			case SIS_DYNAMIC_TYPE_MSEC:
+				in_ = sis_csv_make_msec(in_, _sis_field_get_uint(field_, val_, index));
+				break;
+			case SIS_DYNAMIC_TYPE_TSEC:
+			case SIS_DYNAMIC_TYPE_MINU:
+			case SIS_DYNAMIC_TYPE_DATE:
+			case SIS_DYNAMIC_TYPE_UINT:
+				in_ = sis_csv_make_uint(in_, _sis_field_get_uint(field_, val_, index));
+				break;
+			case SIS_DYNAMIC_TYPE_FLOAT:
+				{
+					in_ = sis_csv_make_double(in_, _sis_field_get_float(field_, val_, index), field_->dot);
+				}
+				break;
+			case SIS_DYNAMIC_TYPE_PRICE:
+				{
+					int dot = _sis_field_get_price_dot(field_, val_, index);
+					in_ = sis_csv_make_double(in_, _sis_field_get_price(field_, val_, index), dot > 0 ? dot : field_->dot);
+				}
+				break;
+			case SIS_DYNAMIC_TYPE_CHAR:
+				in_ = sis_csv_make_str(in_, val_ + field_->offset + index * field_->len, field_->len);
+				break;
+			default:
+				in_ = sis_csv_make_str(in_, " ", 1);
+				break;
+			}
+			// printf("%s %d : %s\n", field_->fname, field_->len, in_);
+		}
+	}
+	return in_;
+}
 static inline void sis_dynamic_field_to_array(s_sis_json_node *in_, s_sis_dynamic_field *field_, const char *val_)
 {
 	if(field_) 

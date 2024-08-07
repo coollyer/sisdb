@@ -245,6 +245,7 @@ int sis_pointer_list_insert(s_sis_pointer_list *, int index_, void *in_);
 
 void *sis_pointer_list_get(s_sis_pointer_list *, int index_);
 void *sis_pointer_list_first(s_sis_pointer_list *);
+void *sis_pointer_list_last(s_sis_pointer_list *list_);
 // void *sis_pointer_list_next(s_sis_pointer_list *list_, void *);
 
 int sis_pointer_list_delete(s_sis_pointer_list *src_, int start_, int count_);

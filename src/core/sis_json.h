@@ -126,6 +126,7 @@ void sis_json_printf(s_sis_json_node *node_, int *i);
 bool sis_json_get_valid(s_sis_json_node *root_, const char *key_);
 
 int64 sis_json_get_int(s_sis_json_node *root_, const char *key_, int64 defaultvalue_);
+#define sis_json_get_intege sis_json_get_int
 double sis_json_get_double(s_sis_json_node *root_, const char *key_, double defaultvalue_);
 const char *sis_json_get_str(s_sis_json_node *root_, const char *key_);
 bool sis_json_get_bool(s_sis_json_node *root_, const char *key_, bool defaultvalue_);

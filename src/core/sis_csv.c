@@ -1,5 +1,6 @@
 ﻿
 #include <sis_csv.h>
+#include <sis_time.h>
 #include <sis_memory.h>
 
 int _sis_file_csv_parse(s_sis_file_csv *csv_)
@@ -189,6 +190,21 @@ void sis_csv_write_close(s_sis_file_handle fp_)
 	sis_file_close(fp_);
 }
 
+s_sis_sds sis_csv_make_msec(s_sis_sds in_, uint64 val_)
+{
+	char wmsec[32];
+	sis_time_format_msec_longstr(wmsec, 32, val_);
+	size_t size = sis_sdslen(in_);
+	if (size > 0 && in_[size - 1] != '\n')
+	{
+		return sis_sdscatfmt(in_, ",%s\t", wmsec);
+	}
+	else
+	{
+		return sis_sdscatfmt(in_, "%s\t", wmsec);
+	}
+}
+
 s_sis_sds sis_csv_make_str(s_sis_sds in_, const char *str_, size_t len_)
 {
 	size_t size = sis_sdslen(in_);
@@ -204,6 +220,10 @@ s_sis_sds sis_csv_make_str(s_sis_sds in_, const char *str_, size_t len_)
 	}
 	else
 	{
+		if (len < 1)
+		{
+			return sis_sdscatlen(in_, " ", 1);
+		}
 		return sis_sdscatlen(in_, str_, len);
 	}
 }
