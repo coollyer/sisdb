@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h> 
+#include <sys/mman.h>
 
 #include <os_types.h>
 #include <os_str.h>
@@ -88,6 +89,11 @@ size_t sis_write(s_sis_handle fp_, const char *in_, size_t len_);
 
 #define sis_fsync(a) fsync(a)
 #define sis_fdatasync(a) fdatasync(a)
+
+char *sis_mmap_r(s_sis_handle fd, size_t isize);
+char *sis_mmap_w(s_sis_handle fd, size_t isize);
+int  sis_msync(char *map, size_t isize);
+int  sis_munmap(char *map, size_t isize);
 
 #define s_sis_file_handle FILE *
 

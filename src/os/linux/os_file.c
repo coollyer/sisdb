@@ -2,7 +2,6 @@
 #include <os_file.h>
 #include <dirent.h>
 #include <fnmatch.h>
-#include <sys/stat.h>
 
 /* Replace \ to / in the path string */
 void sis_file_fixpath(char *in_)
@@ -96,6 +95,22 @@ size_t sis_write(s_sis_handle fp_, const char *in_, size_t len_)
 
 // 	return fp;
 // }
+char *sis_mmap_r(s_sis_handle fd, size_t isize)
+{
+	return mmap(0, isize, PROT_READ, MAP_SHARED, fd, 0);
+}
+char *sis_mmap_w(s_sis_handle fd, size_t isize)
+{
+	return mmap(0, isize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+}
+int  sis_msync(char *map, size_t isize)
+{
+	return msync(map, isize, MS_SYNC);
+}
+int  sis_munmap(char *map, size_t isize)
+{
+	return munmap(map, isize);
+}
 
 s_sis_file_handle sis_file_open(const char *fn_, int mode_, int access_)
 {

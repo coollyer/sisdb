@@ -57,6 +57,23 @@ size_t sis_write(s_sis_handle fp_, const char *in_, size_t len_)
 	return write(fp_, in_, len_);
 }
 
+char *sis_mmap_r(s_sis_handle fd, size_t isize)
+{
+	return NULL;
+}
+char *sis_mmap_w(s_sis_handle fd, size_t isize)
+{
+	return NULL;
+}
+int  sis_msync(char *map, size_t isize)
+{
+	return 0;
+}
+int  sis_munmap(char *map, size_t isize)
+{
+	return 0;
+}
+
 s_sis_file_handle sis_file_open(const char *fn_, int mode_, int access_)
 {
 	sis_file_fixpath((char *)fn_);
