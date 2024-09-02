@@ -110,7 +110,7 @@ void _disk_ctrl_init(s_sis_disk_ctrl *o)
     case SIS_DISK_TYPE_SDB: // name/name.sdb
         {
             sis_sprintf(work_fn, 1024, "%s/%s/%s.%s",
-                    o->fpath, o->fname, o->fname, SIS_DISK_MAP_CHAR);
+                    o->fpath, o->fname, o->fname, SIS_DISK_MDB_CHAR);
             // 这里虽然没有设置压缩方式 实际传入的数据就已经按增量压缩好了
             o->work_fps->main_head.index = 0;
             o->work_fps->max_page_size = SIS_DISK_MAXLEN_SDBPAGE;
@@ -665,7 +665,7 @@ int sis_disk_ctrl_read_start(s_sis_disk_ctrl *cls_)
     else if (cls_->style == SIS_DISK_TYPE_SDB)
     {
         // 读取key和sdb定义信息
-        o = sis_disk_io_read_sdb_map(cls_);
+        o = sis_disk_io_read_sdb_mdb(cls_);
         if (o != SIS_DISK_CMD_NO_IDX)
         {
             return o;
@@ -764,7 +764,7 @@ int sis_disk_ctrl_write_start(s_sis_disk_ctrl *cls_)
         else if (cls_->style == SIS_DISK_TYPE_SDB)
         {
             // 读取key和sdb定义信息
-            vo = sis_disk_io_read_sdb_map(cls_);
+            vo = sis_disk_io_read_sdb_mdb(cls_);
             if (vo != SIS_DISK_CMD_NO_IDX)
             {
                 return vo;
@@ -987,7 +987,7 @@ int sis_disk_ctrl_merge(s_sis_disk_ctrl *src_)
                 break;  
             case SIS_DISK_HID_MSG_SIC:
             case SIS_DISK_HID_SIC_NEW:
-            case SIS_DISK_HID_MSG_MAP:
+            case SIS_DISK_HID_MSG_MDB:
             case SIS_DISK_HID_MSG_ONE:
             case SIS_DISK_HID_MSG_MUL:        
             default:

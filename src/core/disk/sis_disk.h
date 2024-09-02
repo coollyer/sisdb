@@ -5,6 +5,7 @@
 #include "sis_list.h"
 #include "sis_db.h"
 #include "sis_map.h"
+
 ////////////////////////////////////////////////////
 // 外部调用接口定义
 ////////////////////////////////////////////////////
@@ -45,6 +46,10 @@ typedef struct s_sis_disk_reader_cb {
      * 第二个参数为日期
      */
     void (*cb_break)(void *, int); 
+    // 打开 
+    void (*cb_open)(void *, int);
+    // 关闭
+    void (*cb_close)(void *, int);
 } s_sis_disk_reader_cb;
 
 
@@ -67,7 +72,9 @@ typedef struct s_sis_disk_writer {
     // 以下两个结构为 map_sdbs 的子集
 	s_sis_map_list       *map_year;   // 日上时序数据表指针 *s_sis_dynamic_db
 	s_sis_map_list       *map_date;   // 日下时序数据表指针 *s_sis_dynamic_db
-
+    // 以下结构为 map 文件专用 替换 s_sis_disk_ctrl 的作用
+    // 使用的变量 status map_keys map_sdbs
+    struct s_sis_map_fctrl      *map_fctrl;   // map文件读写的控制结构
 } s_sis_disk_writer;
 
 typedef struct s_sis_disk_reader_unit {
@@ -108,7 +115,10 @@ typedef struct s_sis_disk_reader {
     // 订阅列表
     s_sis_subdb_cxt      *subcxt;     // 订阅组件   
     s_sis_map_list       *subidxs;    // 订阅索引列表  s_sis_disk_reader_sub
-}s_sis_disk_reader;
+
+    // 以下结构为 map 文件专用 替换 munit sunits 的作用
+    struct s_sis_map_fctrl      *map_fctrl;   // map文件读写的控制结构
+} s_sis_disk_reader;
 
 
 ///////////////////////////
@@ -167,6 +177,12 @@ int sis_disk_writer_sic(s_sis_disk_writer *, const char *kname_, const char *sna
 // sis_disk_writer_stop
 // sis_disk_writer_close
 int sis_disk_writer_sno(s_sis_disk_writer *, const char *kname_, const char *sname_, void *in_, size_t ilen_);
+
+//////////////////////////////////////////
+//  map 
+//////////////////////////////////////////
+int sis_disk_writer_map(s_sis_disk_writer *, const char *kname_, const char *sname_, void *in_, size_t ilen_);
+
 //////////////////////////////////////////
 //  sdb 
 //////////////////////////////////////////
@@ -211,6 +227,9 @@ int sis_disk_reader_sub_sic(s_sis_disk_reader *, const char *keys_, const char *
 // 如果定义了 cb_bytedata cb_chardata 就解压数据再返回
 // 可支持多个key和sdb订阅 k1,k2,k3  db1,db2,db3
 int sis_disk_reader_sub_sno(s_sis_disk_reader *, const char *keys_, const char *sdbs_, int idate_);
+
+// 读取 仅支持 MAP  
+int sis_disk_reader_sub_map(s_sis_disk_reader *, const char *keys_, const char *sdbs_, int startdate_, int stopdate_);
 
 // 取消一个正在订阅的任务 只有处于非订阅状态下才能订阅 避免重复订阅
 void sis_disk_reader_unsub(s_sis_disk_reader *);

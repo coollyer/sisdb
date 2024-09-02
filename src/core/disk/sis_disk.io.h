@@ -38,7 +38,7 @@
 //    文件一律分块存储
 ////////////////////////////////////////////////////
 // 2. 统一管理 4 5 6 类型文件 只保留 所有key和sdb最新的结构体
-// 所有有效的 key 及相关信息 保存在 SIS_DISK_HID_MSG_MAP 块中
+// 所有有效的 key 及相关信息 保存在 SIS_DISK_HID_MSG_MDB 块中
 // 删除在 map 中做标记  pack 时才做清理
 #define  SIS_DISK_TYPE_SDB         3   // name/name.sdb
 // 4. 标准SDB数据文件 无时序 有索引 有文件尾 name.sdb 会有[所有]的key [最新]的结构体名和结构sdb
@@ -59,6 +59,23 @@
 //    文件以16K一个数据块 以1024个数据块为一个数据包 以SIS_DISK_HID_SIC_NEW 分隔
 //    数据从头开始的加载 直到读取到文件尾 由于可能定位读取数据 文件分块存储
 #define  SIS_DISK_TYPE_SIC         7  // name/2021/20210121.sic  struct incr compress
+
+// 8. 映射文件 方便实时数据获取 采用固定32K大小存储 不压缩
+// 作用：实时数据写入和共享 多个因子各自写入文件 其他不同用户筛选读取
+//      合并所有日线数据或5分钟数据到一个大文件中 有新数据可以不断增加数据 避免小文件过多 提高访问速度
+//      传递出去的数据 kname sname data 都是不会做修改的数据 避免内存数据拷贝 *** 加快速度 ***
+/////////////////////////////////
+//    头 + key + sdb 定义后 为数据区
+//    数据区 首先为 kidx+sidx 的块信息  索引定义区
+//          然后为 kidx+sidx 的数据区 每条数据需要有一个排序编号
+// 顺序播报时 对所有 kidx+sidx 建立指针 最小的编号先发布 
+// 特别注意： 32K满了以后 需要增加文件长度 此时需要重新 unmap mmap 一次
+// 因此文件打开即保持 每次读请求需要检查文件长度
+// 写入时先写数据 再加锁后写索引
+// 读取索引时需要加锁 这样读取数据时就不用加锁 
+#define  SIS_DISK_TYPE_MAP         8  // name/name.map mmap文件
+
+
 ////////////////////////////////////////////////////
 // 1. sno的索引文件 记录key和sdb的信息 以及每个段的 以SIS_DISK_HID_SNO_END 信息 方便按时间点获取数据 时间为毫秒
 //    索引文件由于必须全部加载 不分块存储
@@ -78,6 +95,7 @@
 #define  SIS_DISK_SNO_CHAR      "sno"
 #define  SIS_DISK_SIC_CHAR      "sic"
 #define  SIS_DISK_SDB_CHAR      "sdb"
+#define  SIS_DISK_MDB_CHAR      "mdb"
 #define  SIS_DISK_MAP_CHAR      "map"
 #define  SIS_DISK_IDX_CHAR      "idx"
 #define  SIS_DISK_TMP_CHAR      "tmp"
@@ -112,6 +130,7 @@
 #define  SIS_DISK_MAXLEN_SICPAGE   0x00FFFFFF  // 16M 文件块大小 不超过连续压缩 超过重新开始压缩
 
 #define  SIS_DISK_MAXLEN_SNOPAGE   0x1FFFFFFF  // 536M 文件块大小
+#define  SIS_DISK_MAXLEN_MAPPAGE   (32768)     // 32K
 
 #define  SIS_DISK_MAXLEN_IDXPAGE   0x00FFFFFF  // 16M 索引文件块大小 
 
@@ -155,9 +174,9 @@
 #define  SIS_DISK_HID_MSG_SIC     0xB  // size(dsize)+incrzipstream 
 // SNO数据块结束符 收到此消息后 表明数据压缩重新开始
 #define  SIS_DISK_HID_SIC_NEW     0xC  // size(dsize)+最新时间+pages(dsize)+序号(dsize)
-// MAP文件的key+sdb的索引信息 active 在 1.255 之间表示有效 0 表示删除 
+// MDB文件的key+sdb的索引信息 active 在 1.255 之间表示有效 0 表示删除 
 // 后写入的 如果 ndate 一样会覆盖前面写入的数据 这样保证 map 只写增量数据 仅在pack 时才清理冗余的数据
-#define  SIS_DISK_HID_MSG_MAP     0xD // size(dsize)+klen(dsize)+kname+dblen(dsize)+dname+active(1)+ktype(1)+blocks(dsize)
+#define  SIS_DISK_HID_MSG_MDB     0xD // size(dsize)+klen(dsize)+kname+dblen(dsize)+dname+active(1)+ktype(1)+blocks(dsize)
 //        +[active(1)+ndate(dsize)]
 
 /////////////////////////////////////////////////////////
@@ -184,6 +203,20 @@
 // NET的块开始块索引 存储当前是第几个块 用于断点续传时使用
 // 格式为 blocks(dsize)+[fidx(dsize)+offset(dsize)+size(dsize)+openmsec(dsize)]
 #define  SIS_DISK_HID_INDEX_NEW   0x15 // size(dsize)+
+
+//////////////
+// MAP文件的总控信息 固定结构 当前最新序列号 固定块起始偏移 块大小 key数量 sdb数量 
+#define  SIS_DISK_HID_MAP_CTRL     0x16 // sno(8)+offset(8)+bsize(4)+knums(4)+snums(4)
+// MAP文件的单key+单sdb的索引信息 固定结构 每页记录数 总记录数 当前块记录数 最新一条sno偏移位置 数据开始偏移 最新一条数据偏移位置 块数 ...
+// map文件读写和其他文件都不一样 hid号可以重复 SIS_DISK_HID_INDEX_MSG
+#define  SIS_DISK_HID_MAP_INDEX    0x13 // kidx(4)+sidx(4)+perrecs(4)+sumrecs(4)+currecs(4)+soffset(8)+offset(8)+doffset(8)+blocks(4)+[block(4)]
+// MAP文件的单key+单sdb的索引信息 固定结构 写入序号 
+// map文件读写和其他文件都不一样 hid号可以重复 SIS_DISK_HID_MSG_MDB
+#define  SIS_DISK_HID_MAP_DATA     0x14 // sno(8)*currecs(4) + [data]
+// MAP文件对单key的定位数据 指向 SIS_DISK_HID_MAP_INDEX 的信息 方便随时增加 key
+#define  SIS_DISK_HID_MAP_BLOCK    0x15 // code(16)+sno(8)
+ 
+
 // 文件结束块
 #define  SIS_DISK_HID_TAIL        0x1F  // 结束块标记
 
@@ -654,7 +687,7 @@ int sis_disk_io_write_mul(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis
 int sis_disk_io_write_non(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis_disk_sdict *sdict_, void *in_, size_t ilen_);
 int sis_disk_io_write_sdb(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis_disk_sdict *sdict_, void *in_, size_t ilen_);
 
-int sis_disk_io_write_map(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis_disk_sdict *sdict_, int style, int idate, int moved);
+int sis_disk_io_write_mdb(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis_disk_sdict *sdict_, int style, int idate, int moved);
 
 size_t sis_disk_io_write_sdb_widx(s_sis_disk_ctrl *cls_);
 
@@ -668,7 +701,7 @@ int sis_disk_io_sub_sdb(s_sis_disk_ctrl *cls_, void *cb_);
 // 读所有索引信息
 int sis_disk_io_read_sdb_widx(s_sis_disk_ctrl *cls_);
 // 读取map文件信息
-int sis_disk_io_read_sdb_map(s_sis_disk_ctrl *cls_);
+int sis_disk_io_read_sdb_mdb(s_sis_disk_ctrl *cls_);
 
 ///////////////////////////
 //  sis_disk.io.sno.c

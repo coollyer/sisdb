@@ -155,7 +155,7 @@ int sis_disk_io_write_sdb(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis
     return size;
 }
 
-int sis_disk_io_write_map(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis_disk_sdict *sdict_, int ktype, int idate, int moved)
+int sis_disk_io_write_mdb(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis_disk_sdict *sdict_, int ktype, int idate, int moved)
 {
     // 写map之间需要先写一下 newinfo 确保索引存在
     char name[255];
@@ -232,7 +232,7 @@ int sis_disk_io_write_map(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis
     sis_memory_cat_byte(memory, 1, punit->active);
     sis_memory_cat_ssize(memory, punit->idate);
 
-    wcatch->head.hid = SIS_DISK_HID_MSG_MAP;
+    wcatch->head.hid = SIS_DISK_HID_MSG_MDB;
     wcatch->head.zip = sis_disk_ctrl_work_zipmode(cls_);
     // size_t size = 
     sis_disk_io_write_sdb_work(cls_, wcatch);
@@ -619,7 +619,7 @@ int sis_disk_io_read_sdb_widx(s_sis_disk_ctrl *cls_)
     return SIS_DISK_CMD_NO_IDX;
 }
 
-int cb_sis_disk_io_read_sdb_map(void *source_, s_sis_disk_head *head_, char *imem_, size_t isize_)
+int cb_sis_disk_io_read_sdb_mdb(void *source_, s_sis_disk_head *head_, char *imem_, size_t isize_)
 {
     s_sis_disk_ctrl *ctrl = (s_sis_disk_ctrl *)source_;
     // map文件只处理 key 和 sdb 
@@ -636,7 +636,7 @@ int cb_sis_disk_io_read_sdb_map(void *source_, s_sis_disk_head *head_, char *ime
         sis_disk_reader_set_sdict(ctrl->map_sdicts, sis_memory(memory), sis_memory_get_size(memory));
         // sis_out_binary("sdbs", sis_memory(memory), sis_memory_get_size(memory));
         break;
-    case SIS_DISK_HID_MSG_MAP:
+    case SIS_DISK_HID_MSG_MDB:
         {
             int kidx = sis_memory_get_ssize(memory);
             s_sis_disk_kdict *kdict = sis_map_list_geti(ctrl->map_kdicts, kidx);
@@ -694,7 +694,7 @@ int cb_sis_disk_io_read_sdb_map(void *source_, s_sis_disk_head *head_, char *ime
     sis_memory_destroy(memory);
     return 0;
 }
-int sis_disk_io_read_sdb_map(s_sis_disk_ctrl *cls_)
+int sis_disk_io_read_sdb_mdb(s_sis_disk_ctrl *cls_)
 {
     if (cls_->work_fps->main_head.style != SIS_DISK_TYPE_SDB)
     {
@@ -708,7 +708,7 @@ int sis_disk_io_read_sdb_map(s_sis_disk_ctrl *cls_)
 
     sis_map_list_clear(cls_->map_maps);
 
-    sis_disk_files_read_fulltext(cls_->work_fps, cls_, cb_sis_disk_io_read_sdb_map);
+    sis_disk_files_read_fulltext(cls_->work_fps, cls_, cb_sis_disk_io_read_sdb_mdb);
 
     return SIS_DISK_CMD_NO_IDX;
 }

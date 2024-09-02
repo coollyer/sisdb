@@ -1,5 +1,6 @@
 ﻿
 #include "sis_disk.h"
+#include "sis_disk.io.map.h"
 
 ///////////////////////////
 //  s_sis_disk_reader_unit
@@ -104,6 +105,11 @@ s_sis_disk_reader *sis_disk_reader_create(const char *path_, const char *name_, 
 
     o->status_open = 0;
     o->status_sub = 0;
+
+    if (style_ == SIS_DISK_TYPE_MAP)
+    {
+        o->map_fctrl = sis_map_fctrl_create();
+    }
     return o;
 }
 void sis_disk_reader_destroy(void *reader_)
@@ -112,6 +118,10 @@ void sis_disk_reader_destroy(void *reader_)
     sis_disk_reader_close(reader);
     sis_pointer_list_destroy(reader->sunits);
     sis_map_list_destroy(reader->subidxs);
+    if (reader->map_fctrl)
+    {
+        sis_map_fctrl_destroy(reader->map_fctrl);
+    }
     sis_sdsfree(reader->sub_keys);
     sis_sdsfree(reader->sub_sdbs);
     sis_sdsfree(reader->fpath);
@@ -230,20 +240,33 @@ int sis_disk_reader_sub_sno(s_sis_disk_reader *reader_, const char *keys_, const
     _disk_reader_close(reader_);
     return 0;
 }
+
+int sis_disk_reader_sub_map(s_sis_disk_reader *reader_, const char *keys_, const char *sdbs_, int startdate_, int stopdate_)
+{
+    return sis_disk_io_map_r_sub(reader_->map_fctrl, keys_, sdbs_, startdate_, stopdate_);
+}
+
 // 取消一个正在订阅的任务 只有处于非订阅状态下才能订阅 避免重复订阅
 void sis_disk_reader_unsub(s_sis_disk_reader *reader_)
 {
     if (reader_->status_sub == 1)
     {
         reader_->status_sub = 2;
-        // 中断读取动作
-        reader_->munit->isstop = true;
-        for (int i = 0; i < reader_->sunits->count; i++)
+        if (reader_->style == SIS_DISK_TYPE_MAP)
         {
-            s_sis_disk_reader_unit *unit = sis_pointer_list_get(reader_->sunits, i);
-            if (unit->ctrl)
+            is_disk_io_map_r_unsub(reader_->map_fctrl);
+        }
+        else
+        {
+            // 中断读取动作
+            reader_->munit->isstop = true;
+            for (int i = 0; i < reader_->sunits->count; i++)
             {
-                unit->ctrl->isstop = true;
+                s_sis_disk_reader_unit *unit = sis_pointer_list_get(reader_->sunits, i);
+                if (unit->ctrl)
+                {
+                    unit->ctrl->isstop = true;
+                }
             }
         }
     }
@@ -315,14 +338,6 @@ void sis_disk_reader_close(s_sis_disk_reader *reader_)
 s_sis_dynamic_db *sis_disk_reader_getdb(s_sis_disk_reader *reader_, const char *sname_)
 {
     s_sis_dynamic_db *db = NULL;
-    if (reader_->style == SIS_DISK_TYPE_SDB)
-    {
-        s_sis_disk_sdict *sdict = sis_disk_map_get_sdict(reader_->munit->map_sdicts, sname_);
-        if (sdict)
-        {
-            db = sis_disk_sdict_last(sdict);
-        }
-    }
     if (reader_->style == SIS_DISK_TYPE_SNO)
     {
         s_sis_disk_reader_unit *munit = sis_pointer_list_get(reader_->sunits, 0);
@@ -333,6 +348,18 @@ s_sis_dynamic_db *sis_disk_reader_getdb(s_sis_disk_reader *reader_, const char *
             {
                 db = sis_disk_sdict_last(sdict);
             }
+        }
+    }
+    else if (reader_->style == SIS_DISK_TYPE_MAP)
+    {
+        db = sis_disk_io_map_get_sinfo(reader_->map_fctrl, sname_);
+    }
+    else if (reader_->style == SIS_DISK_TYPE_SDB)
+    {
+        s_sis_disk_sdict *sdict = sis_disk_map_get_sdict(reader_->munit->map_sdicts, sname_);
+        if (sdict)
+        {
+            db = sis_disk_sdict_last(sdict);
         }
     }
     return db;
@@ -833,6 +860,10 @@ s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kn
     {
         // 只支持根据日期获取
         obj = _disk_reader_get_sno_obj(reader_, kname_, sname_, smsec_);
+    }
+    else if (reader_->style == SIS_DISK_TYPE_MAP)
+    {
+        obj = sis_disk_io_map_r_get_obj(reader_->map_fctrl, kname_, sname_, smsec_);
     }
     else if (reader_->style == SIS_DISK_TYPE_SDB)
     {

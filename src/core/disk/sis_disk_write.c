@@ -1,5 +1,6 @@
 ﻿
 #include "sis_disk.h"
+#include "sis_disk.io.map.h"
 
 ///////////////////////////
 //  s_sis_disk_writer
@@ -19,6 +20,10 @@ s_sis_disk_writer *sis_disk_writer_create(const char *path_, const char *name_, 
     o->map_sdbs = sis_map_list_create(sis_dynamic_db_destroy);
     o->map_year = sis_map_list_create(NULL);
     o->map_date = sis_map_list_create(NULL);
+    if (style_ == SIS_DISK_TYPE_MAP)
+    {
+        o->map_fctrl = sis_map_fctrl_create();
+    }
     return o;
 }
 void sis_disk_writer_destroy(void *writer_)
@@ -31,6 +36,10 @@ void sis_disk_writer_destroy(void *writer_)
     if (writer->munit)
     {
         sis_disk_ctrl_destroy(writer->munit);
+    }
+    if (writer->map_fctrl)
+    {
+        sis_map_fctrl_destroy(writer->map_fctrl);
     }
     sis_map_list_destroy(writer->units);
     sis_map_list_destroy(writer->map_year);
@@ -60,36 +69,50 @@ int sis_disk_writer_open(s_sis_disk_writer *writer_, int idate_)
     case SIS_DISK_TYPE_SDB:
         writer_->munit = sis_disk_ctrl_create(SIS_DISK_TYPE_SDB, writer_->fpath, writer_->fname, idate_);
         break;   
+    case SIS_DISK_TYPE_MAP:
+        sis_disk_io_map_w_open(writer_->map_fctrl, writer_->fpath, writer_->fname, idate_);
+        break;   
     default: // SIS_DISK_TYPE_LOG
         writer_->munit = sis_disk_ctrl_create(SIS_DISK_TYPE_LOG, writer_->fpath, writer_->fname, idate_);
         break;
     }
-    if (sis_disk_ctrl_write_start(writer_->munit) < 0)
+    if (writer_->style != SIS_DISK_TYPE_MAP)
     {
-        sis_disk_ctrl_destroy(writer_->munit);
-        writer_->munit = NULL;
-        return 0;
+        if (sis_disk_ctrl_write_start(writer_->munit) < 0)
+        {
+            sis_disk_ctrl_destroy(writer_->munit);
+            writer_->munit = NULL;
+            return 0;
+        }        
     }
+
     writer_->status = 1;
     return 1;
 }
 // 关闭所有文件 重写索引
 void sis_disk_writer_close(s_sis_disk_writer *writer_)
 {
-    if (writer_->status && writer_->munit)
+    if (writer_->status && writer_->style == SIS_DISK_TYPE_MAP)
     {
-        if (writer_->style == SIS_DISK_TYPE_SDB)
+        sis_disk_io_map_w_close(writer_->map_fctrl);
+    }
+    else
+    {
+        if (writer_->status && writer_->munit)
         {
-            // printf("%d %d\n", writer_->munit->new_kinfos->count, writer_->munit->new_sinfos->count);
-            sis_disk_ctrl_write_kdict(writer_->munit);
-            sis_disk_ctrl_write_sdict(writer_->munit);
-        }
-        sis_disk_ctrl_write_stop(writer_->munit);
-        int count = sis_map_list_getsize(writer_->units);
-        for (int i = 0; i < count; i++)
-        {
-            s_sis_disk_ctrl *ctrl = sis_map_list_geti(writer_->units, i);
-            sis_disk_ctrl_write_stop(ctrl);
+            if (writer_->style == SIS_DISK_TYPE_SDB)
+            {
+                // printf("%d %d\n", writer_->munit->new_kinfos->count, writer_->munit->new_sinfos->count);
+                sis_disk_ctrl_write_kdict(writer_->munit);
+                sis_disk_ctrl_write_sdict(writer_->munit);
+            }
+            sis_disk_ctrl_write_stop(writer_->munit);
+            int count = sis_map_list_getsize(writer_->units);
+            for (int i = 0; i < count; i++)
+            {
+                s_sis_disk_ctrl *ctrl = sis_map_list_geti(writer_->units, i);
+                sis_disk_ctrl_write_stop(ctrl);
+            }
         }
     }
     writer_->status = 0;
@@ -148,6 +171,10 @@ int sis_disk_writer_set_kdict(s_sis_disk_writer *writer_, const char *in_, size_
     {
         return 0;
     }
+    if (writer_->style == SIS_DISK_TYPE_MAP)
+    {
+        return sis_disk_io_map_set_kinfo(writer_->map_fctrl, in_, ilen_);
+    }
     s_sis_string_list *klist = sis_string_list_create();
     sis_string_list_load(klist, in_, ilen_, ",");
     int count = sis_string_list_getsize(klist);
@@ -177,6 +204,10 @@ int sis_disk_writer_set_sdict(s_sis_disk_writer *writer_, const char *in_, size_
     if (writer_->status == 0 || writer_->style == SIS_DISK_TYPE_LOG || !in_ || ilen_ < 16) // {k:{fields:[[]]}}
     {
         return 0;
+    }
+    if (writer_->style == SIS_DISK_TYPE_MAP)
+    {
+        return sis_disk_io_map_set_sinfo(writer_->map_fctrl, in_, ilen_);
     }
     s_sis_json_handle *injson = sis_json_load(in_, ilen_);
     if (!injson)
@@ -239,6 +270,9 @@ int sis_disk_writer_start(s_sis_disk_writer *writer_)
         sis_disk_ctrl_write_sdict(writer_->munit);
         o = sis_disk_io_write_sno_start(writer_->munit);
         break;
+    case SIS_DISK_TYPE_MAP:
+        o = sis_disk_io_map_w_start(writer_->map_fctrl);
+        break;
     case SIS_DISK_TYPE_SDB:
         break;
     default:
@@ -256,6 +290,9 @@ void sis_disk_writer_stop(s_sis_disk_writer *writer_)
         break;
     case SIS_DISK_TYPE_SNO:
         sis_disk_io_write_sno_stop(writer_->munit);
+        break;
+    case SIS_DISK_TYPE_MAP:
+        sis_disk_io_map_w_stop(writer_->map_fctrl);
         break;
     case SIS_DISK_TYPE_SDB:
         break;
@@ -313,6 +350,12 @@ int sis_disk_writer_sno(s_sis_disk_writer *writer_, const char *kname_, const ch
     }
     return sis_disk_io_write_sno(writer_->munit, kdict, sdict, in_, ilen_);
 }
+
+int sis_disk_writer_map(s_sis_disk_writer *writer_, const char *kname_, const char *sname_, void *in_, size_t ilen_)
+{
+    return sis_disk_io_map_w_data(writer_->map_fctrl, kname_, sname_, in_, ilen_);
+}
+
 //////////////////////////////////////////
 //   sdb 
 //////////////////////////////////////////
@@ -438,7 +481,7 @@ size_t sis_disk_writer_sdb_year(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
         {
             // 得到实际的字典
             osize += _disk_writer_sunit(ctrl, kdict_, sdict_, in_, ilen_);
-            sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, start / 10000, 0);
+            sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, start / 10000, 0);
         }
     }
     else
@@ -457,7 +500,7 @@ size_t sis_disk_writer_sdb_year(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
                 if (ctrl)
                 {
                     osize += _disk_writer_sunit(ctrl, kdict_, sdict_, ((char *)in_) + nowidx * sdb->size, nowrec * sdb->size);
-                    sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday / 10000, 0);
+                    sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday / 10000, 0);
                 }
                 nowrec = 1;
                 nowday = curr;
@@ -473,7 +516,7 @@ size_t sis_disk_writer_sdb_year(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
         if (ctrl)
         {
             osize += _disk_writer_sunit(ctrl, kdict_, sdict_, ((char *)in_) + nowidx * sdb->size, nowrec * sdb->size);
-            sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday / 10000, 0);
+            sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday / 10000, 0);
         }
     }
     return osize;
@@ -495,7 +538,7 @@ size_t sis_disk_writer_sdb_date(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
         if (ctrl)
         {
             osize += _disk_writer_sunit(ctrl, kdict_, sdict_, in_, ilen_);
-            sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, start, 0);
+            sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, start, 0);
         }
     }
     else
@@ -514,7 +557,7 @@ size_t sis_disk_writer_sdb_date(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
                 if (ctrl)
                 {
                     osize += _disk_writer_sunit(ctrl, kdict_, sdict_, ((char *)in_) + nowidx * sdb->size, nowrec * sdb->size);
-                    sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday, 0);
+                    sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday, 0);
                 }
                 nowrec = 1;
                 nowday = curr;
@@ -530,7 +573,7 @@ size_t sis_disk_writer_sdb_date(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
         if (ctrl)
         {
             osize += _disk_writer_sunit(ctrl, kdict_, sdict_, ((char *)in_) + nowidx * sdb->size, nowrec * sdb->size);
-            sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday, 0);
+            sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_SDB, nowday, 0);
         }
     }
     return osize;
@@ -552,7 +595,7 @@ size_t sis_disk_writer_sdb_nots(s_sis_disk_writer *writer_, s_sis_disk_kdict *kd
                 osize);
         // s_sis_dynamic_db *sdb = sis_pointer_list_get(sdict_->sdbs, sdict_->sdbs->count - 1);
         // int count = ilen_ / sdb->size;
-        sis_disk_io_write_map(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_NON, 0, 0);
+        sis_disk_io_write_mdb(writer_->munit, kdict_, sdict_, SIS_SDB_STYLE_NON, 0, 0);
     }
     return osize;
 }
@@ -619,7 +662,7 @@ size_t sis_disk_writer_one(s_sis_disk_writer *writer_, const char *kname_, void 
     }
     if (osize > 0)
     {
-        sis_disk_io_write_map(writer_->munit, kdict, NULL, SIS_SDB_STYLE_ONE, 0, 0);
+        sis_disk_io_write_mdb(writer_->munit, kdict, NULL, SIS_SDB_STYLE_ONE, 0, 0);
     }
     return osize;
 }
@@ -644,7 +687,7 @@ size_t sis_disk_writer_mul(s_sis_disk_writer *writer_, const char *kname_, s_sis
     }
     if (osize > 0)
     {
-        sis_disk_io_write_map(writer_->munit, kdict, NULL, SIS_SDB_STYLE_MUL, 0, 0);
+        sis_disk_io_write_mdb(writer_->munit, kdict, NULL, SIS_SDB_STYLE_MUL, 0, 0);
     }
     return osize;
 }
@@ -671,13 +714,13 @@ int sis_disk_writer_sdb_remove(s_sis_disk_writer *writer_, const char *kname_, c
     switch (scale)
     {
     case SIS_SDB_SCALE_YEAR: // isign_ :: 2021
-        sis_disk_io_write_map(writer_->munit, kdict, sdict, SIS_SDB_STYLE_SDB, isign_, 1);
+        sis_disk_io_write_mdb(writer_->munit, kdict, sdict, SIS_SDB_STYLE_SDB, isign_, 1);
         break;
     case SIS_SDB_SCALE_DATE: // isign_ :: 20211210
-        sis_disk_io_write_map(writer_->munit, kdict, sdict, SIS_SDB_STYLE_SDB, isign_, 1);
+        sis_disk_io_write_mdb(writer_->munit, kdict, sdict, SIS_SDB_STYLE_SDB, isign_, 1);
         break;
     default: // SIS_SDB_SCALE_NOTS
-        sis_disk_io_write_map(writer_->munit, kdict, sdict, SIS_SDB_STYLE_NON, isign_, 1);
+        sis_disk_io_write_mdb(writer_->munit, kdict, sdict, SIS_SDB_STYLE_NON, isign_, 1);
         break;
     }
     return 0;
@@ -694,7 +737,7 @@ int sis_disk_writer_one_remove(s_sis_disk_writer *writer_, const char *kname_)
     {
         return -3;
     }
-    sis_disk_io_write_map(writer_->munit, kdict, NULL, SIS_SDB_STYLE_ONE, 0, 1);
+    sis_disk_io_write_mdb(writer_->munit, kdict, NULL, SIS_SDB_STYLE_ONE, 0, 1);
     return 0;
 }
 // 单键值多记录数据 inlist_ : s_sis_sds 的列表
@@ -709,7 +752,7 @@ int sis_disk_writer_mul_remove(s_sis_disk_writer *writer_, const char *kname_)
     {
         return -3;
     }
-    sis_disk_io_write_map(writer_->munit, kdict, NULL, SIS_SDB_STYLE_MUL, 0, 1);
+    sis_disk_io_write_mdb(writer_->munit, kdict, NULL, SIS_SDB_STYLE_MUL, 0, 1);
     return 0;
 }
 
@@ -739,9 +782,16 @@ int sis_disk_writer_mul_remove(s_sis_disk_writer *writer_, const char *kname_)
 
 int sis_disk_control_remove(const char *path_, const char *name_, int style_, int idate_)
 {
-    s_sis_disk_ctrl *munit = sis_disk_ctrl_create(style_, path_, name_, idate_);
-    sis_disk_ctrl_remove(munit);
-    sis_disk_ctrl_destroy(munit);
+    if (style_ == SIS_DISK_TYPE_MAP)
+    {
+        sis_disk_io_map_control_remove(path_, name_, idate_);
+    }
+    else
+    {
+        s_sis_disk_ctrl *munit = sis_disk_ctrl_create(style_, path_, name_, idate_);
+        sis_disk_ctrl_remove(munit);
+        sis_disk_ctrl_destroy(munit);
+    }
     return 1;
 }
 int sis_disk_control_exist(const char *path_, const char *name_, int style_, int idate_)
