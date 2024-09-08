@@ -65,11 +65,11 @@ char *sis_mmap_w(s_sis_handle fd, size_t isize)
 {
 	return NULL;
 }
-int  sis_msync(char *map, size_t isize)
+int  sis_mmap_sync(char *map, size_t isize)
 {
 	return 0;
 }
-int  sis_munmap(char *map, size_t isize)
+int  sis_unmmap(char *map, size_t isize)
 {
 	return 0;
 }

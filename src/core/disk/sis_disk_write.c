@@ -58,6 +58,11 @@ int sis_disk_writer_open(s_sis_disk_writer *writer_, int idate_)
     {
         return 0;
     }
+    if (writer_->style == SIS_DISK_TYPE_MAP)
+    {
+        writer_->status = sis_disk_io_map_w_open(writer_->map_fctrl, writer_->fpath, writer_->fname);
+        return writer_->status;
+    }
     switch (writer_->style)
     {
     case SIS_DISK_TYPE_SIC:
@@ -68,24 +73,17 @@ int sis_disk_writer_open(s_sis_disk_writer *writer_, int idate_)
         break;   
     case SIS_DISK_TYPE_SDB:
         writer_->munit = sis_disk_ctrl_create(SIS_DISK_TYPE_SDB, writer_->fpath, writer_->fname, idate_);
-        break;   
-    case SIS_DISK_TYPE_MAP:
-        sis_disk_io_map_w_open(writer_->map_fctrl, writer_->fpath, writer_->fname, idate_);
-        break;   
+        break;    
     default: // SIS_DISK_TYPE_LOG
         writer_->munit = sis_disk_ctrl_create(SIS_DISK_TYPE_LOG, writer_->fpath, writer_->fname, idate_);
         break;
     }
-    if (writer_->style != SIS_DISK_TYPE_MAP)
+    if (sis_disk_ctrl_write_start(writer_->munit) < 0)
     {
-        if (sis_disk_ctrl_write_start(writer_->munit) < 0)
-        {
-            sis_disk_ctrl_destroy(writer_->munit);
-            writer_->munit = NULL;
-            return 0;
-        }        
-    }
-
+        sis_disk_ctrl_destroy(writer_->munit);
+        writer_->munit = NULL;
+        return 0;
+    }        
     writer_->status = 1;
     return 1;
 }
@@ -94,7 +92,7 @@ void sis_disk_writer_close(s_sis_disk_writer *writer_)
 {
     if (writer_->status && writer_->style == SIS_DISK_TYPE_MAP)
     {
-        sis_disk_io_map_w_close(writer_->map_fctrl);
+        sis_disk_io_map_close(writer_->map_fctrl);
     }
     else
     {
@@ -173,7 +171,7 @@ int sis_disk_writer_set_kdict(s_sis_disk_writer *writer_, const char *in_, size_
     }
     if (writer_->style == SIS_DISK_TYPE_MAP)
     {
-        return sis_disk_io_map_set_kinfo(writer_->map_fctrl, in_, ilen_);
+        return sis_disk_io_map_set_kdict(writer_->map_fctrl, in_, ilen_);
     }
     s_sis_string_list *klist = sis_string_list_create();
     sis_string_list_load(klist, in_, ilen_, ",");
@@ -207,7 +205,7 @@ int sis_disk_writer_set_sdict(s_sis_disk_writer *writer_, const char *in_, size_
     }
     if (writer_->style == SIS_DISK_TYPE_MAP)
     {
-        return sis_disk_io_map_set_sinfo(writer_->map_fctrl, in_, ilen_);
+        return sis_disk_io_map_set_sdict(writer_->map_fctrl, in_, ilen_);
     }
     s_sis_json_handle *injson = sis_json_load(in_, ilen_);
     if (!injson)
@@ -784,7 +782,7 @@ int sis_disk_control_remove(const char *path_, const char *name_, int style_, in
 {
     if (style_ == SIS_DISK_TYPE_MAP)
     {
-        sis_disk_io_map_control_remove(path_, name_, idate_);
+        sis_disk_io_map_control_remove(path_, name_);
     }
     else
     {

@@ -26,6 +26,8 @@ typedef struct s_sisdb_rmap_cxt
 
 	s_sis_sds          rmap_keys;      // 实际读取的keys 
 	s_sis_sds          rmap_sdbs;      // 实际读取的sdbs
+    
+    int                submode;
 
     s_sis_thread       work_thread;    // 读文件时间长 需要启动一个线程处理
 

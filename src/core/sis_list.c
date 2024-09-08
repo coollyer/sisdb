@@ -391,6 +391,7 @@ int sis_struct_list_delete(s_sis_struct_list *list_, int start_, int count_)
 //------------------------s_sis_node ---------------------------------//
 //////////////////////////////////////////////////////////////////////////
 // 第一个节点不可被删除
+// 默认第一个实际数据块
 s_sis_node *sis_node_create()
 {
 	s_sis_node *o = SIS_MALLOC(s_sis_node, o);
@@ -455,15 +456,18 @@ s_sis_node *sis_node_get(s_sis_node *node_, int index_)
 	{
 		return NULL;
 	}
+	if (node_->index == index_)
+	{
+		return node_;
+	}
 	if (node_->index < index_)
 	{
 		return sis_node_get(node_->next, index_);
 	}
-	if (node_->index > index_)
+	// if (node_->index > index_)
 	{
 		return sis_node_get(node_->prev, index_);
 	}
-	return node_;
 }
 s_sis_node *sis_node_next(s_sis_node *node_)
 {

@@ -69,6 +69,36 @@ void sis_thread_kill(s_sis_thread_id_t thread)
 		ExitThread(*code);
 	}
 }
+
+/////////////////////////////////////
+// s_sis_sem
+/////////////////////////////////////
+s_sis_sem *sis_sem_open(const char *sname)
+{
+    s_sis_sem *sem = SIS_MALLOC(s_sis_sem, sem);	
+	sem->lock = CreateMutex(NULL, FALSE, sname);
+	if (sem->lock == NULL)
+	{	
+		sis_free(sem);
+		return NULL;
+	}
+	return sem;
+}
+void sis_sem_close(s_sis_sem *sem)
+{
+    WaitForSingleObject(sem->lock, INFINITE);
+    CloseHandle(sem->lock);
+    sis_free(sem);
+}
+int sis_sem_lock(s_sis_sem *sem)
+{
+    return WaitForSingleObject(sem->lock, INFINITE);
+}
+int sis_sem_unlock(s_sis_sem *sem)
+{
+    return ReleaseMutex(sem->lock); 
+}
+
 /////////////////////////////////////
 // s_sis_mutex_t
 /////////////////////////////////////

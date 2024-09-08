@@ -1,6 +1,7 @@
 ﻿
 #include <os_thread.h>
 #include <os_malloc.h>
+#include <os_str.h>
 
 // 互斥锁
 
@@ -279,6 +280,48 @@ unsigned int sis_thread_handle(s_sis_thread_id_t id_)
 	return (unsigned int)id_;
 }
 #endif
+
+/////////////////////////////////////
+// s_sis_sem
+//////////////////////////////////////////
+s_sis_sem *sis_sem_open(const char *sname)
+{
+	s_sis_sem *sem = SIS_MALLOC(s_sis_sem, sem);
+	if (sname)
+	{
+		int slen = sis_strlen(sname);
+		sem->semname = sis_malloc(slen + 1);
+		memmove(sem->semname, sname, slen);
+		sem->semname[slen] = 0;
+	}
+	sem->lock = sem_open(sname, O_CREAT, 0644, 1);
+	if (sem->lock == SEM_FAILED)
+	{	
+		sis_free(sem);
+		return NULL;
+	}
+	return sem;
+}
+void sis_sem_close(s_sis_sem *sem)
+{
+	sem_close(sem->lock);
+	sem_unlink(sem->semname);
+	if (sem->semname)
+	{
+		sis_free(sem->semname);
+	}
+	sis_free(sem);
+}
+int sis_sem_lock(s_sis_sem *sem)
+{
+	return sem_wait(sem->lock);
+}
+int sis_sem_unlock(s_sis_sem *sem)
+{
+	return sem_post(sem->lock);
+}
+
+
 /////////////////////////////////////
 //
 //////////////////////////////////////////

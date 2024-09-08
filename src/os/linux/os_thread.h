@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <semaphore.h>
 
 #include <os_time.h>
 #include <stdio.h>
@@ -85,9 +86,19 @@ typedef struct s_sis_wait {
 } s_sis_wait;
 // 百思不得解 不能动态申请
 
+typedef struct s_sis_sem {
+	char  *semname; 
+	sem_t *lock;
+} s_sis_sem;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+s_sis_sem *sis_sem_open(const char *);
+void sis_sem_close(s_sis_sem *);
+int sis_sem_lock(s_sis_sem *);
+int sis_sem_unlock(s_sis_sem *);
 
 int  sis_mutex_create(s_sis_mutex_t *mutex_);
 #define sis_mutex_destroy 	pthread_mutex_destroy

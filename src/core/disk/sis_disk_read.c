@@ -241,9 +241,32 @@ int sis_disk_reader_sub_sno(s_sis_disk_reader *reader_, const char *keys_, const
     return 0;
 }
 
-int sis_disk_reader_sub_map(s_sis_disk_reader *reader_, const char *keys_, const char *sdbs_, int startdate_, int stopdate_)
+int sis_disk_reader_sub_map(s_sis_disk_reader *reader_, int submode_, const char *keys_, const char *sdbs_, s_sis_msec_pair *smsec_)
 {
-    return sis_disk_io_map_r_sub(reader_->map_fctrl, keys_, sdbs_, startdate_, stopdate_);
+    int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
+    if (o)
+    {
+        // 文件不存在 仅仅 通知订阅者读取或订阅结束
+        if (reader_->callback->cb_stop)
+        {
+            reader_->callback->cb_stop(reader_->callback->cb_source, sis_msec_get_idate(smsec_->stop));
+        }
+        if (reader_->callback->cb_close)
+        {
+            reader_->callback->cb_close(reader_->callback->cb_source, sis_msec_get_idate(smsec_->stop));
+        }
+        LOG(5)("no open %s. %d\n", reader_->map_fctrl->fname, o);
+        return o;
+    }
+    reader_->map_fctrl->sub_mode = submode_;
+    reader_->status_sub = 1;
+    // 按顺序输出 keys_ sdbs_ = NULL 实际表示 *
+    sis_disk_io_map_r_sub(reader_->map_fctrl, keys_, sdbs_, smsec_, reader_->callback);
+    // 订阅结束
+    reader_->status_sub = 0;
+
+    sis_disk_io_map_close(reader_->map_fctrl);
+    return 0;
 }
 
 // 取消一个正在订阅的任务 只有处于非订阅状态下才能订阅 避免重复订阅
@@ -251,13 +274,13 @@ void sis_disk_reader_unsub(s_sis_disk_reader *reader_)
 {
     if (reader_->status_sub == 1)
     {
-        reader_->status_sub = 2;
         if (reader_->style == SIS_DISK_TYPE_MAP)
         {
-            is_disk_io_map_r_unsub(reader_->map_fctrl);
+            sis_disk_io_map_r_unsub(reader_->map_fctrl);
         }
         else
         {
+            reader_->status_sub = 2;
             // 中断读取动作
             reader_->munit->isstop = true;
             for (int i = 0; i < reader_->sunits->count; i++)
@@ -352,7 +375,14 @@ s_sis_dynamic_db *sis_disk_reader_getdb(s_sis_disk_reader *reader_, const char *
     }
     else if (reader_->style == SIS_DISK_TYPE_MAP)
     {
-        db = sis_disk_io_map_get_sinfo(reader_->map_fctrl, sname_);
+        int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
+        if (o)
+        {
+            LOG(5)("no open %s. %d\n", reader_->map_fctrl->fname, o);
+            return NULL;
+        }
+        db = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+        sis_disk_io_map_close(reader_->map_fctrl);
     }
     else if (reader_->style == SIS_DISK_TYPE_SDB)
     {
@@ -851,6 +881,31 @@ s_sis_object *_disk_reader_get_sno_obj(s_sis_disk_reader *reader_, const char *k
     }
     return NULL;
 }
+
+s_sis_object *_disk_reader_get_map_obj(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
+{
+    if (sis_is_multiple_sub(kname_, sis_strlen(kname_)) || sis_is_multiple_sub(sname_, sis_strlen(sname_)))
+    {
+        LOG(5)("no mul key or sdb: %s\n", kname_, sname_);
+        return NULL;
+    }
+    if (reader_->status_sub == 1 || !kname_ || !sname_)
+    {
+        return NULL;
+    }   
+
+    int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
+    if (o)
+    {
+        LOG(5)("no open %s. %d\n", reader_->map_fctrl->fname, o);
+        return NULL;
+    }
+    s_sis_object *obj = sis_disk_io_map_r_get_obj(reader_->map_fctrl, kname_, sname_, smsec_);
+    
+    sis_disk_io_map_close(reader_->map_fctrl);
+
+    return obj;
+}
 // 从对应文件中获取数据 拼成完整的数据返回 只支持 SNO SDB 单键单表 
 s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
 {
@@ -863,7 +918,7 @@ s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kn
     }
     else if (reader_->style == SIS_DISK_TYPE_MAP)
     {
-        obj = sis_disk_io_map_r_get_obj(reader_->map_fctrl, kname_, sname_, smsec_);
+        obj = _disk_reader_get_map_obj(reader_, kname_, sname_, smsec_);
     }
     else if (reader_->style == SIS_DISK_TYPE_SDB)
     {
@@ -896,6 +951,19 @@ s_sis_object *sis_disk_reader_get_sdbs(s_sis_disk_reader *reader_, int idate)
     if (reader_->style == SIS_DISK_TYPE_SNO)
     {
         reader_->munit = sis_disk_ctrl_create(reader_->style, reader_->fpath, reader_->fname, idate);
+    }
+    else if (reader_->style == SIS_DISK_TYPE_MAP)
+    {
+        int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
+        if (o)
+        {
+            LOG(5)("no open %s. %d\n", reader_->map_fctrl->fname, o);
+            return NULL;
+        }
+        s_sis_object *obj = NULL;
+        obj = sis_object_create(SIS_OBJECT_SDS, reader_->map_fctrl->wsdbs);
+        sis_disk_io_map_close(reader_->map_fctrl);
+        return obj;
     }
     else if (reader_->style == SIS_DISK_TYPE_SDB)
     {

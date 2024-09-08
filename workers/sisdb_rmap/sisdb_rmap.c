@@ -241,8 +241,12 @@ static void *_thread_maps_read_sub(void *argv_)
         sis_sds_save_get(context->work_name), 
         SIS_DISK_TYPE_MAP, rmap_cb);
 
+    s_sis_msec_pair pair; 
+    pair.start = (msec_t)sis_time_make_time(context->work_date.start, 0) * 1000;
+    pair.stop = (msec_t)sis_time_make_time(context->work_date.stop, 235959) * 1000 + 999;
+
     LOG(5)("sub map open. [%d] %d %d\n", context->work_date.start, context->work_date.stop, context->status);
-    sis_disk_reader_sub_map(context->work_reader, context->work_keys, context->work_sdbs, context->work_date.start, context->work_date.stop);
+    sis_disk_reader_sub_map(context->work_reader, context->submode, context->work_keys, context->work_sdbs, &pair);
     LOG(5)("sub map stop. [%d] %d %d\n", context->work_date.start, context->work_date.stop, context->status);
 
     sis_disk_reader_destroy(context->work_reader);
@@ -318,6 +322,7 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
             context->work_sdbs = sis_sdsdup(str);
         }
     }
+    context->submode = sis_message_get_int(msg, "sub-mode");
     context->work_date.move = 0;
     if (sis_message_exist(msg, "start-date"))
     {

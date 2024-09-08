@@ -229,7 +229,7 @@ int sis_disk_reader_sub_sic(s_sis_disk_reader *, const char *keys_, const char *
 int sis_disk_reader_sub_sno(s_sis_disk_reader *, const char *keys_, const char *sdbs_, int idate_);
 
 // 读取 仅支持 MAP  
-int sis_disk_reader_sub_map(s_sis_disk_reader *, const char *keys_, const char *sdbs_, int startdate_, int stopdate_);
+int sis_disk_reader_sub_map(s_sis_disk_reader *, int submode_, const char *keys_, const char *sdbs_, s_sis_msec_pair *);
 
 // 取消一个正在订阅的任务 只有处于非订阅状态下才能订阅 避免重复订阅
 void sis_disk_reader_unsub(s_sis_disk_reader *);
