@@ -95,6 +95,67 @@ size_t sis_write(s_sis_handle fp_, const char *in_, size_t len_)
 
 // 	return fp;
 // }
+
+char *sis_mmap_open_r(const char *fn, size_t minsize)
+{
+	s_sis_handle fd = sis_open(fn, SIS_FILE_IO_RDWR, 0666);
+    if (fd == -1)
+    {
+		printf("error opening file. %s\n", fn);
+        return NULL;
+    }
+	struct stat stat;
+	if (fstat(fd, &stat) == -1) {
+        printf("error getting file status.\n");
+        close(fd);
+        return NULL;
+    }
+    if (stat.st_size <= minsize)
+    {
+        printf("file format error. %s %lld\n", fn, (int64)stat.st_size);
+        sis_close(fd);
+        return NULL;
+    }
+    char *map = mmap(0, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (map == MAP_FAILED) 
+    {
+        printf("mapp file fail. %s\n", fn);
+        sis_close(fd);
+        return NULL;
+    }
+	sis_close(fd);
+	return map;
+}
+char *sis_mmap_open_w(const char *fn, size_t fsize)
+{
+	s_sis_handle fd = sis_open(fn, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
+    if (fd == -1)
+    {
+        return NULL;
+    }
+    if (sis_seek(fd, fsize - 1, SEEK_SET) == -1)
+    {
+        printf("error stretching the file.\n");
+        sis_close(fd);
+        return NULL;
+    }
+    // 在文件末尾写入一个空字节，扩大文件
+    if (sis_write(fd, "", 1) != 1)
+    {
+        printf("error writing last byte of the file.\n");
+        sis_close(fd);
+        return NULL;
+    }
+    char *map = mmap(0, fsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);;
+    if (map == MAP_FAILED) 
+    {
+        printf("mapp file fail. %s\n", fn);
+        sis_close(fd);
+        return NULL;
+    }
+	sis_close(fd);
+	return map;
+}
 char *sis_mmap_r(s_sis_handle fd, size_t isize)
 {
 	return mmap(0, isize, PROT_READ, MAP_SHARED, fd, 0);

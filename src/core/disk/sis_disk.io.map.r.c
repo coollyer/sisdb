@@ -121,7 +121,7 @@ int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
     {
         return SIS_MAP_STYLE_ERR;
     }
-    fctrl->maphead = (s_sis_map_ctrl *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
+    fctrl->maphead = (s_sis_map_head *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
     printf("%p %d | %d %d\n", fctrl->mapmem, fctrl->maphead->fsize, fctrl->maphead->keynums, fctrl->maphead->sdbnums);
     if (fctrl->maphead->fsize != (fctrl->maphead->maxblks + 1) * fctrl->maphead->bsize)
     {

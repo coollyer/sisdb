@@ -16,35 +16,13 @@ s_sis_map_rwlock *sis_map_rwlock_create(const char *rwname)
     {
         goto rwlock_fail;
     }
-
     sis_sprintf(name, 255, ".%s.rs", rwname);
-    s_sis_handle fd = sis_open(name, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
-    if (fd == -1)
+    char *map = sis_mmap_open_w(name, sizeof(int));
+    if (!map)
     {
-        goto rwlock_fail;
-    }
-    if (sis_seek(fd, sizeof(int) - 1, SEEK_SET) == -1)
-    {
-        LOG(5) ("error stretching the file.\n");
-        sis_close(fd);
-        goto rwlock_fail;
-    }
-    // 在文件末尾写入一个空字节，扩大文件
-    if (sis_write(fd, "", 1) != 1)
-    {
-        LOG(5)("error writing last byte of the file.\n");
-        sis_close(fd);
-        goto rwlock_fail;
-    }
-    char *map = sis_mmap_w(fd, sizeof(int));
-    if (map == MAP_FAILED) 
-    {
-        LOG(5)("mapp file fail. %s\n", name);
-        sis_close(fd);
         goto rwlock_fail;
     }
     rwlock->reads = (int *)map;
-    sis_close(fd);
     return rwlock;
 
 rwlock_fail:
@@ -115,34 +93,13 @@ s_sis_map_rwlocks *sis_map_rwlocks_create(const char *rwname, int count)
     const char *sname = rwname ? rwname : "sismap";
     char name[255];
     sis_sprintf(name, 255, ".%s.rs", sname);
-    s_sis_handle fd = sis_open(name, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
-    if (fd == -1)
+    char *map = sis_mmap_open_w(name, count * sizeof(int));
+    if (!map)
     {
-        return NULL;
-    }
-    if (sis_seek(fd, count * sizeof(int), SEEK_SET) == -1)
-    {
-        LOG(5) ("error stretching the file.\n");
-        sis_close(fd);
-        return NULL;
-    }
-    // 在文件末尾写入一个空字节，扩大文件
-    if (sis_write(fd, "", 1) != 1)
-    {
-        LOG(5)("error writing last byte of the file.\n");
-        sis_close(fd);
-        return NULL;
-    }
-    char *map = sis_mmap_w(fd, count * sizeof(int));
-    if (map == MAP_FAILED) 
-    {
-        LOG(5)("mapp file fail. %s\n", name);
-        sis_close(fd);
         return NULL;
     }
     s_sis_map_rwlocks *rwlocks = SIS_MALLOC(s_sis_map_rwlocks, rwlocks);
     rwlocks->mmap = map;
-    sis_close(fd);
     
     int slen = sis_strlen(sname);
     rwlocks->rwname = sis_malloc(slen + 1);
@@ -242,54 +199,27 @@ int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs)
     }
     
     munmap(rwlocks->mmap, agos * sizeof(int));
-
     char name[255];
     sis_sprintf(name, 255, ".%s.rs", rwlocks->rwname);
-    s_sis_handle fd = sis_open(name, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
-    if (fd == -1)
+    rwlocks->mmap = sis_mmap_open_w(name, (agos + incrs) * sizeof(int));
+    if (rwlocks->mmap)
     {
-        return -1;
+        for (int i = 0; i < agos; i++)
+        {
+            s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, i);
+            rwlock->reads = (int *)(rwlocks->mmap + i * sizeof(int)); 
+        }
+        for (int i = 0; i < incrs; i++)
+        {
+            s_sis_map_rwlock *rwlock = SIS_MALLOC(s_sis_map_rwlock, rwlock);
+            sis_sprintf(name, 255, ".%s.%d.rd", rwlocks->rwname, i + agos);
+            rwlock->rlock = sis_sem_open(name);
+            sis_sprintf(name, 255, ".%s.%d.wd", rwlocks->rwname, i + agos);
+            rwlock->wlock = sis_sem_open(name);
+            rwlock->reads = (int *)(rwlocks->mmap + (i + agos) * sizeof(int));
+            sis_pointer_list_push(rwlocks->locks, rwlock);
+        }
     }
-    size_t fsize = (agos + incrs) * sizeof(int);
-    if (sis_seek(fd, fsize - 1, SEEK_SET) == -1)
-    {
-        LOG(5) ("error stretching the file.\n");
-        sis_close(fd);
-        return -2;
-    }
-    // 在文件末尾写入一个空字节，扩大文件
-    if (sis_write(fd, "", 1) != 1)
-    {
-        LOG(5)("error writing last byte of the file.\n");
-        sis_close(fd);
-        return -3;
-    }
-    char *map = sis_mmap_w(fd, fsize);
-    if (map == MAP_FAILED) 
-    {
-        LOG(5)("mapp file fail. %s\n", name);
-        sis_close(fd);
-        return -4;
-    }
-    rwlocks->mmap = map;
-    sis_close(fd);
-
-    for (int i = 0; i < agos; i++)
-    {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, i);
-        rwlock->reads = (int *)(rwlocks->mmap + i * sizeof(int)); 
-    }
-    for (int i = 0; i < incrs; i++)
-    {
-        s_sis_map_rwlock *rwlock = SIS_MALLOC(s_sis_map_rwlock, rwlock);
-        sis_sprintf(name, 255, ".%s.%d.rd", rwlocks->rwname, i + agos);
-        rwlock->rlock = sis_sem_open(name);
-        sis_sprintf(name, 255, ".%s.%d.wd", rwlocks->rwname, i + agos);
-        rwlock->wlock = sis_sem_open(name);
-        rwlock->reads = (int *)(rwlocks->mmap + (i + agos) * sizeof(int));
-        sis_pointer_list_push(rwlocks->locks, rwlock);
-    }
-    
     for (int i = 0; i < agos; i++)
     {
         // 全解锁

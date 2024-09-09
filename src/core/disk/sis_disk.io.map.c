@@ -150,7 +150,7 @@ s_sis_map_fctrl *sis_map_fctrl_create(const char *name)
     fctrl->mapbctrl_idx = sis_pointer_list_create();
     fctrl->mapbctrl_idx->vfree = sis_map_bctrl_destroy;
 
-    fctrl->rwlocks = sis_map_rwlocks_create(name, SIS_MAP_LOCK_DATA);
+    fctrl->rwlocks = sis_map_rwlocks_create(name, SIS_MAP_LOCK_MIDX);
     return fctrl;
 }
 void sis_map_fctrl_destroy(void *fctrl_)
@@ -325,8 +325,8 @@ int sis_disk_io_map_open(s_sis_map_fctrl *fctrl)
         return SIS_DISK_CMD_SIZENO;
     }
     sis_seek(fd, 16, SEEK_SET);
-    s_sis_map_ctrl headctrl;
-    if (sis_read(fd, (char *)&headctrl, sizeof(s_sis_map_ctrl)) != sizeof(s_sis_map_ctrl))
+    s_sis_map_head headctrl;
+    if (sis_read(fd, (char *)&headctrl, sizeof(s_sis_map_head)) != sizeof(s_sis_map_head))
     {
         LOG(5)("read file error. %s\n", fctrl->fname);
         sis_close(fd);
@@ -394,7 +394,7 @@ s_sis_sds sis_disk_io_map_as_sdbs(s_sis_map_list *map_sdbs_)
 	return o;
 }
 
-#if 1
+#if 0
 
 #define FNAME  "mymap"
 

@@ -57,6 +57,15 @@ size_t sis_write(s_sis_handle fp_, const char *in_, size_t len_)
 	return write(fp_, in_, len_);
 }
 
+char *sis_mmap_open_r(const char *fn, size_t minsize)
+{
+	return NULL;
+}
+char *sis_mmap_open_w(const char *fn, size_t fsize)
+{
+	return NULL;
+}
+
 char *sis_mmap_r(s_sis_handle fd, size_t isize)
 {
 	return NULL;

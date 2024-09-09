@@ -21,7 +21,7 @@
 // 读取索引时需要加锁 这样读取数据时就不用加锁 
 // ///////////////////
 // 目前版本不支持 sdb 的后期增加变更
-// 现在就需要支持新增key时 需要 在 s_sis_map_ctrl 增加字段信息
+// 现在就需要支持新增key时 需要 在 s_sis_map_head 增加字段信息
 //    新增的每个key 的名称 开始索引块号 数据块号
 
 #pragma pack(push, 1)
@@ -50,10 +50,10 @@ typedef struct s_sis_map_binfo {
 // 需要扩容时 最少按 1024 个块增加
 #define SIS_MAP_OTHER_SIZE  (SIS_DISK_MAXLEN_MAPPAGE - 16 - (SIS_MAP_MAX_SDBNUM + 2) * 8 - 11 * 4 - 1)
 #define SIS_MAP_MAYUSE_LEN  (SIS_DISK_MAXLEN_MAPPAGE - sizeof(s_sis_map_block))
-// 剩余字段保证 sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_ctrl) = SIS_DISK_MAXLEN_MAPPAGE
+// 剩余字段保证 sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_head) = SIS_DISK_MAXLEN_MAPPAGE
 ////////////////////////////////////////////////
 // map 文件的控制信息 SIS_DISK_HID_MAP_CTRL
-typedef struct s_sis_map_ctrl {
+typedef struct s_sis_map_head {
     SIS_DISK_BLOCK_HEAD
     int32            bsize;         // 块的尺寸
     int64            fsize;         // 当前最新map的尺寸 <= 文件长度
@@ -69,7 +69,7 @@ typedef struct s_sis_map_ctrl {
     char             other[SIS_MAP_OTHER_SIZE];       
     // 需要建立内存映射 方便读写
     // sdbnums keynums 增加时所有读者需要读取增加的数据
-} s_sis_map_ctrl;
+} s_sis_map_head;
 
 ////////////////////////////////////////////////
 //// -- 下面就是固定块的信息 /////
@@ -78,7 +78,7 @@ typedef struct s_sis_map_ctrl {
 // map 文件的块头信息 放在索引块和数据块头部
 typedef struct s_sis_map_block {
     SIS_DISK_BLOCK_HEAD
-    // int32        fbno;       // 当前块号
+    // int32        fbno;    // 当前块号
     int32        size;       // 数据大小
     int32        next;       // 下一个块 编号
 } s_sis_map_block;
@@ -174,7 +174,6 @@ typedef struct s_sis_map_subsno {
 #define SIS_MAP_LOCK_KEYS   1
 #define SIS_MAP_LOCK_SDBS   2
 #define SIS_MAP_LOCK_MIDX   3
-#define SIS_MAP_LOCK_DATA   4
 
 // 数据区 前部为序列号 后部为数据区 全部用指针操作
 // 增加数据时需要加读写锁 
@@ -186,16 +185,34 @@ typedef struct s_sis_map_fctrl {
     int                 rwmode;       // 0 读 1 写
     int                 status;   
     char               *mapmem;       // 映射内存
-    s_sis_map_ctrl     *maphead;      // 头指针
+    s_sis_map_head     *maphead;      // 头指针
     s_sis_pointer_list *mapbctrl_idx; // 索引的块管理 s_sis_map_bctrl 按表结构顺序
 
-    //
+    // 锁的原理
+    // s_sis_map_head 写入时空间不足需扩容重新mmap+reload后再写入 读取时读取数据偏移超出当前fsize时进行重新mmap+reload(增加块读取) 
+    //                其他数据 keynums sdbnums 增加后读取需要同步扩容锁的数量 并加载增加的数据 通常 单key或单sdb增加数据
+    //    该锁读者不应该经常读 仅仅订阅等待时才去刷新一次数据 如果数据有增加就增补数据
+    // keys sdbs 锁因为要用到size 必须加锁才能读写 读写都需要锁
+    // s_sis_map_index 锁是每条记录一个锁
+    //    读者开始时读一次 然后获取数据前就解锁 按初期的数量获取数据 
+    //    订阅者开始时读一次 仅在订阅等待时刷新一次索引数据 为提高效率 仅仅对索引加锁 数据不加锁不可修改只能增加
+    //    实际数据不需要加锁 写者必须先写数据 再加锁 再写索引 解锁 这样读者读到的一定是写完的数据 因此读数据时不用加锁
+    //    切记 ** 数据块中的size有冲突 读者不要用 ** 
+    ///////////////////////////////
+    //  初始化 写 ｜文件不存在
+    //  新加载 写 ｜打开文件
+    //        读 ｜打开文件
+    //  重加载 写 ｜写入时空间不足
+    //        读 ｜fsize增加
+    //  数增加 写 ｜
+    //        读 ｜
+    ///////////////////////////////
+     
     s_sis_map_rwlocks  *rwlocks;      // 锁列表 
-    // 0 - maphead
-    // 1 - keys
-    // 2 - sdbs
-    // 3 - mindex
-    // 4 - N -- 所有记录的锁
+    // 0 --> maphead
+    // 1 --> keys
+    // 2 --> sdbs
+    // 3-N --> mindex 所有记录索引的锁
       
     s_sis_sds           wkeys;        // keys
     s_sis_sds           wsdbs;        // sdbs

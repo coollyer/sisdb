@@ -91,6 +91,10 @@ size_t sis_write(s_sis_handle fp_, const char *in_, size_t len_);
 #define sis_fdatasync(a) fdatasync(a)
 
 // 映射文件相关
+
+char *sis_mmap_open_r(const char *fn, size_t minsize);
+char *sis_mmap_open_w(const char *fn, size_t fsize);
+
 char *sis_mmap_r(s_sis_handle fd, size_t isize);
 char *sis_mmap_w(s_sis_handle fd, size_t isize);
 int  sis_mmap_sync(char *map, size_t isize);

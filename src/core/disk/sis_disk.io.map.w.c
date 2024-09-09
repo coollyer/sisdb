@@ -398,7 +398,7 @@ int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
     fctrl->wsdbs = sis_disk_io_map_as_sdbs(fctrl->map_sdbs);
     int sdbs = sis_sdslen(fctrl->wkeys) / SIS_MAP_MAYUSE_LEN + 1;
 
-    int64 fsize = sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_ctrl);
+    int64 fsize = sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_head);
     int64 maxblks = SIS_ZOOM_UP(idxs + blks + keys + sdbs, SIS_MAP_INCR_SIZE);
     fsize += maxblks * SIS_DISK_MAXLEN_MAPPAGE;
     // 创建文件
@@ -445,7 +445,7 @@ int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
     mhead->style = SIS_DISK_TYPE_MAP;
     mhead->wdate = sis_time_get_idate(0);
     // 写 SIS_DISK_HID_MAP_CTRL 
-    fctrl->maphead = (s_sis_map_ctrl *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
+    fctrl->maphead = (s_sis_map_head *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
     fctrl->maphead->fin     = 1;
     fctrl->maphead->zip     = 0;
     fctrl->maphead->hid     = SIS_DISK_HID_MAP_CTRL;
@@ -454,7 +454,7 @@ int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
     fctrl->maphead->useblks = 0;  
     fctrl->maphead->maxblks = maxblks;  
     fctrl->maphead->lastsno = 0; 
-    fctrl->maphead->boffset = sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_ctrl);
+    fctrl->maphead->boffset = sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_head);
     fctrl->maphead->keynums = keynums;
     fctrl->maphead->sdbnums = sdbnums;
     fctrl->maphead->kbinfo.fbno = -1; // -1 表示从 useblks 获取块信息
