@@ -9,6 +9,7 @@
 
 void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
 {
+    printf("===1.1===\n");
     // 设置序列号为0
     // fctrl->maphead->lastsno = 0;
     sis_map_kint_clear(fctrl->map_kscs);
@@ -25,10 +26,15 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             // 这里定位索引数据
             s_sis_map_index *mindex = sis_map_bctrl_get_var(bctrl, k);
             // 这里加载数据节点信息
+            ksctrl->mapbctrl_var->currecs = 0;
+            ksctrl->mapbctrl_var->sumrecs = 0;
             while(1)
             {
                 s_sis_map_block *curblk = sis_map_block_head(fctrl, mindex->vbinfo.fbno);
                 sis_node_push(ksctrl->mapbctrl_var->nodes, curblk);
+                printf("===1.1=== %d %d\n", curblk->next, curblk->size);
+                ksctrl->mapbctrl_var->currecs = curblk->size / sdict->table->size;
+                ksctrl->mapbctrl_var->sumrecs+= ksctrl->mapbctrl_var->currecs;
                 if (curblk->next == -1)
                 {
                     break;
@@ -37,11 +43,13 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             }
         }
     }
+    printf("===1.1===\n");
 }
 
 void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
 {
     // 先映射到文件
+    printf("===1.2===\n");
     sis_pointer_list_clear(fctrl->mapbctrl_idx);
     for (int i = 0; i < fctrl->maphead->sdbnums; i++)
     {
@@ -55,6 +63,7 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
         {
             s_sis_map_block *curblk = sis_map_block_head(fctrl, fctrl->maphead->ibinfo[i].fbno);
             sis_node_push(bctrl->nodes, curblk);
+            printf("===1.2=== %d %d\n", curblk->next, curblk->size);
             if (curblk->next == -1)
             {
                 break;
@@ -62,6 +71,7 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
             curblk = sis_map_block_head(fctrl, curblk->next);
         }
     }
+    printf("===1.2===\n");
 }
 void sis_disk_io_map_read_kdict(s_sis_map_fctrl *fctrl)
 {
@@ -83,10 +93,11 @@ void sis_disk_io_map_read_kdict(s_sis_map_fctrl *fctrl)
 }
 void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl)
 {
+    printf("fbno: %d %d\n", fctrl->maphead->kbinfo.fbno, fctrl->maphead->sbinfo.fbno);
     sis_sdsfree(fctrl->wsdbs); 
     fctrl->wsdbs = sis_sdsempty();
-    s_sis_map_block *curblk = sis_map_block_head(fctrl, fctrl->maphead->kbinfo.fbno);
-    char *curmem = sis_map_block_memory(fctrl, fctrl->maphead->kbinfo.fbno);
+    s_sis_map_block *curblk = sis_map_block_head(fctrl, fctrl->maphead->sbinfo.fbno);
+    char *curmem = sis_map_block_memory(fctrl, fctrl->maphead->sbinfo.fbno);
     while (1)
     {
         fctrl->wsdbs = sis_sdscatlen(fctrl->wsdbs, curmem, curblk->size);
@@ -103,7 +114,7 @@ void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl)
 int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
 {
     // 同步
-    sis_mmap_sync(fctrl->mapmem, fctrl->maphead->fsize);
+    // sis_mmap_sync(fctrl->mapmem, fctrl->maphead->fsize);
     // 
     s_sis_disk_main_head *mhead = (s_sis_disk_main_head *)fctrl->mapmem;
     if (mhead->style != SIS_DISK_TYPE_MAP)
@@ -111,6 +122,7 @@ int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
         return SIS_MAP_STYLE_ERR;
     }
     fctrl->maphead = (s_sis_map_ctrl *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
+    printf("%p %d | %d %d\n", fctrl->mapmem, fctrl->maphead->fsize, fctrl->maphead->keynums, fctrl->maphead->sdbnums);
     if (fctrl->maphead->fsize != (fctrl->maphead->maxblks + 1) * fctrl->maphead->bsize)
     {
         return SIS_MAP_SIZE_ERR;
@@ -135,6 +147,8 @@ int sis_disk_io_map_r_open(s_sis_map_fctrl *fctrl, const char *fpath_, const cha
 {
     sis_sdsfree(fctrl->fname);
     fctrl->fname = sis_disk_io_map_get_fname(fpath_, fname_);
+
+    fctrl->rwmode = 0;
 
     if (!sis_file_exists(fctrl->fname))
     {
@@ -176,7 +190,7 @@ int sis_disk_io_map_r_sub(s_sis_map_fctrl *fctrl, const char *keys_, const char 
     s_sis_map_subctrl *msubctrl = sis_map_subctrl_create(keys_, sdbs_, mpair, callback);
     // 初始化并定位到合适的记录
     sis_map_subctrl_init(msubctrl, fctrl);
-
+    
     if(callback->cb_open)
     {
         callback->cb_open(callback->cb_source, sis_msec_get_idate(mpair->start));
@@ -341,14 +355,15 @@ s_sis_map_subctrl *sis_map_subctrl_create(const char *keys, const char *sdbs, s_
     subctrl->sub_sdbs = sis_sdsnew(sdbs);
     memmove(&subctrl->mpair, mpair, sizeof(s_sis_msec_pair));
     subctrl->callback = callback;
-    subctrl->subvars  = sis_pointer_list_create(sis_free_call);
+    subctrl->subvars  = sis_pointer_list_create();
+    subctrl->subvars->vfree = sis_free_call;
     return subctrl;
 }
 
 void sis_map_subctrl_destroy(s_sis_map_subctrl *subctrl)
 {
     sis_sdsfree(subctrl->sub_keys);
-    sis_sdsfree(subctrl->sub_keys);
+    sis_sdsfree(subctrl->sub_sdbs);
     sis_pointer_list_destroy(subctrl->subvars);
     sis_free(subctrl);
 }
@@ -365,6 +380,7 @@ void sis_map_subinfo_set_fd(s_sis_map_subinfo *subinfo, s_sis_map_fctrl *fctrl)
     else
     {
         subinfo->sortfd = sis_map_bctrl_get_sno(subinfo->ksctrl->mapbctrl_var, subinfo->cursor);
+        printf(" getsno == : %p %lld\n", subinfo->sortfd, subinfo->sortfd? *subinfo->sortfd :0);
     }
 }
 int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
@@ -375,10 +391,14 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
     while ((de = sis_dict_next(di)) != NULL)
     {
         s_sis_map_ksctrl *ksctrl = sis_dict_getval(de);
+        if (subctrl->mpair.stop > 0 && ksctrl->mapbctrl_var->sumrecs < 1)
+        {
+            // 如果是限定时间 并且没有数据就不往下面写了
+            continue;
+        }
         if ((!sis_strcasecmp(subctrl->sub_sdbs, "*") || sis_str_subcmp_strict(ksctrl->sdict->table->name, subctrl->sub_sdbs, ',') >= 0) &&
             (!sis_strcasecmp(subctrl->sub_keys, "*") || sis_str_subcmp(ksctrl->kdict->kname, subctrl->sub_keys, ',') >= 0))
         {
-            // printf("== adda : %d %p %p\n", count, subidx->kname, subidx->sname);
             s_sis_map_subinfo *subinfo = SIS_MALLOC(s_sis_map_subinfo, subinfo);
             subinfo->ksctrl = ksctrl;
             sis_pointer_list_push(subctrl->subvars, subinfo);
@@ -395,6 +415,7 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
                 subinfo->timefd = NULL;
             }
             sis_map_subinfo_set_fd(subinfo, fctrl);
+            printf("== adda : %d %d %lld %d %s %s\n",subinfo->cursor, ksctrl->mapbctrl_var->sumrecs, subinfo->sortfd ? *subinfo->sortfd: -1, subinfo->ksctrl->mapbctrl_var->sumrecs, ksctrl->kdict->kname, ksctrl->sdict->table->name);
         }     
     }
     sis_dict_iter_free(di);  
@@ -406,6 +427,7 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
     s_sis_disk_reader_cb *callback = msubctrl->callback;
     int startdate = sis_msec_get_idate(msubctrl->mpair.start);
 
+    printf("===3=== %d %d\n", startdate, msubctrl->subvars->count);
     // 设置 minpubsv 的值
     // 这里默认数据文件必须按时序写入 不处理增量非时序写入的数据
     int64 minpubsv = -1;
@@ -436,15 +458,16 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
     // 开始循环处理时序数据
     int minsize = SIS_MAP_SUB_SIZE;
     minsize = SIS_MAXI(minsize, msubctrl->subvars->count * 3);
-    s_sis_map_subsno **vars = sis_malloc(minsize * sizeof(s_sis_map_subsno));
+    s_sis_map_subsno *vars = sis_malloc(minsize * sizeof(s_sis_map_subsno));
     
     startdate = SIS_MAXI(startdate, sis_msec_get_idate(minpubtv));
+    
     int workdate = 0;
     while (1)
     {
         memset((char *)vars, 0, minsize * sizeof(s_sis_map_subsno));
         int   sends = 0;
-        int64 mindiffsv = -1;
+        int64 mindiffsv = 0;
         for (int i = 0; i < msubctrl->subvars->count; i++)
         {
             s_sis_map_subinfo *subinfo = sis_pointer_list_get(msubctrl->subvars, i);
@@ -459,6 +482,7 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
                 sis_free(vars);
                 return -1;
             }
+            printf("===4.1=== %d %d %d\n", i, subinfo->cursor, subinfo->ksctrl->mapbctrl_var->sumrecs);
             if (subinfo->cursor >= subinfo->ksctrl->mapbctrl_var->sumrecs)
             {
                 // 表示数据消耗完毕
@@ -472,6 +496,8 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
             while (1)
             {
                 msec_t curmsec = 0;
+                printf("===4.2===%s.%s %d %lld %lld %lld\n", subinfo->ksctrl->kdict->kname, subinfo->ksctrl->sdict->table->name,
+                    i, curmsec, *subinfo->sortfd, subinfo->timefd ? *subinfo->timefd : 0);
                 if (subinfo->timefd)
                 {
                     curmsec = *(subinfo->timefd);
@@ -500,18 +526,21 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
                     }
                     break;
                 }
-                vars[diffsv]->inmem = sis_map_bctrl_get_var(subinfo->ksctrl->mapbctrl_var, subinfo->cursor);
-                vars[diffsv]->idate = curmsec ? sis_msec_get_idate(curmsec) : startdate;
-                vars[diffsv]->ksctrl = subinfo->ksctrl;
+                printf("%d %d %d %d %p\n", diffsv, minsize, cursno, minpubsv);
+                vars[diffsv].inmem = sis_map_bctrl_get_var(subinfo->ksctrl->mapbctrl_var, subinfo->cursor);
+                vars[diffsv].idate = curmsec ? sis_msec_get_idate(curmsec) : startdate;
+                vars[diffsv].ksctrl = subinfo->ksctrl;
                 subinfo->cursor ++;
                 sends ++;
                 sis_map_subinfo_set_fd(subinfo, fctrl);
+                printf("===4.3=== %d %d %d %lld %p\n", sends, diffsv, subinfo->cursor, subinfo->sortfd? *subinfo->sortfd :0, subinfo->sortfd);
                 if (subinfo->cursor >= subinfo->ksctrl->mapbctrl_var->sumrecs)
                 {
                     break;
                 }
             }
         }
+        printf("===5=== %d %d %d %d %d\n", sends, msubctrl->subvars->count, workdate, minpubsv, mindiffsv);
         if (sends == 0)
         {
             if (msubctrl->mpair.stop > 0)
@@ -525,15 +554,20 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
             }
             else
             {
-                sis_sleep(300);
+                sis_sleep(SIS_MAP_DELAY_MS);
             }
         }
         else
         {
-            for (int i = 0; i < minsize; i++)
+            for (int i = 0; i < minsize && sends > 0; i++)
             {
+                if (vars[i].ksctrl == 0)
+                {
+                    continue;
+                }
+                printf("========= sends = %d %d\n", i, sends);
                 {   // 这里处理开始结束回调
-                    int currdate = vars[i]->idate;
+                    int currdate = vars[i].idate;
                     if (workdate == 0)
                     {
                         workdate = currdate;
@@ -558,12 +592,13 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
                 }
                 if (callback->cb_chardata)
                 {
-                    callback->cb_chardata(callback->cb_source, vars[i]->ksctrl->kdict->kname, vars[i]->ksctrl->sdict->table->name, vars[i]->inmem, vars[i]->ksctrl->sdict->table->size);
+                    callback->cb_chardata(callback->cb_source, vars[i].ksctrl->kdict->kname, vars[i].ksctrl->sdict->table->name, vars[i].inmem, vars[i].ksctrl->sdict->table->size);
                 }
+                sends--;
             }
             
         }
-        minpubsv += mindiffsv;
+        minpubsv += mindiffsv == -1 ? 0 : mindiffsv;
     }
     sis_free(vars);
     return 1;
@@ -647,6 +682,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
             while (1)
             {
                 msec_t curmsec = *(subinfo->timefd);
+                printf("===6.1=== %lld %lld %lld\n", subinfo->ksctrl->ksidx, curmsec, msubctrl->mpair.stop);
                 if (msubctrl->mpair.stop > 0 && curmsec > msubctrl->mpair.stop)
                 {
                     // 时间超过 不再处理 除非不限制日期
@@ -654,13 +690,24 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
                     i--;
                     break;
                 }
-                msec_t diffsv = curmsec - minpubsv;
+                int64 diffsv = curmsec - minpubsv;
+                printf("===6.1=== %lld %lld \n", subinfo->ksctrl->ksidx, diffsv);
                 if (diffsv > SIS_MAP_MIN_DIFF)
                 {
                     // 时间跨度大 不处理
                     mindiffsv = SIS_MINI(mindiffsv, diffsv);
                     break;
                 }
+                if (diffsv < 0 && msubctrl->mpair.start > 0 && curmsec < msubctrl->mpair.start)
+                {
+                    // 数据中时序错误 不再处理 除非不限制日期
+                    sis_pointer_list_delete(msubctrl->subvars, i, 1);
+                    i--;
+                    break;
+                }
+                printf("===6.2===%s.%s %d %lld  %d | %lld %lld\n", subinfo->ksctrl->kdict->kname, subinfo->ksctrl->sdict->table->name,
+                    i, curmsec, diffsv, *subinfo->sortfd, subinfo->timefd ? *subinfo->timefd : 0);
+
                 {   // 这里处理开始结束回调
                     int currdate = sis_msec_get_idate(curmsec);
                     if (workdate == 0)
@@ -693,6 +740,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
                     sends ++;
                     sis_map_subinfo_set_fd(subinfo, fctrl);
                 }
+                printf("===6.3=== %d %d\n", subinfo->cursor, subinfo->ksctrl->mapbctrl_var->sumrecs);
                 if (subinfo->cursor >= subinfo->ksctrl->mapbctrl_var->sumrecs)
                 {
                     break;
@@ -711,7 +759,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
             }
             else
             {
-                sis_sleep(300);
+                sis_sleep(SIS_MAP_DELAY_MS);
             }
         }
         minpubsv += mindiffsv;

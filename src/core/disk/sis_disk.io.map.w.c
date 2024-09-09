@@ -149,6 +149,8 @@ void sis_disk_io_map_write_ksctrl(s_sis_map_fctrl *fctrl)
             curblk->fin  = 1;
             curblk->zip  = 0;
             curblk->hid  = SIS_DISK_HID_MAP_DATA;
+            curblk->next = -1;
+            curblk->size = 0;
             sis_node_push(ksctrl->mapbctrl_var->nodes, curblk);
             mindex->vbinfo.blks = 1;
             fctrl->maphead->useblks++;  // 这里需要统一判断
@@ -291,7 +293,6 @@ void sis_disk_io_map_write_kdict(s_sis_map_fctrl *fctrl)
 void sis_disk_io_map_write_sdict(s_sis_map_fctrl *fctrl)
 {
     size_t curlen = sis_sdslen(fctrl->wsdbs);
-
     if (fctrl->maphead->sbinfo.fbno < 0)
     {
         fctrl->maphead->sbinfo.fbno = fctrl->maphead->useblks;
@@ -358,6 +359,8 @@ int sis_disk_io_map_w_open(s_sis_map_fctrl *fctrl, const char *fpath_, const cha
     sis_sdsfree(fctrl->fname);
     fctrl->fname = sis_disk_io_map_get_fname(fpath_, fname_);
 
+    fctrl->rwmode = 1;
+
     if (!sis_file_exists(fctrl->fname))
     {
         fctrl->status |= SIS_DISK_STATUS_CREATE;  // 新文件
@@ -381,16 +384,18 @@ int sis_disk_io_map_w_open(s_sis_map_fctrl *fctrl, const char *fpath_, const cha
 }
 int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
 {
-    // 计算文件大小
     int keynums = sis_map_list_getsize(fctrl->map_keys);
     int sdbnums = sis_map_list_getsize(fctrl->map_sdbs);
+    // 增加锁信息
+    sis_map_rwlocks_incr(fctrl->rwlocks, keynums * sdbnums);
+    // 计算文件大小
     int idxs = (keynums * sizeof(s_sis_map_index)) / SIS_MAP_MAYUSE_LEN + 1;
     idxs = idxs * sdbnums;
     int blks = keynums * sdbnums; // 初始化时默认只有一个块索引 后期
 
     fctrl->wkeys = sis_disk_io_map_as_keys(fctrl->map_keys);
     int keys = sis_sdslen(fctrl->wkeys) / SIS_MAP_MAYUSE_LEN + 1;
-    fctrl->wsdbs = sis_disk_io_map_as_keys(fctrl->map_keys);
+    fctrl->wsdbs = sis_disk_io_map_as_sdbs(fctrl->map_sdbs);
     int sdbs = sis_sdslen(fctrl->wkeys) / SIS_MAP_MAYUSE_LEN + 1;
 
     int64 fsize = sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_ctrl);
@@ -399,7 +404,7 @@ int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
     // 创建文件
     {
         int fd;
-        fd = sis_open(fctrl->fname, SIS_FILE_IO_READ | SIS_FILE_IO_WRITE | SIS_FILE_IO_CREATE, 0666);
+        fd = sis_open(fctrl->fname, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
         if (fd == -1)
         {
             LOG(5)("error opening file. %s\n", fctrl->fname);
@@ -418,10 +423,11 @@ int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
             sis_close(fd);
             return SIS_DISK_CMD_RWFAIL;
         }
-        char *map = sis_mmap_w(fd, fsize);
+        char *map = // sis_mmap_w(fd, fsize);
+        mmap(0, fsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (map == MAP_FAILED) 
         {
-            LOG(5)("error mapping the file.\n");
+            LOG(5)("error mapping the file. %d %d %d\n", fsize, fd, errno);
             sis_close(fd);
             return SIS_DISK_CMD_MAPERR;
         }
@@ -476,14 +482,17 @@ int sis_disk_io_map_inited(s_sis_map_fctrl *fctrl)
 // 开始 此时 key 和 sdb 已经有基础数据了
 int sis_disk_io_map_w_start(s_sis_map_fctrl *fctrl)
 {
+    printf("inited... %d %d %zu %zu\n", fctrl->status, fctrl->rwmode, sis_map_list_getsize(fctrl->map_keys), sis_map_list_getsize(fctrl->map_sdbs));
     if (fctrl->rwmode != 1 || sis_map_list_getsize(fctrl->map_keys) < 1 || sis_map_list_getsize(fctrl->map_sdbs) < 1)
     {
         return -1;
     }
+    printf("inited... %d\n", fctrl->status);
     if (fctrl->status & SIS_DISK_STATUS_CREATE)
     {
         // 
         sis_disk_io_map_inited(fctrl);
+        printf("inited...\n");
         //
         fctrl->status &= ~SIS_DISK_STATUS_CREATE;
         fctrl->status |= SIS_DISK_STATUS_OPENED;
@@ -542,8 +551,9 @@ int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const cha
     }
     int count = ilen_ / sdict->table->size; 
     // start write
+    // printf("::: %d %d\n", fctrl->mapbctrl_idx->count, sdict->index);
     s_sis_map_bctrl  *ibctrl = sis_pointer_list_get(fctrl->mapbctrl_idx, sdict->index);
-    s_sis_map_index *mindex = sis_map_bctrl_get_var(ibctrl, kdict->index);
+    s_sis_map_index *mindex  = sis_map_bctrl_get_var(ibctrl, kdict->index);
     s_sis_map_ksctrl *ksctrl = sis_map_kint_get(fctrl->map_kscs, sis_disk_io_map_get_ksidx(kdict->index, sdict->index));
     
     char *ptr = in_;
@@ -575,6 +585,7 @@ int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const cha
         char *vmem = sis_map_bctrl_get_var(ksctrl->mapbctrl_var, mindex->sumrecs);
         memmove(vmem, ptr, sdict->table->size);
         // 这里可以判断写入什么内容
+        ksctrl->mapbctrl_var->sumrecs++;
         sis_map_bctrl_set_sno(ksctrl->mapbctrl_var, mindex->sumrecs, fctrl->maphead->lastsno);
         fctrl->maphead->lastsno++;
 
@@ -582,7 +593,6 @@ int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const cha
         mindex->vbinfo.blks += incrblk;
         mindex->currecs = incrrec;
         mindex->sumrecs ++;
-        ksctrl->mapbctrl_var->sumrecs++;
 
         curblk->size = ksctrl->mapbctrl_var->currecs * ksctrl->mapbctrl_var->recsize;
 

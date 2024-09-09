@@ -23,7 +23,7 @@ s_sis_map_rwlock *sis_map_rwlock_create(const char *rwname)
     {
         goto rwlock_fail;
     }
-    if (sis_seek(fd, sizeof(int), SEEK_SET) == -1)
+    if (sis_seek(fd, sizeof(int) - 1, SEEK_SET) == -1)
     {
         LOG(5) ("error stretching the file.\n");
         sis_close(fd);
@@ -43,7 +43,7 @@ s_sis_map_rwlock *sis_map_rwlock_create(const char *rwname)
         sis_close(fd);
         goto rwlock_fail;
     }
-    rwlock->reads = map;
+    rwlock->reads = (int *)map;
     sis_close(fd);
     return rwlock;
 
@@ -101,6 +101,7 @@ void sis_map_rwlock_w_decr(s_sis_map_rwlock *rwlock)
     sis_sem_unlock(rwlock->wlock);
 }
 
+
 ////////////////////
 // s_sis_map_rwlocks 
 ////////////////////
@@ -152,11 +153,11 @@ s_sis_map_rwlocks *sis_map_rwlocks_create(const char *rwname, int count)
     for (int i = 0; i < count; i++)
     {
         s_sis_map_rwlock *rwlock = SIS_MALLOC(s_sis_map_rwlock, rwlock);
-        sis_sprintf(name, 255, ".%s.%d.rd", i, rwlocks->rwname);
+        sis_sprintf(name, 255, ".%s.%d.rd", rwlocks->rwname, i);
         rwlock->rlock = sis_sem_open(name);
-        sis_sprintf(name, 255, ".%s.%d.wd", i, rwlocks->rwname);
+        sis_sprintf(name, 255, ".%s.%d.wd", rwlocks->rwname, i);
         rwlock->wlock = sis_sem_open(name);
-        rwlock->reads = rwlocks->mmap + i * sizeof(int);
+        rwlock->reads = (int *)(rwlocks->mmap + i * sizeof(int));
         sis_pointer_list_push(rwlocks->locks, rwlock);
     }
     return rwlocks;
@@ -166,12 +167,17 @@ void sis_map_rwlocks_destroy(s_sis_map_rwlocks *rwlocks)
 {
     for (int i = 0; i < rwlocks->locks->count; i++)
     {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks);
+        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, i);
         sis_sem_close(rwlock->rlock);
         sis_sem_close(rwlock->wlock);
+        sis_free(rwlock);
     }
     sis_pointer_list_destroy(rwlocks->locks);
     munmap(rwlocks->mmap, rwlocks->locks->count * sizeof(int));
+    char name[255];
+    sis_sprintf(name, 255, ".%s.rs", rwlocks->rwname);
+    sis_file_delete(name);
+    sis_free(rwlocks->rwname);
     sis_free(rwlocks);
 }
 
@@ -179,7 +185,7 @@ int sis_map_rwlocks_r_incr(s_sis_map_rwlocks *rwlocks, int index)
 {
     if (index >= 0 && index < rwlocks->locks->count)
     {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks);
+        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, index);
         sis_map_rwlock_r_incr(rwlock);
         return 0;
     }
@@ -189,7 +195,7 @@ int sis_map_rwlocks_r_decr(s_sis_map_rwlocks *rwlocks, int index)
 {
     if (index >= 0 && index < rwlocks->locks->count)
     {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks);
+        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, index);
         sis_map_rwlock_r_decr(rwlock);  
         return 0;
     }
@@ -199,7 +205,7 @@ int sis_map_rwlocks_w_incr(s_sis_map_rwlocks *rwlocks, int index)
 {
     if (index >= 0 && index < rwlocks->locks->count)
     {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks);
+        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, index);
         sis_map_rwlock_w_incr(rwlock);   
         return 0;     
     }
@@ -209,7 +215,7 @@ int sis_map_rwlocks_w_decr(s_sis_map_rwlocks *rwlocks, int index)
 {
     if (index >= 0 && index < rwlocks->locks->count)
     {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks);
+        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, index);
         sis_map_rwlock_w_decr(rwlock);  
         return 0;
     }
@@ -220,7 +226,7 @@ s_sis_map_rwlock *sis_map_rwlocks_get(s_sis_map_rwlocks *rwlocks, int index)
 {
     if (index >= 0 && index < rwlocks->locks->count)
     {
-        return sis_pointer_list_get(rwlocks->locks);
+        return sis_pointer_list_get(rwlocks->locks, index);
     }
     return NULL;
 }
@@ -228,6 +234,7 @@ s_sis_map_rwlock *sis_map_rwlocks_get(s_sis_map_rwlocks *rwlocks, int index)
 int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs)
 {
     int agos = rwlocks->locks->count;
+    LOG(5) ("start incr. %d %d \n", agos, incrs);
     for (int i = 0; i < agos; i++)
     {
         // 全锁
@@ -243,7 +250,8 @@ int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs)
     {
         return -1;
     }
-    if (sis_seek(fd, (agos + incrs) * sizeof(int), SEEK_SET) == -1)
+    size_t fsize = (agos + incrs) * sizeof(int);
+    if (sis_seek(fd, fsize - 1, SEEK_SET) == -1)
     {
         LOG(5) ("error stretching the file.\n");
         sis_close(fd);
@@ -256,7 +264,7 @@ int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs)
         sis_close(fd);
         return -3;
     }
-    char *map = sis_mmap_w(fd, (agos + incrs) * sizeof(int));
+    char *map = sis_mmap_w(fd, fsize);
     if (map == MAP_FAILED) 
     {
         LOG(5)("mapp file fail. %s\n", name);
@@ -268,17 +276,17 @@ int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs)
 
     for (int i = 0; i < agos; i++)
     {
-        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks);
-        rwlock->reads = rwlocks->mmap + i * sizeof(int); 
+        s_sis_map_rwlock *rwlock = sis_pointer_list_get(rwlocks->locks, i);
+        rwlock->reads = (int *)(rwlocks->mmap + i * sizeof(int)); 
     }
     for (int i = 0; i < incrs; i++)
     {
         s_sis_map_rwlock *rwlock = SIS_MALLOC(s_sis_map_rwlock, rwlock);
-        sis_sprintf(name, 255, ".%s.%d.rd", i + agos, rwlocks->rwname);
+        sis_sprintf(name, 255, ".%s.%d.rd", rwlocks->rwname, i + agos);
         rwlock->rlock = sis_sem_open(name);
-        sis_sprintf(name, 255, ".%s.%d.wd", i + agos, rwlocks->rwname);
+        sis_sprintf(name, 255, ".%s.%d.wd", rwlocks->rwname, i + agos);
         rwlock->wlock = sis_sem_open(name);
-        rwlock->reads = rwlocks->mmap + (i + agos) * sizeof(int);
+        rwlock->reads = (int *)(rwlocks->mmap + (i + agos) * sizeof(int));
         sis_pointer_list_push(rwlocks->locks, rwlock);
     }
     
@@ -287,5 +295,6 @@ int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs)
         // 全解锁
         sis_map_rwlocks_w_decr(rwlocks, i);
     }
+    return 0;
 }
 

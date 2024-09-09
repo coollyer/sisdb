@@ -4,6 +4,7 @@
 #include "sis_disk.h"
 #include "sis_dynamic.h"
 #include "sis_utils.h"
+#include "sis_sem.h"
 
 // 映射文件 方便实时数据获取 采用固定32K大小存储 不压缩
 // 作用：实时数据写入和共享 多个因子各自写入文件 其他不同用户筛选读取
@@ -36,10 +37,10 @@
 #define  SIS_MAP_LOAD_OK     0
 #define  SIS_MAP_STYLE_ERR  -1
 #define  SIS_MAP_SIZE_ERR   -2
-#define  SIS_MAP_DATA_ERR  -3
+#define  SIS_MAP_DATA_ERR   -3
 
 typedef struct s_sis_map_binfo {
-    int32        blks;     // 块数
+    int32        blks;     // 块数 虽然可以推算出来 但有了他可以快速寻址
     int32        fbno;     // 第一个有效块 块号
 } s_sis_map_binfo;
 
@@ -130,12 +131,14 @@ typedef struct s_sis_map_sdict {
 }s_sis_map_sdict;
 
 typedef struct s_sis_map_ksctrl {
-    int64             ksidx;          // 索引
-    s_sis_map_kdict  *kdict;
-    s_sis_map_sdict  *sdict;
-    s_sis_map_bctrl  *mapbctrl_var;   // 数据的块管理
-    s_sis_rwlock_t    rwlock;         // 全局锁 
+    int64              ksidx;          // 索引
+    s_sis_map_kdict   *kdict;
+    s_sis_map_sdict   *sdict;
+    s_sis_map_bctrl   *mapbctrl_var;   // 数据的块管理
+    s_sis_map_rwlock  *rwlock;         // 记录锁指针 指向4开始的 rwlocks 记录
 } s_sis_map_ksctrl;
+
+#define SIS_MAP_DELAY_MS       30
 
 #define SIS_MAP_SUB_TSNO       0    // 以 sno 排序
 #define SIS_MAP_SUB_DATA       1    // 以 时间排序
@@ -167,6 +170,11 @@ typedef struct s_sis_map_subsno {
     s_sis_map_ksctrl *ksctrl;
 } s_sis_map_subsno;
 
+#define SIS_MAP_LOCK_HEAD   0
+#define SIS_MAP_LOCK_KEYS   1
+#define SIS_MAP_LOCK_SDBS   2
+#define SIS_MAP_LOCK_MIDX   3
+#define SIS_MAP_LOCK_DATA   4
 
 // 数据区 前部为序列号 后部为数据区 全部用指针操作
 // 增加数据时需要加读写锁 
@@ -181,7 +189,13 @@ typedef struct s_sis_map_fctrl {
     s_sis_map_ctrl     *maphead;      // 头指针
     s_sis_pointer_list *mapbctrl_idx; // 索引的块管理 s_sis_map_bctrl 按表结构顺序
 
-    s_sis_rwlock_t      rwlock;       // 全局锁 
+    //
+    s_sis_map_rwlocks  *rwlocks;      // 锁列表 
+    // 0 - maphead
+    // 1 - keys
+    // 2 - sdbs
+    // 3 - mindex
+    // 4 - N -- 所有记录的锁
       
     s_sis_sds           wkeys;        // keys
     s_sis_sds           wsdbs;        // sdbs
@@ -231,7 +245,7 @@ int64 *sis_map_ksctrl_get_timefd(s_sis_map_ksctrl *ksctrl, int recno);
 // s_sis_map_fctrl
 ///////////////////////////////////////////////////////
 
-s_sis_map_fctrl *sis_map_fctrl_create();
+s_sis_map_fctrl *sis_map_fctrl_create(const char *);
 void sis_map_fctrl_destroy(void *);
 
 ////////////////////

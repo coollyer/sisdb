@@ -22,7 +22,7 @@ s_sis_disk_writer *sis_disk_writer_create(const char *path_, const char *name_, 
     o->map_date = sis_map_list_create(NULL);
     if (style_ == SIS_DISK_TYPE_MAP)
     {
-        o->map_fctrl = sis_map_fctrl_create();
+        o->map_fctrl = sis_map_fctrl_create(name_);
     }
     return o;
 }

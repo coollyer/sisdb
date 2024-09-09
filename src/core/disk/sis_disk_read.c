@@ -108,7 +108,7 @@ s_sis_disk_reader *sis_disk_reader_create(const char *path_, const char *name_, 
 
     if (style_ == SIS_DISK_TYPE_MAP)
     {
-        o->map_fctrl = sis_map_fctrl_create();
+        o->map_fctrl = sis_map_fctrl_create(name_);
     }
     return o;
 }
@@ -299,6 +299,10 @@ void sis_disk_reader_unsub(s_sis_disk_reader *reader_)
 ////////////////////////////////////////////////////////////////
 int sis_disk_reader_open(s_sis_disk_reader *reader_)
 {
+    if (reader_->style == SIS_DISK_TYPE_MAP)
+    {
+        return 0;
+    }
     if (reader_->status_open != 0)
     {
         return 0;
@@ -337,6 +341,10 @@ int sis_disk_reader_open(s_sis_disk_reader *reader_)
 }
 void sis_disk_reader_close(s_sis_disk_reader *reader_)
 {
+    if (reader_->style == SIS_DISK_TYPE_MAP)
+    {
+        return ;
+    }
     sis_disk_reader_unsub(reader_);
     while (reader_->status_sub != 0)
     {

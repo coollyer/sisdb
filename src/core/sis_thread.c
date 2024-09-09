@@ -50,7 +50,7 @@ int sis_mutex_rw_create(s_sis_mutex_rw *mutex_)
 	int o = sis_mutex_create(&mutex_->mutex_s);
 	mutex_->try_write_b = false;
 	mutex_->reads_i = 0;
-	mutex_->writes_i = 0;
+	mutex_->writes_i = 0;  
 	return o;
 }
 void sis_mutex_rw_destroy(s_sis_mutex_rw *mutex_)

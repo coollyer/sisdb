@@ -46,6 +46,7 @@ int sis_map_rwlocks_w_decr(s_sis_map_rwlocks *rwlocks, int index);
 s_sis_map_rwlock *sis_map_rwlocks_get(s_sis_map_rwlocks *rwlocks, int index);
 
 // 临时增加锁
+// 不建议在频繁读写操作时执行 切记 
 int sis_map_rwlocks_incr(s_sis_map_rwlocks *rwlocks, int incrs);
 
 #endif /* _sis_sem_h */
