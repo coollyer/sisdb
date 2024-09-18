@@ -429,7 +429,9 @@ int sis_disk_io_map_kdict_change(s_sis_map_fctrl *fctrl, s_sis_map_kdict *kdict)
 // 得到最后一块的数据头
 s_sis_map_block *sis_map_ksctrl_incr_bhead(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl);
 // 写入数据
-int sis_map_ksctrl_incr_data(s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem, int64 insno);
+int sis_map_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
+// 写入数据
+int sis_msn_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
 
 // 写入数据
 int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, void *in_, size_t ilen_);

@@ -20,7 +20,7 @@ s_sis_disk_writer *sis_disk_writer_create(const char *path_, const char *name_, 
     o->map_sdbs = sis_map_list_create(sis_dynamic_db_destroy);
     o->map_year = sis_map_list_create(NULL);
     o->map_date = sis_map_list_create(NULL);
-    if (style_ == SIS_DISK_TYPE_MAP || style_->style == SIS_DISK_TYPE_MSN)
+    if (style_ == SIS_DISK_TYPE_MAP || style_ == SIS_DISK_TYPE_MSN)
     {
         o->map_fctrl = sis_map_fctrl_create(path_, name_);
         if (style_ == SIS_DISK_TYPE_MAP)

@@ -106,7 +106,7 @@ s_sis_disk_reader *sis_disk_reader_create(const char *path_, const char *name_, 
     o->status_open = 0;
     o->status_sub = 0;
 
-    if (style_ == SIS_DISK_TYPE_MAP || style_->style == SIS_DISK_TYPE_MSN)
+    if (style_ == SIS_DISK_TYPE_MAP || style_ == SIS_DISK_TYPE_MSN)
     {
         o->map_fctrl = sis_map_fctrl_create(path_, name_);
     }
