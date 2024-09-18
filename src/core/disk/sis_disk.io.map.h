@@ -197,7 +197,8 @@ typedef struct s_sis_map_subsno {
 typedef struct s_sis_map_fctrl {
 
     s_sis_sds           fname;
-
+    int                 style;     // 数据是否有序列号信息 通常有序列号信息是用于当日实盘数据
+                                   // 只读时 该值从头文件获取
     int                 rwmode;
     int                 status;   
     
@@ -318,7 +319,7 @@ static inline int64 *sis_map_ksctrl_get_timefd(s_sis_map_fctrl *fctrl, s_sis_map
 // 此函数只读 不需要加读锁 默认数据已经写好 不会再修改
 static inline int64 *sis_map_ksctrl_get_sno(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
 {
-    if (recno < ksctrl->mindex_r.sumrecs)
+    if (fctrl->style == SIS_DISK_TYPE_MSN && recno < ksctrl->mindex_r.sumrecs)
     {
         int vbidx = recno / ksctrl->mindex_r.perrecs;
         int curno = recno % ksctrl->mindex_r.perrecs;

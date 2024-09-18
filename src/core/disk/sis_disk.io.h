@@ -74,7 +74,11 @@
 // 写入时先写数据 再加锁后写索引
 // 读取索引时需要加锁 这样读取数据时就不用加锁 
 #define  SIS_DISK_TYPE_MAP         8  // name/name.map mmap文件
-
+// 原本计划增加无序列号的MAP文件 
+// 但由于只能按时间回放 和 有序列号的文件功能重叠太多 因此不做此单独处理 
+// 仅仅浪费一些磁盘空间 两种文件可以统一为一种
+// 有序列号的MAP文件 可按时间和序列号回放 通常用于实盘数据  
+#define  SIS_DISK_TYPE_MSN         9  // name/name.msn mmap文件
 
 ////////////////////////////////////////////////////
 // 1. sno的索引文件 记录key和sdb的信息 以及每个段的 以SIS_DISK_HID_SNO_END 信息 方便按时间点获取数据 时间为毫秒
@@ -254,6 +258,7 @@ typedef struct s_sis_disk_main_head {
     uint16   style         :   5; // 文件类型 最多 32 种类型
     uint16   iszip         :   2; // 是否压缩 0 其后的数据都不压缩 1 按文件类型不同用不同的压缩方式
     uint16   index         :   1; // [数据文件专用] 1 有索引 0 没有索引文件 
+    uint16   issno         :   1; // [数据文件专用] 1 数据有序列号 0 数据无序列号信息
     uint16   nouse         :   3; // 开关类保留 (3)
     uint16   workers;             // [索引文件专用] 对应work文件数量
     uint8    switchs[4];          // 开关类保留 (9)

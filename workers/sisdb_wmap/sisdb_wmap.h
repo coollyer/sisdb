@@ -20,6 +20,7 @@ typedef struct s_sisdb_wmap_cxt
     s_sis_sds_save    *work_name;     // 可配置 也可传入
     s_sis_disk_writer *writer;        // 写盘类
 	
+	int                style;         // 0 msn 1 map
 	int                wmode;         // 0 append 1 rewrite
 
 	int                stop_time;     // 停止时间

@@ -117,6 +117,13 @@ void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl)
 }
 int sis_disk_io_map_check_mhead(s_sis_map_fctrl *fctrl, char *mapmem)
 {
+    int style = ((s_sis_disk_main_head *)mapmem)->style;
+    if (style != SIS_DISK_TYPE_MAP && style != SIS_DISK_TYPE_MSN)
+    {
+        LOG(5)("map file style error.[%s]\n", fctrl->fname);
+        return SIS_MAP_STYLE_ERR;
+    }
+    fctrl->style = style;
     s_sis_map_head *mhead_p = (s_sis_map_head *)(mapmem + sizeof(s_sis_disk_main_head));
     if (mhead_p->fsize != mhead_p->maxblks * mhead_p->bsize)
     {
@@ -233,11 +240,18 @@ int sis_disk_io_map_r_sub(s_sis_map_fctrl *fctrl, const char *keys_, const char 
     {
         callback->cb_dict_sdbs(callback->cb_source, fctrl->wsdbs, sis_sdslen(fctrl->wsdbs));
     }
-    if (fctrl->sub_mode == SIS_MAP_SUB_TSNO)
+    if (fctrl->style == SIS_DISK_TYPE_MSN)
     {
-        sis_map_subctrl_sub_sno(msubctrl, fctrl);
+        if (fctrl->sub_mode == SIS_MAP_SUB_TSNO)
+        {
+            sis_map_subctrl_sub_sno(msubctrl, fctrl);
+        }
+        else // if (fctrl->sub_mode == SIS_MAP_SUB_TSNO)
+        {
+            sis_map_subctrl_sub_data(msubctrl, fctrl);
+        }
     }
-    else // if (fctrl->sub_mode == SIS_MAP_SUB_TSNO)
+    else
     {
         sis_map_subctrl_sub_data(msubctrl, fctrl);
     }

@@ -57,7 +57,7 @@ void sis_disk_io_map_fw_mhead(s_sis_map_fctrl *fctrl)
     mhead->hid = SIS_DISK_HID_HEAD;
     memmove(mhead->sign, "SIS", 3);
     mhead->version = SIS_DISK_SDB_VER;
-    mhead->style = SIS_DISK_TYPE_MAP;
+    mhead->style = fctrl->style;
     mhead->wdate = sis_time_get_idate(0);
     // 写 SIS_DISK_HID_MAP_CTRL 
     fctrl->mhead_p = (s_sis_map_head *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
@@ -85,11 +85,19 @@ void sis_map_ksctrl_init_mindex(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl
     ksctrl->mindex_p->kidx    = ksctrl->kdict->index;
     ksctrl->mindex_p->sidx    = ksctrl->sdict->index;
     ksctrl->mindex_p->recsize = ksctrl->sdict->table->size;
-    ksctrl->mindex_p->perrecs = SIS_MAP_MAYUSE_LEN / (ksctrl->sdict->table->size + 8);
     ksctrl->mindex_p->makeseq = fctrl->mhead_p->lastseq++; // 
+    if (fctrl->style == SIS_DISK_TYPE_MSN)
+    {
+        ksctrl->mindex_p->perrecs = SIS_MAP_MAYUSE_LEN / (ksctrl->sdict->table->size + 8);
+        ksctrl->mindex_p->doffset = sizeof(s_sis_map_block) + ksctrl->mindex_p->perrecs * 8;
+    }
+    else
+    {
+        ksctrl->mindex_p->perrecs = SIS_MAP_MAYUSE_LEN / (ksctrl->sdict->table->size);
+        ksctrl->mindex_p->doffset = sizeof(s_sis_map_block);
+    }
     ksctrl->mindex_p->sumrecs = 0;
     ksctrl->mindex_p->currecs = 0;
-    ksctrl->mindex_p->doffset = sizeof(s_sis_map_block) + ksctrl->mindex_p->perrecs * 8;
     ksctrl->mindex_p->varfbno = -1;
 }
 
@@ -586,7 +594,24 @@ s_sis_map_block *sis_map_ksctrl_incr_bhead(s_sis_map_fctrl *fctrl, s_sis_map_ksc
     }
 }
 
-int sis_map_ksctrl_incr_data(s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem, int64 insno)
+int sis_map_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem)
+{
+    if (curblk)
+    {
+        int curno = ksctrl->mindex_p->sumrecs % ksctrl->mindex_p->perrecs;
+        char *ptr = (char *)curblk + ksctrl->mindex_p->doffset + curno * ksctrl->mindex_p->recsize;
+        memmove(ptr, inmem, ksctrl->sdict->table->size);
+
+        ksctrl->mindex_p->currecs = ksctrl->mindex_p->currecs == ksctrl->mindex_p->perrecs ? 1 : ksctrl->mindex_p->currecs + 1;
+        ksctrl->mindex_p->sumrecs++;
+
+        curblk->size = ksctrl->mindex_p->currecs * ksctrl->mindex_p->recsize;
+
+        return 1;
+    }
+    return 0;
+}
+int sis_msn_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem)
 {
     if (curblk)
     {
@@ -594,7 +619,14 @@ int sis_map_ksctrl_incr_data(s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, 
         char *ptr = (char *)curblk + ksctrl->mindex_p->doffset + curno * ksctrl->mindex_p->recsize;
         memmove(ptr, inmem, ksctrl->sdict->table->size);
         int64 *var = (int64 *)((char *)curblk + sizeof(s_sis_map_block) + curno * 8);
-        *var = insno;
+        *var = fctrl->mhead_p->lastsno;
+
+        fctrl->mhead_p->lastsno++;        
+        ksctrl->mindex_p->currecs = ksctrl->mindex_p->currecs == ksctrl->mindex_p->perrecs ? 1 : ksctrl->mindex_p->currecs + 1;
+        ksctrl->mindex_p->sumrecs++;
+
+        curblk->size = ksctrl->mindex_p->currecs * (ksctrl->mindex_p->recsize + 8);
+
         return 1;
     }
     return 0;
@@ -634,14 +666,14 @@ int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const cha
     {
         s_sis_map_block *curblk = sis_map_ksctrl_incr_bhead(fctrl, ksctrl);
         // 先写数据
-        sis_map_ksctrl_incr_data(ksctrl, curblk, ptr, fctrl->mhead_p->lastsno);
-
-        fctrl->mhead_p->lastsno++;        
-        ksctrl->mindex_p->currecs = ksctrl->mindex_p->currecs == ksctrl->mindex_p->perrecs ? 1 : ksctrl->mindex_p->currecs + 1;
-        ksctrl->mindex_p->sumrecs++;
-
-        curblk->size = ksctrl->mindex_p->currecs * (ksctrl->mindex_p->recsize + 8);
-
+        if (fctrl->style == SIS_DISK_TYPE_MSN)
+        {
+            sis_msn_ksctrl_incr_data(fctrl, ksctrl, curblk, ptr);
+        }
+        else
+        {
+            sis_map_ksctrl_incr_data(fctrl, ksctrl, curblk, ptr);
+        }
         ptr += sdict->table->size;
     }
     sis_map_rwlock_w_decr(fctrl->rwlock); 
