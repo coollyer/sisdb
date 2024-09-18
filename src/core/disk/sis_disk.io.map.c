@@ -22,135 +22,72 @@ void sis_map_kdict_destroy(void *kdict_)
     sis_free(kdict);
 }
 
+s_sis_map_kdict *sis_disk_io_map_incr_kdict(s_sis_map_fctrl *fctrl, const char *kname)
+{
+    s_sis_map_kdict *kdict = sis_map_kdict_create(sis_map_list_getsize(fctrl->map_keys), kname);
+    sis_map_list_set(fctrl->map_keys, kname, kdict);
+    return kdict;  
+}
+
 s_sis_map_sdict *sis_map_sdict_create(int index, s_sis_dynamic_db *db)
 {
     s_sis_map_sdict *sdict = SIS_MALLOC(s_sis_map_sdict, sdict);
-    sdict->index = index;
-    sdict->table = db;
+    sdict->index   = index;
+    sdict->table   = db;
+    sdict->ksiblks  = sis_int_list_create();
     return sdict;    
 }
 void sis_map_sdict_destroy(void *sdict_)
 {
     s_sis_map_sdict *sdict = sdict_;
     sis_dynamic_db_destroy(sdict->table);
+    sis_int_list_destroy(sdict->ksiblks);
     sis_free(sdict);
 }
-///////////////////////////////////////////////////////
-// s_sis_map_bctrl
-///////////////////////////////////////////////////////
 
-s_sis_map_bctrl *sis_map_bctrl_create(int needsno, int recsize)
-{
-    s_sis_map_bctrl *bctrl = SIS_MALLOC(s_sis_map_bctrl, bctrl);
-    bctrl->needsno = needsno;
-    bctrl->recsize = recsize;
-    int rsize = bctrl->needsno == 0 ? bctrl->recsize : bctrl->recsize + 8;
-    bctrl->perrecs = SIS_MAP_MAYUSE_LEN / rsize;
-    bctrl->sumrecs = 0;
-    bctrl->currecs = 0;
-    bctrl->nodes   = sis_node_create();
-    return bctrl;
-}
-void sis_map_bctrl_destroy(void *bctrl_)
-{
-    s_sis_map_bctrl *bctrl = bctrl_;
-    sis_node_destroy(bctrl->nodes);
-    sis_free(bctrl);
-}
-void *sis_map_bctrl_get_var(s_sis_map_bctrl *bctrl, int recno_)
-{
-    int inode = recno_ / bctrl->perrecs;
-    int recno = recno_ % bctrl->perrecs;
-    int offset = sizeof(s_sis_map_block);
-    if (bctrl->needsno)
-    {
-        offset += bctrl->perrecs * 8;
-    }
-    s_sis_node *next = sis_node_get(bctrl->nodes, inode);
-    if (next)
-    {
-        char *ptr = next->value;
-        return ptr + offset + recno * bctrl->recsize;
-    }
-    return NULL;
-}
-int64 *sis_map_bctrl_get_sno(s_sis_map_bctrl *bctrl, int recno_)
-{
-    if (bctrl->needsno && recno_ < bctrl->sumrecs)
-    {
-        int inode = recno_ / bctrl->perrecs;
-        int recno = recno_ % bctrl->perrecs;
-        s_sis_node *next = sis_node_get(bctrl->nodes, inode);
-        if (next)
-        {
-            // char *ptr = next->value;
-            // sis_out_binary("sno", ptr, 128);
-            // printf(" getsno: %d %p %d\n", recno, ptr, (sizeof(s_sis_map_block) + recno * 8));
-            // ptr = ptr + (sizeof(s_sis_map_block) + recno * 8);
-            // printf(" getsno: %d %p\n", recno, ptr);
-            return (int64 *)((char *)next->value + sizeof(s_sis_map_block) + recno * 8);
-        }
-    }
-    return NULL;
-}
-void sis_map_bctrl_set_sno(s_sis_map_bctrl *bctrl, int recno_, int64 sno_)
-{
-    if (bctrl->needsno && recno_ < bctrl->sumrecs)
-    {
-        int inode = recno_ / bctrl->perrecs;
-        int recno = recno_ % bctrl->perrecs;
-        s_sis_node *next = sis_node_get(bctrl->nodes, inode);
-        if (next)
-        {
-            int64 *var = (int64 *)((char *)next->value + sizeof(s_sis_map_block) + recno * 8);
-            *var = sno_;
-        }
-    }
-}
+///////////////////////////////////////////////////////
+// s_sis_map_ksctrl
+///////////////////////////////////////////////////////
 
 s_sis_map_ksctrl *sis_map_ksctrl_create(s_sis_map_kdict *kdict, s_sis_map_sdict *sdict)
 {
     s_sis_map_ksctrl *ksctrl = SIS_MALLOC(s_sis_map_ksctrl, ksctrl);
+    ksctrl->ksidx = sis_disk_io_map_get_ksidx(kdict->index, sdict->index);
     ksctrl->kdict = kdict;
     ksctrl->sdict = sdict;
-    ksctrl->ksidx = sis_disk_io_map_get_ksidx(kdict->index, sdict->index);
-    ksctrl->mapbctrl_var = sis_map_bctrl_create(1, sdict->table->size);
+    
+    ksctrl->varblks = sis_int_list_create();
+
     return ksctrl;  
 }
 void sis_map_ksctrl_destroy(void *ksctrl_)
 {
     s_sis_map_ksctrl *ksctrl = ksctrl_;
-    sis_map_bctrl_destroy(ksctrl->mapbctrl_var);
+    sis_int_list_destroy(ksctrl->varblks);
     sis_free(ksctrl);
 }
-int64 *sis_map_ksctrl_get_timefd(s_sis_map_ksctrl *ksctrl, int recno)
-{
-    if (recno < ksctrl->mapbctrl_var->sumrecs)
-    {
-        char *var = sis_map_bctrl_get_var(ksctrl->mapbctrl_var, recno);
-        return (int64 *)(var + ksctrl->sdict->table->field_time->offset);
-    }
-    return NULL;
-}
+
 ///////////////////////////////////////////////////////
 // s_sis_map_fctrl
 ///////////////////////////////////////////////////////
 
-s_sis_map_fctrl *sis_map_fctrl_create(const char *name)
+s_sis_map_fctrl *sis_map_fctrl_create(const char *fpath, const char *fname)
 {
     s_sis_map_fctrl *fctrl = SIS_MALLOC(s_sis_map_fctrl, fctrl);
     
-    fctrl->status = SIS_DISK_STATUS_CLOSED;  
+    fctrl->fname = sis_disk_io_map_get_fname(fpath, fname);
+
+    fctrl->status = SIS_MAP_STATUS_CLOSED;  
     fctrl->rwmode = 0; // 读  
 
     fctrl->map_keys = sis_map_list_create(sis_map_kdict_destroy);
     fctrl->map_sdbs = sis_map_list_create(sis_map_sdict_destroy);   
-    fctrl->map_kscs = sis_map_kint_create(sis_map_ksctrl_destroy);
+    fctrl->map_kscs = sis_map_kints_create(sis_map_ksctrl_destroy);
     
-    fctrl->mapbctrl_idx = sis_pointer_list_create();
-    fctrl->mapbctrl_idx->vfree = sis_map_bctrl_destroy;
+    fctrl->rwlock   = sis_map_rwlock_create(fname);
 
-    fctrl->rwlocks = sis_map_rwlocks_create(name, SIS_MAP_LOCK_MIDX);
+    fctrl->ksirecs = SIS_MAP_MAYUSE_LEN / sizeof(s_sis_map_index);
+
     return fctrl;
 }
 void sis_map_fctrl_destroy(void *fctrl_)
@@ -158,45 +95,58 @@ void sis_map_fctrl_destroy(void *fctrl_)
     s_sis_map_fctrl *fctrl = fctrl_;
     sis_map_list_destroy(fctrl->map_keys);
     sis_map_list_destroy(fctrl->map_sdbs);
-    sis_map_kint_destroy(fctrl->map_kscs);
-    sis_pointer_list_destroy(fctrl->mapbctrl_idx);
+    sis_map_kints_destroy(fctrl->map_kscs);
     if (fctrl->mapmem)
     {
-        sis_unmmap(fctrl->mapmem, fctrl->maphead->fsize);
+        sis_unmmap(fctrl->mapmem, fctrl->mhead_r.fsize);
     }
-    sis_map_rwlocks_destroy(fctrl->rwlocks);
+    sis_map_rwlock_destroy(fctrl->rwlock);
+
     sis_sdsfree(fctrl->fname);
     sis_sdsfree(fctrl->wkeys);
     sis_sdsfree(fctrl->wsdbs);
     sis_free(fctrl);
 }   
 
-
 ////////////////////
 // pubic 
 ////////////////////
-s_sis_map_block *sis_map_block_head(s_sis_map_fctrl *fctrl, int blockno)
+s_sis_map_index *sis_map_fctrl_get_mindex(s_sis_map_fctrl *fctrl, s_sis_map_sdict *sdict, int recno)
 {
-    return (s_sis_map_block *)(fctrl->mapmem + (blockno + 1) * SIS_DISK_MAXLEN_MAPPAGE);
+    int index = recno / fctrl->ksirecs;
+    int blkno = sis_int_list_get(sdict->ksiblks, index); 
+    int curno = recno % fctrl->ksirecs;
+    return (s_sis_map_index *)(fctrl->mapmem + blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + curno * sizeof(s_sis_map_index));
 }
-char *sis_map_block_memory(s_sis_map_fctrl *fctrl, int blockno)
+
+s_sis_map_block *sis_map_block_head(s_sis_map_fctrl *fctrl, int blkno)
 {
-    return (fctrl->mapmem + (blockno + 1) * SIS_DISK_MAXLEN_MAPPAGE + sizeof(s_sis_map_block));
+    return (s_sis_map_block *)(fctrl->mapmem + blkno * SIS_MAP_MIN_SIZE);
 }
+
 int64 sis_disk_io_map_get_ksidx(int32 kidx, int64 sidx)
 {
     // return (sidx << 32) | kidx;
     return sidx * 100000000 + kidx;
 }
 
-s_sis_map_kdict *sis_disk_io_map_incr_kdict(s_sis_map_fctrl *fctrl, const char *kname)
+s_sis_dynamic_db *sis_disk_io_map_get_dbinfo(s_sis_map_fctrl *fctrl, const char *sname_)
 {
-    s_sis_map_kdict *kdict = sis_map_kdict_create(sis_map_list_getsize(fctrl->map_keys), kname);
-    sis_map_list_set(fctrl->map_keys, kname, kdict);
-    sis_disk_io_map_kdict_change(fctrl, kdict);
-    return kdict;  
+    s_sis_map_sdict *sdict = sis_map_list_get(fctrl->map_sdbs, sname_);
+    if (sdict)
+    {
+        return sdict->table;
+    }
+    return NULL;
 }
-// 这两个填补key和sdb可以增补 并可能扩展大小
+
+s_sis_sds sis_disk_io_map_get_fname(const char *fpath_, const char *fname_)
+{
+    s_sis_sds fname = sis_sdsempty();
+    fname = sis_sdscatfmt(fname, "%s/%s.%s", fpath_, fname_, SIS_DISK_MAP_CHAR);
+    return fname; 
+}
+
 int sis_disk_io_map_set_kdict(s_sis_map_fctrl *fctrl, const char *in_, size_t ilen_)
 {
     s_sis_string_list *klist = sis_string_list_create();
@@ -219,7 +169,6 @@ int sis_disk_io_map_set_kdict(s_sis_map_fctrl *fctrl, const char *in_, size_t il
 
 int sis_disk_io_map_set_sdict(s_sis_map_fctrl *fctrl, const char *in_, size_t ilen_)
 {
-    printf("%s\n", in_);
     s_sis_json_handle *injson = sis_json_load(in_, ilen_);
     if (!injson)
     {
@@ -239,127 +188,19 @@ int sis_disk_io_map_set_sdict(s_sis_map_fctrl *fctrl, const char *in_, size_t il
                 {
                     sdict = sis_map_sdict_create(sis_map_list_getsize(fctrl->map_sdbs), newdb);
                     sis_map_list_set(fctrl->map_sdbs, newdb->name, sdict);
-                    sis_disk_io_map_sdict_change(fctrl, sdict);
-                    news++;
+                }
+                else
+                {
+                    sis_dynamic_db_destroy(newdb);
                 }
             }  
         }
         innode = sis_json_next_node(innode);
     }
     sis_json_close(injson);
-    printf("sdbs = %d \n", sis_map_list_getsize(fctrl->map_sdbs));
-
+    // printf("sdbs = %d \n", sis_map_list_getsize(fctrl->map_sdbs));
     return news;  
 }
-
-s_sis_dynamic_db *sis_disk_io_map_get_dbinfo(s_sis_map_fctrl *fctrl, const char *sname_)
-{
-    s_sis_map_sdict *sdict = sis_map_list_get(fctrl->map_sdbs, sname_);
-    if (sdict)
-    {
-        return sdict->table;
-    }
-    return NULL;
-}
-
-
-int sis_disk_io_map_kdict_change(s_sis_map_fctrl *fctrl, s_sis_map_kdict *kdict)
-{
-    if (fctrl->rwmode == 0)
-    {
-        return 0;
-    }
-    if (fctrl->status & SIS_DISK_STATUS_OPENED)
-    {
-        // 如果文件已经开始写入 需要增加对应信息
-        sis_sdsfree(fctrl->wkeys);
-        fctrl->wkeys = sis_disk_io_map_as_keys(fctrl->map_keys);
-        sis_disk_io_map_write_kdict(fctrl);
-        // 这里需要在每个sdb中增加索引和数据块
-        sis_disk_io_map_ksctrl_incr_key(fctrl, kdict);
-        return 1;
-    }
-    return 0;
-}
-int sis_disk_io_map_sdict_change(s_sis_map_fctrl *fctrl, s_sis_map_sdict *sdict)
-{
-    if (fctrl->rwmode == 0)
-    {
-        return 0;
-    }
-    if (fctrl->status & SIS_DISK_STATUS_OPENED)
-    {
-        // 如果文件已经开始写入 需要增加对应信息
-        sis_sdsfree(fctrl->wsdbs);
-        fctrl->wsdbs = sis_disk_io_map_as_sdbs(fctrl->map_sdbs);
-        sis_disk_io_map_write_sdict(fctrl);
-        // 这里需要增加所有股票的sdb中索引和数据块
-        sis_disk_io_map_ksctrl_incr_sdb(fctrl, sdict);
-        return 1;
-    }
-    return 0;
-}
-
-int sis_disk_io_map_open(s_sis_map_fctrl *fctrl)
-{
-    // 加载头和索引数据
-    s_sis_handle fd = -1;
-    if (fctrl->rwmode == 1)
-    {
-        fd = sis_open(fctrl->fname, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
-    }
-    else
-    {
-        fd = sis_open(fctrl->fname, SIS_FILE_IO_RDWR, 0666);
-    }
-    if (fd == -1)
-    {
-        LOG(5)("error opening file. %s\n", fctrl->fname);
-        return SIS_DISK_CMD_NO_OPEN;
-    }
-    size_t fsize = sis_size(fd);
-    if (fsize <= SIS_DISK_MAXLEN_MAPPAGE)
-    {
-        LOG(5)("file format error. %s %zu\n", fctrl->fname, fsize);
-        sis_close(fd);
-        return SIS_DISK_CMD_SIZENO;
-    }
-    sis_seek(fd, 16, SEEK_SET);
-    s_sis_map_head headctrl;
-    if (sis_read(fd, (char *)&headctrl, sizeof(s_sis_map_head)) != sizeof(s_sis_map_head))
-    {
-        LOG(5)("read file error. %s\n", fctrl->fname);
-        sis_close(fd);
-        return SIS_DISK_CMD_RWFAIL;
-    }
-    char *map = NULL;
-    if (fctrl->rwmode == 1)
-    {
-        map = sis_mmap_w(fd, headctrl.fsize);
-    }
-    else
-    {
-        map = sis_mmap_r(fd, headctrl.fsize);
-    }
-    if (map == MAP_FAILED) 
-    {
-        LOG(5)("mapp file fail. %s\n", fctrl->fname);
-        sis_close(fd);
-        return SIS_DISK_CMD_MAPERR;
-    }
-    fctrl->mapmem = map;
-    sis_close(fd);
-    // 文件打开并映射好 下面开始读取索引数据
-    return SIS_DISK_CMD_OK;
-}
-
-s_sis_sds sis_disk_io_map_get_fname(const char *fpath_, const char *fname_)
-{
-    s_sis_sds fname = sis_sdsempty();
-    fname = sis_sdscatfmt(fname, "%s/%s.%s", fpath_, fname_, SIS_DISK_MAP_CHAR);
-    return fname; 
-}
-
 
 s_sis_sds sis_disk_io_map_as_keys(s_sis_map_list *map_keys_)
 {
@@ -394,7 +235,18 @@ s_sis_sds sis_disk_io_map_as_sdbs(s_sis_map_list *map_sdbs_)
 	return o;
 }
 
-#if 0
+int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_)
+{
+    s_sis_sds fname = sis_disk_io_map_get_fname(fpath_, fname_);
+    if (sis_file_exists(fname))
+    {
+        sis_file_delete(fname);
+        return 1;
+    }
+    return 0;
+}
+
+#if 1
 
 #define FNAME  "mymap"
 
@@ -402,7 +254,7 @@ s_sis_sds sis_disk_io_map_as_sdbs(s_sis_map_list *map_sdbs_)
 static int    __read_nums = 0;
 static size_t __read_size = 0;
 static msec_t __read_msec = 0;
-static int    __write_nums = 1;//*1000*1000;
+static int    __write_nums = 1*1000*1000;
 static size_t __write_size = 0;
 static msec_t __write_msec = 0;
 
@@ -520,33 +372,33 @@ void read_sdb(s_sis_disk_reader *cxt)
     // sis_disk_reader_sub_sdb(cxt, "*", "*", &pair);
 
     int submode = 1;
-    {
-        s_sis_msec_pair pair = {1620793985999, 1711925510999};
-        sis_disk_reader_sub_map(cxt, submode, "*", "*", &pair);
-        printf("===============================\n");
-    }
-    {
-        s_sis_msec_pair pair = {1620793985999, 1711925510999};
-        sis_disk_reader_sub_map(cxt, submode, "k1,k2", "*", &pair);
-        printf("===============================\n");
-    }
-    {
-        s_sis_msec_pair pair = {1620793985999, 1711925510999};
-        sis_disk_reader_sub_map(cxt, submode, "*", "info,smsec", &pair);
-        printf("===============================\n");
-    }
+    // {
+    //     s_sis_msec_pair pair = {1620793985999, 1711925510999};
+    //     sis_disk_reader_sub_map(cxt, submode, "*", "*", &pair);
+    //     printf("===============================\n");
+    // }
+    // {
+    //     s_sis_msec_pair pair = {1620793985999, 1711925510999};
+    //     sis_disk_reader_sub_map(cxt, submode, "k1,k2", "*", &pair);
+    //     printf("===============================\n");
+    // }
+    // {
+    //     s_sis_msec_pair pair = {1620793985999, 1711925510999};
+    //     sis_disk_reader_sub_map(cxt, submode, "*", "info,smsec", &pair);
+    //     printf("===============================\n");
+    // }
 
     {
-        s_sis_msec_pair pair = {0, 1621315510999};
-        sis_disk_reader_sub_map(cxt, submode, "*", "*", &pair);
-        printf("===============================\n");
+        // s_sis_msec_pair pair = {1620794000999, 1620795510999};
+        // sis_disk_reader_sub_map(cxt, SIS_MAP_SUB_TSNO, "*", "*", &pair);
+        // printf("===============================\n");
     }
 
 
 
     {
-        s_sis_msec_pair pair = {1620793979999, 0};
-        sis_disk_reader_sub_map(cxt, submode, "*", "*", &pair);
+        s_sis_msec_pair pair = {1621315510999, 0};
+        sis_disk_reader_sub_map(cxt, 1, "*", "*", &pair);
     }
 
     // sis_disk_reader_close(cxt);
@@ -574,50 +426,63 @@ void write_sdb(s_sis_disk_writer *cxt)
         { 1711925510999,  10, 3},
     };
 
-    sis_disk_writer_open(cxt, 0);
-    sis_disk_writer_set_kdict(cxt, inkeys, sis_strlen(inkeys));
-    sis_disk_writer_set_sdict(cxt, insdbs, sis_strlen(insdbs));
-    sis_disk_writer_start(cxt);
+    if (sis_disk_writer_open(cxt, 0) == 0)
+    {
+        return ;
+    }
+
+    sis_disk_writer_inited(cxt, inkeys, sis_strlen(inkeys), insdbs, sis_strlen(insdbs));
 
     int count = __write_nums;
     __write_msec = sis_time_get_now_msec();
 
-    __write_size += sis_disk_writer_map(cxt, "k1", "info", &info_data[0], sizeof(s_info));
-    __write_size += sis_disk_writer_map(cxt, "k2", "info", &info_data[1], sizeof(s_info));
-    __write_size += sis_disk_writer_map(cxt, "k3", "info", &info_data[2], sizeof(s_info));
-    for (int k = 0; k < count; k++)
+    for (int i = 0; i < 10; i++)
     {
-        for (int i = 6; i < 10; i++) // 4
-        {
-            s_tsec data;
-            data.time = snap_data[i].time;
-            data.value = k * 10 + i;
-            __write_size += sis_disk_writer_map(cxt, "k4", "stsec", &data, sizeof(s_tsec));
-        }
-        for (int i = 0; i < 8; i++) // 5
-        {
-            s_tsec data;
-            data.time = snap_data[i].time;
-            data.value = k * 10 + i;
-            __write_size += sis_disk_writer_map(cxt, "k2", "stsec", &data, sizeof(s_tsec));
-        }
-        for (int i = 0; i < 5; i++) // 5
-        {
-            __write_size += sis_disk_writer_map(cxt, "k3", "smsec", &snap_data[i], sizeof(s_msec));
-        }
-        for (int i = 4; i >= 0; i--) // 5
-        {
-            __write_size += sis_disk_writer_map(cxt, "k1", "smsec", &snap_data[i], sizeof(s_msec));
-        }
+        s_tsec data;
+        data.time = 1711925520999;
+        data.value = i;
+        __write_size += sis_disk_writer_data(cxt, "k4", "stsec", &data, sizeof(s_tsec));
     }
-    sis_disk_writer_stop(cxt);
+
+    // __write_size += sis_disk_writer_data(cxt, "k1", "info", &info_data[0], sizeof(s_info));
+    // __write_size += sis_disk_writer_data(cxt, "k2", "info", &info_data[1], sizeof(s_info));
+    // __write_size += sis_disk_writer_data(cxt, "k3", "info", &info_data[2], sizeof(s_info));
+    // // for (int k = 0; k < count; k++)
+    // {
+    //     for (int i = 0; i < 10; i++) // 4
+    //     {
+    //         s_tsec data;
+    //         data.time = snap_data[i].time;
+    //         for (int k = 0; k < count; k++)
+    //         {
+    //             data.value = k * 10 + i;
+    //             if (i > 5) {
+    //                 __write_size += sis_disk_writer_data(cxt, "k4", "stsec", &data, sizeof(s_tsec));
+    //             }
+    //             if (i < 8) 
+    //             {
+    //                 __write_size += sis_disk_writer_data(cxt, "k2", "stsec", &data, sizeof(s_tsec));
+    //             }
+    //             if (i < 5) 
+    //             {
+    //                 __write_size += sis_disk_writer_data(cxt, "k3", "smsec", &snap_data[i], sizeof(s_msec));
+    //             }
+    //         }
+    //     }
+    // }
     sis_disk_writer_close(cxt);
     printf("write end %d %zu | cost: %lld.\n", __write_nums, __write_size, sis_time_get_now_msec() - __write_msec);
 }
 int main(int argc, char **argv)
 {
+    if (argc > 1 && argv[1][0] == 'f')
+    {
+        sis_map_rwlock_clear(".mymap.sem", 0);
+        return 0;
+    }
     safe_memory_start();
-    s_sis_map_fctrl *fctrl = sis_map_fctrl_create(FNAME);
+    // s_sis_map_fctrl *fctrl = sis_map_fctrl_create("./", FNAME);
+    
     if (argc < 1)
     {
         exit(0);
@@ -651,7 +516,7 @@ int main(int argc, char **argv)
         // write_sdb_msec(wcxt);  // 按时间写入
         sis_disk_writer_destroy(wcxt);
     }
-    sis_map_fctrl_destroy(fctrl);
+    // sis_map_fctrl_destroy(fctrl);
     safe_memory_stop();
     return 0;
 }

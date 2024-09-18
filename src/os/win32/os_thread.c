@@ -90,6 +90,9 @@ void sis_sem_close(s_sis_sem *sem)
     CloseHandle(sem->lock);
     sis_free(sem);
 }
+void sis_sem_unlink(const char *semname)
+{
+}
 int sis_sem_lock(s_sis_sem *sem)
 {
     return WaitForSingleObject(sem->lock, INFINITE);

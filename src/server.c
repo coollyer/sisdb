@@ -2,6 +2,7 @@
 #include <server.h>
 #include <signal.h>
 #include <worker.h>
+#include <sis_sem.h>
 
 static s_sis_server _server = {
 	.status = SERVER_STATUS_NONE,
@@ -261,13 +262,14 @@ s_sis_modules *sis_get_worker_slot(const char *name_)
 void _server_help()
 {
 	printf("command format:\n");
-	printf("		-f xxxx.conf : install custom conf. \n");
-	printf("		-j xxxx.json : install custom json. \n");
-	printf("		-t xxxx.conf xxxx.json : trans conf to json. \n");
-	printf("		-d           : debug mode run. \n");
-	printf("		-w workinfo.json : install workinfo config. \n");
+	printf("		-f x.conf            : install custom conf. \n");
+	printf("		-j x.json            : install custom json. \n");
+	printf("		-t x.conf x.json     : trans conf to json. \n");
+	printf("		-e x.sem             : clear sem rwlock. \n");
+	printf("		-d                   : debug mode run. \n");
+	printf("		-w workinfo.json     : install workinfo config. \n");
 	printf("		-r 20220101,20221011 : replace work-date. \n");
-	printf("		-h           : help. \n");
+	printf("		-h                   : help. \n");
 }
 /**
  * @brief 加载所有模块至_server.modules
@@ -321,6 +323,11 @@ int main(int argc, char *argv[])
 			sis_strcpy(_server.conf_name, 1024, argv[c + 1]);
 			c++;
 			_server.load_mode = 0;
+		}
+		else if (argv[c][0] == '-' && argv[c][1] == 'e' && argv[c + 1])
+		{
+			sis_map_rwlock_clear(argv[c + 1], argv[c][2] == 'f' ? 1 : 0);
+			return 0;
 		}
 		else if (argv[c][0] == '-' && argv[c][1] == 'j' && argv[c + 1])
 		{

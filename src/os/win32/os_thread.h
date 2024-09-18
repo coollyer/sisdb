@@ -76,7 +76,8 @@ extern "C" {
 #endif
 
 s_sis_sem *sis_sem_open(const char *);
-int sis_sem_close(s_sis_sem *);
+void sis_sem_close(s_sis_sem *);
+void sis_sem_unlink(const char *);
 int sis_sem_lock(s_sis_sem *);
 int sis_sem_unlock(s_sis_sem *);
 

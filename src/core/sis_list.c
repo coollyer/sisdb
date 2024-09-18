@@ -436,7 +436,7 @@ void sis_node_clear(void *node_)
 	}	
 }
 
-int sis_node_push(s_sis_node *node_, void *data_)
+s_sis_node *sis_node_push(s_sis_node *node_, void *data_)
 {
 	while (node_->next)
 	{
@@ -447,7 +447,7 @@ int sis_node_push(s_sis_node *node_, void *data_)
 	newnode->prev = node_;
 	newnode->index = node_->index + 1;
 	node_->next = newnode;
-	return newnode->index;
+	return newnode;
 }
 
 s_sis_node *sis_node_get(s_sis_node *node_, int index_)

@@ -283,17 +283,25 @@ unsigned int sis_thread_handle(s_sis_thread_id_t id_)
 
 /////////////////////////////////////
 // s_sis_sem
+// 注意 如果在 sis_sem_lock sis_sem_unlock 之间程序异常退出
+// 重启程序将会堵塞在 sis_sem_lock 这里
+// 只有执行了 sis_sem_unlink  才能释放资源
+// 但是 sis_sem_unlink 执行后 其他共享该资源的就不再有互斥功能
+// 因此异常情况下 需要让相关程序都重新启动才能恢复正常
+// 通常删除了 map就可以正常了 除非极端情况下 需要执行 -e 参数进行复原
 //////////////////////////////////////////
 s_sis_sem *sis_sem_open(const char *sname)
 {
 	s_sis_sem *sem = SIS_MALLOC(s_sis_sem, sem);
-	if (sname)
+	if (!sname)
 	{
-		int slen = sis_strlen(sname);
-		sem->semname = sis_malloc(slen + 1);
-		memmove(sem->semname, sname, slen);
-		sem->semname[slen] = 0;
+		return NULL;
 	}
+	int slen = sis_strlen(sname);
+	sem->semname = sis_malloc(slen + 1);
+	memmove(sem->semname, sname, slen);
+	sem->semname[slen] = 0;
+		
 	sem->lock = sem_open(sname, O_CREAT, 0644, 1);
 	if (sem->lock == SEM_FAILED)
 	{	
@@ -305,13 +313,19 @@ s_sis_sem *sis_sem_open(const char *sname)
 void sis_sem_close(s_sis_sem *sem)
 {
 	sem_close(sem->lock);
-	sem_unlink(sem->semname);
+	// 这里不能执行unlink否则其他新程序不具备互斥作用
+	// sem_unlink(sem->semname);
 	if (sem->semname)
 	{
 		sis_free(sem->semname);
 	}
 	sis_free(sem);
 }
+void sis_sem_unlink(const char *semname)
+{
+	sem_unlink(semname);
+}
+
 int sis_sem_lock(s_sis_sem *sem)
 {
 	return sem_wait(sem->lock);

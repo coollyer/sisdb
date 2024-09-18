@@ -22,7 +22,7 @@ s_sis_disk_writer *sis_disk_writer_create(const char *path_, const char *name_, 
     o->map_date = sis_map_list_create(NULL);
     if (style_ == SIS_DISK_TYPE_MAP)
     {
-        o->map_fctrl = sis_map_fctrl_create(name_);
+        o->map_fctrl = sis_map_fctrl_create(path_, name_);
     }
     return o;
 }
@@ -165,13 +165,13 @@ void sis_disk_writer_sdict_changed(s_sis_disk_writer *writer_, s_sis_dynamic_db 
 // 以保证后续写入数据时MAP是最新的
 int sis_disk_writer_set_kdict(s_sis_disk_writer *writer_, const char *in_, size_t ilen_)
 {
-    if (writer_->status == 0 || writer_->style == SIS_DISK_TYPE_LOG || !in_ || ilen_ < 1)
+    if (writer_->style == SIS_DISK_TYPE_MAP)
     {
         return 0;
     }
-    if (writer_->style == SIS_DISK_TYPE_MAP)
+    if (writer_->status == 0 || writer_->style == SIS_DISK_TYPE_LOG || !in_ || ilen_ < 1)
     {
-        return sis_disk_io_map_set_kdict(writer_->map_fctrl, in_, ilen_);
+        return 0;
     }
     s_sis_string_list *klist = sis_string_list_create();
     sis_string_list_load(klist, in_, ilen_, ",");
@@ -199,13 +199,13 @@ int sis_disk_writer_set_kdict(s_sis_disk_writer *writer_, const char *in_, size_
 // 只传递增量和变动的DB
 int sis_disk_writer_set_sdict(s_sis_disk_writer *writer_, const char *in_, size_t ilen_)
 {
-    if (writer_->status == 0 || writer_->style == SIS_DISK_TYPE_LOG || !in_ || ilen_ < 16) // {k:{fields:[[]]}}
+    if (writer_->style == SIS_DISK_TYPE_MAP)
     {
         return 0;
     }
-    if (writer_->style == SIS_DISK_TYPE_MAP)
+    if (writer_->status == 0 || writer_->style == SIS_DISK_TYPE_LOG || !in_ || ilen_ < 16) // {k:{fields:[[]]}}
     {
-        return sis_disk_io_map_set_sdict(writer_->map_fctrl, in_, ilen_);
+        return 0;
     }
     s_sis_json_handle *injson = sis_json_load(in_, ilen_);
     if (!injson)
@@ -268,9 +268,6 @@ int sis_disk_writer_start(s_sis_disk_writer *writer_)
         sis_disk_ctrl_write_sdict(writer_->munit);
         o = sis_disk_io_write_sno_start(writer_->munit);
         break;
-    case SIS_DISK_TYPE_MAP:
-        o = sis_disk_io_map_w_start(writer_->map_fctrl);
-        break;
     case SIS_DISK_TYPE_SDB:
         break;
     default:
@@ -288,9 +285,6 @@ void sis_disk_writer_stop(s_sis_disk_writer *writer_)
         break;
     case SIS_DISK_TYPE_SNO:
         sis_disk_io_write_sno_stop(writer_->munit);
-        break;
-    case SIS_DISK_TYPE_MAP:
-        sis_disk_io_map_w_stop(writer_->map_fctrl);
         break;
     case SIS_DISK_TYPE_SDB:
         break;
@@ -332,7 +326,7 @@ int sis_disk_writer_sno(s_sis_disk_writer *writer_, const char *kname_, const ch
 {
     if (writer_->style != SIS_DISK_TYPE_SNO) 
     {
-        return -1;
+        return 0;
     }  
     s_sis_disk_sdict *sdict = sis_disk_map_get_sdict(writer_->munit->map_sdicts, sname_);
     if (!sdict)
@@ -349,9 +343,42 @@ int sis_disk_writer_sno(s_sis_disk_writer *writer_, const char *kname_, const ch
     return sis_disk_io_write_sno(writer_->munit, kdict, sdict, in_, ilen_);
 }
 
-int sis_disk_writer_map(s_sis_disk_writer *writer_, const char *kname_, const char *sname_, void *in_, size_t ilen_)
+int sis_disk_writer_inited(s_sis_disk_writer *writer_, const char *keys_, size_t klen_, const char *sdbs_, size_t slen_)
 {
-    return sis_disk_io_map_w_data(writer_->map_fctrl, kname_, sname_, in_, ilen_);
+    int o = -1;
+    switch (writer_->style)
+    {
+    case SIS_DISK_TYPE_SIC:
+        break;
+    case SIS_DISK_TYPE_SNO:
+        break;
+    case SIS_DISK_TYPE_MAP:
+        o = sis_disk_writer_map_inited(writer_->map_fctrl, keys_, klen_, sdbs_, slen_);
+        break;
+    default:
+        break;
+    }
+    return o;
+}
+
+int sis_disk_writer_data(s_sis_disk_writer *writer_, const char *kname_, const char *sname_, void *in_, size_t ilen_)
+{
+    int o = 0;
+    switch (writer_->style)
+    {
+    case SIS_DISK_TYPE_SIC:
+        o = sis_disk_writer_sic(writer_, kname_, sname_, in_, ilen_);
+        break;
+    case SIS_DISK_TYPE_SNO:
+        o = sis_disk_writer_sno(writer_, kname_, sname_, in_, ilen_);
+        break;
+    case SIS_DISK_TYPE_MAP:
+        o = sis_disk_io_map_w_data(writer_->map_fctrl,  kname_, sname_, in_, ilen_);
+        break;
+    default:
+        break;
+    }
+    return o;
 }
 
 //////////////////////////////////////////

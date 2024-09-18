@@ -357,7 +357,7 @@ void sis_node_destroy(void *node_);
 
 void sis_node_clear(void *node_);
 
-int sis_node_push(s_sis_node *, void *data_);
+s_sis_node *sis_node_push(s_sis_node *, void *data_);
 
 s_sis_node *sis_node_get(s_sis_node *, int index_);
 

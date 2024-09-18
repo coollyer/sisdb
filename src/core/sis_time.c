@@ -1022,6 +1022,45 @@ msec_t sis_time_get_msec_from_int(int64 inmsec) // "20151020123038110"
 	curmsec = sis_time_make_time(idate, itime);	
 	return curmsec * 1000 + msec;
 }
+
+#include "sis_math.h"
+
+s_sis_aisleep *sis_aisleep_create(unsigned int minws, unsigned int maxws)
+{
+	s_sis_aisleep *m = sis_malloc(sizeof(s_sis_aisleep));
+	m->minws = SIS_MAXI(3, SIS_MINI(minws, maxws));
+	m->maxws = SIS_MINI(3000000, SIS_MAXI(minws, maxws));
+	m->curws = m->minws;
+	m->nbusy = 1;
+	return m;
+}
+void sis_aisleep(s_sis_aisleep *m, int nbusy)
+{
+	if (nbusy > 0)
+	{
+		// 忙 不渐变
+		if (m->curws > m->minws)
+		{
+			m->curws = m->minws;
+		}
+	}
+	else 
+	{
+		// 闲
+		if (m->curws < m->maxws)
+		{
+			m->curws = SIS_MINI(m->curws * 10, m->maxws);
+		}
+		printf("%d\n", m->curws);
+		sis_usleep(m->curws);
+	}
+}
+void sis_aisleep_destroy(s_sis_aisleep *m)
+{
+	sis_free(m);
+}
+
+
 s_sis_time_delay *sis_delay_create(unsigned int msec)
 {
 	s_sis_time_delay *m = sis_malloc(sizeof(*m));

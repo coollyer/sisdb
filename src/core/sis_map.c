@@ -112,12 +112,24 @@ s_sis_dict_type _sis_dict_type_nofree_val_s = {
 };
 
 /**
- * @brief 键为64位整数的默认初始化实现，added by zhangchao
+ * @brief 键为64位整数的默认初始化实现
  */
 s_sis_dict_type _sis_dict_type_int_key_s = {
 	_sis_dict_int64_hash,	     /* hash function */
 	_sis_dict_int64_dup,		 /* key dup */
 	NULL,					     /* val dup */
+	_sis_dict_int64_compare,     /* key compare */
+	NULL,		                 /* key destructor */
+	NULL					     /* val destructor */
+};
+
+/**
+ * @brief 键和值为64位整数的默认初始化实现
+ */
+s_sis_dict_type _sis_dict_type_kvint_s = {
+	_sis_dict_int64_hash,	     /* hash function */
+	_sis_dict_int64_dup,		 /* key dup */
+	_sis_dict_int64_dup,		 /* val dup */
 	_sis_dict_int64_compare,     /* key compare */
 	NULL,		                 /* key destructor */
 	NULL					     /* val destructor */
@@ -241,6 +253,87 @@ int sis_map_list_getsize(s_sis_map_list *mlist_)
 	return count;
 }
 
+
+//////////////////////////////////////////
+//  s_sis_map_kints 基础定义
+//////////////////////////////////////////
+
+s_sis_map_kints *sis_map_kints_create(void *vfree_)
+{
+	s_sis_map_kints *o = SIS_MALLOC(s_sis_map_kints, o);
+	o->map = sis_map_kvint_create();
+	o->list = sis_pointer_list_create();
+	o->list->vfree = vfree_;
+	return o;
+}
+void sis_map_kints_destroy(void *mlist_)
+{
+	s_sis_map_kints *mlist = (s_sis_map_kints *)mlist_;
+	sis_map_kvint_destroy(mlist->map);
+	sis_pointer_list_destroy(mlist->list);
+	sis_free(mlist);
+}
+void sis_map_kints_clear(s_sis_map_kints *mlist_)
+{
+	sis_map_kvint_clear(mlist_->map);
+	sis_pointer_list_clear(mlist_->list);
+}
+
+int64 sis_map_kints_get_index(s_sis_map_kints *mlist_, int64 key_)
+{
+	if (!mlist_ || key_ < 0)
+	{
+		return -1;
+	}
+	return sis_map_kvint_get(mlist_->map, key_);
+}
+void *sis_map_kints_geti(s_sis_map_kints *mlist_, int index_)
+{
+	void *r = sis_pointer_list_get(mlist_->list, index_);
+	return r;
+}
+// key_不能为负
+void *sis_map_kints_get(s_sis_map_kints *mlist_, int64 key_)
+{
+	if (!mlist_ || key_ < 0)
+	{
+		return NULL;
+	}
+	void *o = NULL;
+	int64 index = sis_map_kvint_get(mlist_->map, key_);
+	if (index >= 0 && index < mlist_->list->count)
+	{
+		o = sis_pointer_list_get(mlist_->list, index);
+	}
+	return o;
+}
+
+// map有变化必须全部重索引
+int sis_map_kints_set(s_sis_map_kints *mlist_, int64 key_, void *value_)
+{
+	if (!mlist_ || key_ < 0)
+	{
+		return -1;
+	}
+	int64 index = sis_map_kvint_get(mlist_->map, key_);
+	// printf(" %s index = %d\n",key_, index);
+	if (index >= 0)
+	{
+		// sis_map_int_set(mlist_->map, key_, index);
+		sis_pointer_list_update(mlist_->list, index, value_);
+	}
+	else
+	{
+		sis_map_kvint_set(mlist_->map, key_, mlist_->list->count);
+		sis_pointer_list_push(mlist_->list, value_);
+		index = mlist_->list->count - 1;
+	}
+	return index;
+}
+int sis_map_kints_getsize(s_sis_map_kints *mlist_)
+{	
+	return mlist_->list->count;
+}
 //////////////////////////////////////////
 //  s_sis_map_sort 基础定义
 //////////////////////////////////////////
@@ -443,6 +536,44 @@ void sis_map_kint_del(s_sis_map_kint *map_, int64 key_)
 {
 	sis_dict_delete(map_, (const void*)key_);
 	// sis_dict_delete(map_, (void *)&key_);
+}
+
+//////////////////////////////////////////
+//  s_sis_map_kvint 基础定义
+//////////////////////////////////////////
+/** 创建一个键类型为int的字典 */
+s_sis_map_kvint *sis_map_kvint_create()
+{
+	s_sis_dict_type *type = SIS_MALLOC(s_sis_dict_type, type);
+	memmove(type, &_sis_dict_type_kvint_s, sizeof(s_sis_dict_type));
+	s_sis_map_kvint *map = sis_dict_create(type, NULL);
+	return map;
+}
+
+/** 从字典中查找数据，键类型为int */
+int64 sis_map_kvint_get(s_sis_map_kvint *map_, int64 key_)
+{
+	if (!map_)
+	{
+		return -1;
+	}
+	s_sis_dict_entry *he = sis_dict_find(map_, (const void *)key_);
+	if (!he)
+	{
+		return -1;
+	}
+	return sis_dict_get_int(he);
+
+}
+int sis_map_kvint_set(s_sis_map_kvint *map_, int64 key_, int64 val_)
+{
+	sis_dict_replace(map_,  (void *)key_, (void *)val_);	
+	return 0;
+}
+
+void sis_map_kvint_del(s_sis_map_kvint *map_, int64 key_)
+{
+	sis_dict_delete(map_, (const void*)key_);
 }
 //////////////////////////////////////////
 //  s_sis_map_kobj 基础定义

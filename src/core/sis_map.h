@@ -12,6 +12,7 @@
 #define s_sis_map_sds     s_sis_dict
 #define s_sis_map_kint    s_sis_dict
 #define s_sis_map_kobj    s_sis_dict
+#define s_sis_map_kvint   s_sis_dict
 
 // 定义一个指针类型的字典  string -- void*
 // 定义一个整数类型的字典  string -- int
@@ -33,6 +34,11 @@ typedef struct s_sis_map_list{
 	s_sis_map_int      *map;    // 存入的整数就是list的索引
 	s_sis_pointer_list *list;   // 实际数据存在这里
 }s_sis_map_list;
+
+typedef struct s_sis_map_kints{
+	s_sis_map_kvint     *map;    // 存入的整数就是list的索引
+	s_sis_pointer_list  *list;   // 实际数据存在这里
+}s_sis_map_kints;
 
 // 键值为数值的排序表
 typedef struct s_sis_map_sort{
@@ -71,6 +77,16 @@ void *sis_map_list_geti(s_sis_map_list *, int );
 int sis_map_list_get_index(s_sis_map_list *mlist_, const char *key_);
 int sis_map_list_set(s_sis_map_list *, const char *key_, void *value_); 
 int sis_map_list_getsize(s_sis_map_list *);
+
+s_sis_map_kints *sis_map_kints_create(void *vfree_);
+void sis_map_kints_destroy(void *);
+void sis_map_kints_clear(s_sis_map_kints *);
+
+void *sis_map_kints_get(s_sis_map_kints *, int64 key_);
+void *sis_map_kints_geti(s_sis_map_kints *, int );
+int64 sis_map_kints_get_index(s_sis_map_kints *mlist_, int64 key_);
+int sis_map_kints_set(s_sis_map_kints *, int64 key_, void *value_); 
+int sis_map_kints_getsize(s_sis_map_kints *);
 
 s_sis_map_sort *sis_map_sort_create(void *vfree_);
 void sis_map_sort_destroy(void *);
@@ -118,6 +134,15 @@ void *sis_map_kint_get(s_sis_map_kint *, int64 );
 int sis_map_kint_set(s_sis_map_kint *, int64, void *value_);
 #define sis_map_kint_getsize sis_dict_getsize
 void sis_map_kint_del(s_sis_map_kint *, int64);
+
+// key val 都是整数
+s_sis_map_kvint *sis_map_kvint_create();
+#define sis_map_kvint_destroy sis_map_pointer_destroy
+#define sis_map_kvint_clear sis_map_pointer_clear
+int64 sis_map_kvint_get(s_sis_map_kvint *, int64 );
+int sis_map_kvint_set(s_sis_map_kvint *, int64, int64);
+#define sis_map_kvint_getsize sis_dict_getsize
+void sis_map_kvint_del(s_sis_map_kvint *, int64);
 
 // key为 s_sis_object 避免多次申请内存
 s_sis_map_kobj *sis_map_kobj_create();

@@ -68,7 +68,6 @@ void sisdb_wmap_stop(s_sisdb_wmap_cxt *context)
 {
     if (context->writer)
     {
-        sis_disk_writer_stop(context->writer);
         sis_disk_writer_close(context->writer);
         sis_disk_writer_destroy(context->writer);
         context->writer = NULL;
@@ -89,7 +88,7 @@ bool sisdb_wmap_start(s_sisdb_wmap_cxt *context)
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
         SIS_DISK_TYPE_MAP);
-    if (sis_disk_writer_open(context->writer, context->work_date > 0 ? context->work_date : -1) == 0)
+    if (sis_disk_writer_open(context->writer, 0) == 0)
     {
         LOG(5)("open wmap fail.\n");
         return false;
@@ -191,14 +190,14 @@ static int cb_sub_chars(void *worker_, void *argv_)
     }
     if (context->status == SIS_WMAP_OPEN)
     {
-        sis_disk_writer_set_kdict(context->writer, context->wmap_keys, sis_sdslen(context->wmap_keys));
-        sis_disk_writer_set_sdict(context->writer, context->wmap_sdbs, sis_sdslen(context->wmap_sdbs));
-        sis_disk_writer_start(context->writer);
+        sis_disk_writer_inited(context->writer, 
+            context->wmap_keys, sis_sdslen(context->wmap_keys),
+            context->wmap_sdbs, sis_sdslen(context->wmap_sdbs));
         context->status = SIS_WMAP_HEAD;
     }
 
     s_sis_db_chars *inmem = (s_sis_db_chars *)argv_;
-    sis_disk_writer_map(context->writer, inmem->kname, inmem->sname, inmem->data, inmem->size);
+    sis_disk_writer_data(context->writer, inmem->kname, inmem->sname, inmem->data, inmem->size);
     // if (!sis_strcasecmp(inmem->kname, "SH600745"))
     // {
     //     printf("%s %zu\n", __func__, inmem->size);

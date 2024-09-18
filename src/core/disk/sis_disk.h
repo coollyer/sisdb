@@ -61,7 +61,7 @@ typedef struct s_sis_disk_writer {
     s_sis_sds             fpath;
     s_sis_sds             fname;
     // ------contorl------ //
-    int                   status;     // 状态
+    int                   status;     // 状态 0 错误 1 已经打开
     s_sis_disk_ctrl      *munit;      // 非时序写入类 sno net log sdb
     s_sis_map_list       *units;      // sdb 的按时序存储的结构映射表
     // 一组操作类 s_sis_disk_ctrl 适用于sdb的时序数据
@@ -128,7 +128,7 @@ typedef struct s_sis_disk_reader {
 s_sis_disk_writer *sis_disk_writer_create(const char *path_, const char *name_, int style_);
 void sis_disk_writer_destroy(void *);
 
-// LOG SNO 为文件实际时间 SDB 为文件修改日期 
+// LOG SNO 为文件实际时间 SDB 为文件修改日期 1 表示成功 0 表示失败
 int sis_disk_writer_open(s_sis_disk_writer *, int idate_);
 // 关闭所有文件 重写索引
 void sis_disk_writer_close(s_sis_disk_writer *);
@@ -181,7 +181,15 @@ int sis_disk_writer_sno(s_sis_disk_writer *, const char *kname_, const char *sna
 //////////////////////////////////////////
 //  map 
 //////////////////////////////////////////
-int sis_disk_writer_map(s_sis_disk_writer *, const char *kname_, const char *sname_, void *in_, size_t ilen_);
+// sis_disk_writer_open
+// ... sis_disk_writer_inited
+// sis_disk_writer_data
+// ...
+// sis_disk_writer_close
+// 文件不存在时生成文件 
+int sis_disk_writer_inited(s_sis_disk_writer *, const char *keys_, size_t klen_, const char *sdbs_, size_t slen_);
+// 写入数据 0 写入失败 成功返回写入的字节数
+int sis_disk_writer_data(s_sis_disk_writer *, const char *kname_, const char *sname_, void *in_, size_t ilen_);
 
 //////////////////////////////////////////
 //  sdb 

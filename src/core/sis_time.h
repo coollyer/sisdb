@@ -76,6 +76,18 @@ msec_t sis_time_get_msec_from_int(int64 ); // "20151020123038110"
 // 等待条件产生 或超时
 #define SIS_WAIT_TIME(_a_,_t_) do { int _wt_ = _t_; while(!(_a_)) { _wt_-=3; sis_sleep(3); if(_wt_ < 0) break; }} while(0);
 
+// 有一种等待叫做没事多等会儿 有事不等
+typedef struct s_sis_aisleep {
+	unsigned int       minws;   // 1 微妙
+	unsigned int       maxws;   // 3000000 最大值 
+	unsigned int       curws;   // 当前值
+	bool               nbusy;   //  
+} s_sis_aisleep;
+
+s_sis_aisleep *sis_aisleep_create(unsigned int minws, unsigned int maxws);
+void sis_aisleep(s_sis_aisleep *m, int nbusy);
+void sis_aisleep_destroy(s_sis_aisleep *m);
+
 typedef struct s_sis_time_delay {
 	bool is_busy;
 	unsigned int m_msec_i;

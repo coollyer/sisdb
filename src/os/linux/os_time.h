@@ -24,6 +24,8 @@ void sis_time_check(time_t tt_, struct tm *ptm_);
 //睡眠单位毫秒
 void sis_sleep(int msec);
 
+#define sis_usleep usleep
+
 void sis_time_format_now(char *out_, size_t olen);
 
 #ifdef __cplusplus

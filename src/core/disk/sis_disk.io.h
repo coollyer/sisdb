@@ -124,7 +124,6 @@
 
 #define  SIS_DISK_CMD_SIZENO          -201  // 文件尺寸不对或者SEEK错误
 #define  SIS_DISK_CMD_RWFAIL          -202  // 文件初始化读取失败
-#define  SIS_DISK_CMD_MAPERR          -203  // 文件mmap错误
 // 文件长度预定义
 // #define  SIS_DISK_MAXLEN_FILE      0x7F000000  // 数据文件专用  4G - 83M
 #define  SIS_DISK_MAXLEN_FILE      0xFF000000  // 数据文件专用  4G - 83M
