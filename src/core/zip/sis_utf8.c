@@ -144,34 +144,76 @@ size_t sis_utf8_to_gbk(const char *in_, size_t ilen_, char *out_, size_t olen_)
         return 0;
     }
     _init_map(0);
-    size_t  usize = olen_;
-	uint8*  midbuff = (uint8*)sis_malloc(usize + 1);
-    uint8*  ustrpos = midbuff;
-    usize = sis_utf8_to_ucode(in_, ilen_, (char *)ustrpos, usize);
-	// sis_out_binary("uncode", (void *)ustrpos, 16);
+	size_t  osize = 0;
+    uint8*  utf8pos = (uint8*)in_;
+	uint8*  unibuff = (uint8*)sis_malloc(olen_ + 1);
+    uint8*  ustrpos = (uint8*)unibuff;
+
 	uint8*  ugbkpos = (uint8*)out_;
-	while (*ustrpos)
+
+	while (*utf8pos && utf8pos < ((uint8*)in_ + ilen_) && osize < olen_)
 	{
-		// unicode 基本都小于 0x80
-		// if (*ustrpos < 0x80)
-		// {
-		// 	*ugbkpos++ = *ustrpos++;
-		// }
-		// else 
+        if ((*utf8pos & 0x80) == 0x00)
         {
-            uint16* u16 = (uint16 *)ustrpos;
+            osize++;
+			*ugbkpos++ = *utf8pos++;
+			ustrpos++;
+		}
+		else if ((*utf8pos & 0xF0) == 0xE0)
+		{
+			if ((olen_ - osize) < 3)
+			{
+                break;
+            }	
+			uint8*  curpos = ustrpos;
+			*ustrpos = (*utf8pos++ & 0x0F) << 4;
+			*ustrpos++ |= (*utf8pos & 0x3F) >> 2;
+			*ustrpos = (*utf8pos++ & 0x3F) << 6;
+			*ustrpos++ |= (*utf8pos++ & 0x3F);
+            osize += 2;
+
+			///
+			uint16* u16 = (uint16 *)curpos;
             uint16 ucode  = SWAPWORD(*u16);
             uint16* o16 = (uint16 *)ugbkpos;
             ucode =  _map_ucode_to_gbk[ucode]; 
             *o16 = SWAPWORD(ucode);
-            ugbkpos += 2;
-            ustrpos += 2;
-        }
+			ugbkpos += 2;
+		}
+		else if ((*utf8pos & 0xE0) == 0xC0)
+		{
+			if ((olen_ - osize) < 3)
+			{
+                break;
+            }	
+			uint8*  curpos = ustrpos;
+            *ustrpos++ = (*utf8pos & 0x1F) >> 2;
+			*ustrpos = (*utf8pos++ & 0x03) << 6;
+			*ustrpos++ |= (*utf8pos++ & 0x3F);
+            osize += 2;
+
+			///
+			uint16* u16 = (uint16 *)curpos;
+            uint16 ucode  = SWAPWORD(*u16);
+            uint16* o16 = (uint16 *)ugbkpos;
+            ucode =  _map_ucode_to_gbk[ucode]; 
+            *o16 = SWAPWORD(ucode);
+			ugbkpos += 2;
+		}
+		else
+        {
+            utf8pos++;
+			// 注释的目的是忽略非法字符
+            // osize++; 
+			// *ugbkpos++ = *utf8pos++;
+			// ustrpos++;
+        }	
 	}
-	sis_free(midbuff);
-	*(out_ + usize) = 0x00;
-    return usize;
+	sis_free(unibuff);
+    *(out_ + osize) = 0x00;
+	return osize;
 }
+
 size_t sis_gbk_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_)
 {
     if (!in_ || !out_ || !ilen_ || !olen_)
@@ -179,29 +221,59 @@ size_t sis_gbk_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_)
         return 0;
     }
     _init_map(1);
+	size_t  osize = 0;
     uint8*  ustrpos = (uint8*)in_;
-	uint8*  midbuff = (uint8*)sis_malloc(ilen_ + 1);
-    uint8*  utf8pos = midbuff;
-	while (*ustrpos)
+	uint8*  unibuff = (uint8*)sis_malloc(olen_ + 1);
+	uint8*  ugbkpos = (uint8*)unibuff;
+    
+	uint8*  utf8pos = (uint8*)out_;
+
+	while (*ustrpos && ustrpos < ((uint8*)in_ + ilen_) && osize < olen_)
 	{
 		if (*ustrpos < 0x80)
 		{
 			*utf8pos++ = *ustrpos++;
+			ugbkpos++;
+            osize ++;
 		}
 		else 
         {
-            uint16* u16 = (uint16 *)ustrpos;
-            uint16 ucode  = SWAPWORD(*u16);
-            uint16* o16 = (uint16 *)utf8pos;
+			///
+			uint16* up16 = (uint16 *)ustrpos;
+            uint16 ucode  = SWAPWORD(*up16);
+            uint16* o16 = (uint16 *)ugbkpos;
             *o16 =  SWAPWORD(_map_gbk_to_ucode[ucode - 0x8000]);
-            utf8pos += 2;
-            ustrpos += 2;
+            
+            uint16 u16 = *(uint16 *)ugbkpos;
+            if (u16 < 0x800)
+		    {
+                if ((olen_ - osize) < 3)
+                {
+                    break;
+                }	
+				u16 = SWAPWORD(u16);
+                *utf8pos++ = ((u16 & 0x07C0) >> 6) | 0xc0;
+                *utf8pos++ = (u16 & 0x003F) | 0x80;
+                ustrpos += 2;
+                osize += 2;
+            }
+            else
+            {
+                if ((olen_ - osize) < 4)
+                {
+                    break;
+                }
+				u16 = SWAPWORD(u16);
+                *utf8pos++ = ((u16 & 0xF000) >> 12) | 0xE0;
+                *utf8pos++ = ((u16 & 0x0FC0) >> 6) | 0x80;
+                *utf8pos++ = (u16 & 0x003F) | 0x80;
+                ustrpos += 2;
+                osize += 3;
+            }
+			ugbkpos += 2;
         }
 	}
-	// sis_out_binary("uncode", (void *)midbuff, 16);
-    size_t  osize = sis_ucode_to_utf8((const char *)midbuff, ilen_, out_, olen_);
-    sis_free(midbuff);
-	*(out_ + osize) = 0x00;
+    *(out_ + osize) = 0x00;
 	return osize;
 }
 
@@ -359,7 +431,7 @@ int main()
 	printf("====\n");
 	char uname[128];
 	char gname[128]; gname[0] = 0;
-	sis_sprintf(uname, 128, "%s", "天下无双");
+	sis_sprintf(uname, 128, "%s", "天下无*双AT");
 	printf("%s %s\n", uname, gname);
 	sis_utf8_to_gbk(uname, sis_strlen(uname), gname, 128);
 	printf("%s %s %zu %zu\n", uname, gname, sis_strlen(uname), sis_strlen(gname));
