@@ -416,7 +416,7 @@ size_t sis_base64_decode(const char *in_, size_t ilen_, char *out_, size_t olen_
 	}
 	return osize;
 }
-#if 1
+#if 0
  
 
 int main()
@@ -431,7 +431,7 @@ int main()
 	printf("====\n");
 	char uname[128];
 	char gname[128]; gname[0] = 0;
-	sis_sprintf(uname, 128, "%s", "天下无*双AT");
+	sis_sprintf(uname, 128, "%s", "1|\"天下无*双AT");
 	printf("%s %s\n", uname, gname);
 	sis_utf8_to_gbk(uname, sis_strlen(uname), gname, 128);
 	printf("%s %s %zu %zu\n", uname, gname, sis_strlen(uname), sis_strlen(gname));
