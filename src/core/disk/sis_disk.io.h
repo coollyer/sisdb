@@ -259,7 +259,7 @@ typedef struct s_sis_disk_main_head {
     uint16   iszip         :   2; // 是否压缩 0 其后的数据都不压缩 1 按文件类型不同用不同的压缩方式
     uint16   index         :   1; // [数据文件专用] 1 有索引 0 没有索引文件 
     uint16   issno         :   1; // [数据文件专用] 1 数据有序列号 0 数据无序列号信息
-    uint16   nouse         :   3; // 开关类保留 (3)
+    uint16   nouse         :   2; // 开关类保留 (3)
     uint16   workers;             // [索引文件专用] 对应work文件数量
     uint8    switchs[4];          // 开关类保留 (9)
 }s_sis_disk_main_head;            // 16个字节头 128

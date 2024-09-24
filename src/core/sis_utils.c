@@ -21,10 +21,10 @@ s_sis_dynamic_db *sis_sdbinfo_load(const char *fdbstr)
 	}
 	else
 	{
-		s_sis_sds str = sis_sdsempty();
-		str = sis_sdbinfo_to_conf(db, str);
-		printf("%s\n", str);
-
+		// s_sis_sds str = sis_sdsempty();
+		// str = sis_sdbinfo_to_conf(db, str);
+		// printf("%s\n", str);
+		// sis_sdsfree(str);
 	}
 	return db;
 }

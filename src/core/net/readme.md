@@ -148,10 +148,10 @@ sis_net.h   提供给外部用户访问的接口和类型
 //  扩展字段格式 字段大小+字段名 数据区大小+数据区
 //////////////////////////////////////////////////////////////////////////////////////////
 // 对于http格式的请求和应答
-// 例如 https://api.com/data/v1/api/master/getSecID.json?assetClass=E&exchangeCD=XSHE,XSHG
+// 例如 https://api.com/data/v1/api/master/getinfo.json?assetClass=E&exchangeCD=XSHE,XSHG
 // fmt = http
 // service = https://api.com/data/v1/api/master/ # 这里是链接的url 路由
-// command = getSecID.json  # 这里是api的方法
+// command = getinfo.json  # 这里是api的方法
 // ask :{ assetClass: E, exchangeCD : "XSHE,XSHG", post:{...}, headers:{...}, ...}
 //       # ask 中 如果有 post字段表示 post 方式 否则以get方式获取数据
 //       # ask 中 如果有 headers字段表示 请求中国要增加 headers 字典中的内容

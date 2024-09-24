@@ -78,6 +78,7 @@ int sis_map_list_get_index(s_sis_map_list *mlist_, const char *key_);
 int sis_map_list_set(s_sis_map_list *, const char *key_, void *value_); 
 int sis_map_list_getsize(s_sis_map_list *);
 
+// 和 s_sis_map_list 的区别是key为整数 
 s_sis_map_kints *sis_map_kints_create(void *vfree_);
 void sis_map_kints_destroy(void *);
 void sis_map_kints_clear(s_sis_map_kints *);
@@ -88,6 +89,7 @@ int64 sis_map_kints_get_index(s_sis_map_kints *mlist_, int64 key_);
 int sis_map_kints_set(s_sis_map_kints *, int64 key_, void *value_); 
 int sis_map_kints_getsize(s_sis_map_kints *);
 
+// 可删除 插入的数据根据 key 进行排序 
 s_sis_map_sort *sis_map_sort_create(void *vfree_);
 void sis_map_sort_destroy(void *);
 void sis_map_sort_clear(s_sis_map_sort *);
@@ -112,7 +114,7 @@ int   sis_map_pointer_set(s_sis_map_pointer *, const char *key_, void *value_);
 void sis_map_pointer_del(s_sis_map_pointer *, const char *key_);
 //设置key对应的数据引用，必须为一个指针，并不提供实体，
 
-// 变量为整数
+// 数据为整数
 s_sis_map_int *sis_map_int_create();
 #define sis_map_int_destroy sis_map_pointer_destroy
 #define sis_map_int_clear sis_map_pointer_clear
@@ -120,6 +122,7 @@ int64 sis_map_int_get(s_sis_map_int *, const char *key_);
 int sis_map_int_set(s_sis_map_int *, const char *key_, int64 value_);
 #define sis_map_int_getsize sis_dict_getsize
 
+// 数据为字符串
 s_sis_map_sds *sis_map_sds_create();
 #define sis_map_sds_destroy sis_map_pointer_destroy
 #define sis_map_sds_clear sis_map_pointer_clear
