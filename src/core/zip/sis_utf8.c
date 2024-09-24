@@ -48,12 +48,12 @@ size_t sis_ucode_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_
     uint8*  utf8pos = (uint8*)out_;
 	while (*ustrpos && ustrpos < ((uint8*)in_ + ilen_) && osize < olen_)
 	{
-		if (*ustrpos < 0x80)
-		{
-			*utf8pos++ = *ustrpos++;
-            osize ++;
-		}
-		else 
+		// if (*ustrpos < 0x80)
+		// {
+		// 	*utf8pos++ = *ustrpos++;
+        //     osize ++;
+		// }
+		// else 
         {
             uint16 u16 = *(uint16 *)ustrpos;
             if (u16 < 0x800)
@@ -148,15 +148,16 @@ size_t sis_utf8_to_gbk(const char *in_, size_t ilen_, char *out_, size_t olen_)
 	uint8*  midbuff = (uint8*)sis_malloc(usize + 1);
     uint8*  ustrpos = midbuff;
     usize = sis_utf8_to_ucode(in_, ilen_, (char *)ustrpos, usize);
-
-    uint8*  ugbkpos = (uint8*)out_;
+	// sis_out_binary("uncode", (void *)ustrpos, 16);
+	uint8*  ugbkpos = (uint8*)out_;
 	while (*ustrpos)
 	{
-		if (*ustrpos < 0x80)
-		{
-			*ugbkpos++ = *ustrpos++;
-		}
-		else 
+		// unicode 基本都小于 0x80
+		// if (*ustrpos < 0x80)
+		// {
+		// 	*ugbkpos++ = *ustrpos++;
+		// }
+		// else 
         {
             uint16* u16 = (uint16 *)ustrpos;
             uint16 ucode  = SWAPWORD(*u16);
@@ -168,6 +169,7 @@ size_t sis_utf8_to_gbk(const char *in_, size_t ilen_, char *out_, size_t olen_)
         }
 	}
 	sis_free(midbuff);
+	*(out_ + usize) = 0x00;
     return usize;
 }
 size_t sis_gbk_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_)
@@ -196,8 +198,10 @@ size_t sis_gbk_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_)
             ustrpos += 2;
         }
 	}
+	// sis_out_binary("uncode", (void *)midbuff, 16);
     size_t  osize = sis_ucode_to_utf8((const char *)midbuff, ilen_, out_, olen_);
     sis_free(midbuff);
+	*(out_ + osize) = 0x00;
 	return osize;
 }
 
@@ -340,7 +344,38 @@ size_t sis_base64_decode(const char *in_, size_t ilen_, char *out_, size_t olen_
 	}
 	return osize;
 }
+#if 1
+ 
 
+int main()
+{
+// 天
+// Unicode	5929
+// UTF-8 E5A4A9
+// GBK CCEC
+// GB2312 CCEC
+
+	// 检查 sis_utf8_to_gbk 是否会改变输入内容
+	printf("====\n");
+	char uname[128];
+	char gname[128]; gname[0] = 0;
+	sis_sprintf(uname, 128, "%s", "天下无双");
+	printf("%s %s\n", uname, gname);
+	sis_utf8_to_gbk(uname, sis_strlen(uname), gname, 128);
+	printf("%s %s %zu %zu\n", uname, gname, sis_strlen(uname), sis_strlen(gname));
+	sis_out_binary("--", uname, 16);
+	sis_out_binary("--", gname, 16);
+	
+	char oname[128];
+	sis_gbk_to_utf8(gname, sis_strlen(gname), oname, 128);
+	
+	sis_out_binary("--", gname, 16);
+	sis_out_binary("--", oname, 16);
+	printf("%s %s %zu %zu\n", gname, oname, sis_strlen(gname), sis_strlen(oname));
+
+	return 0;
+}
+#endif
 #if 0
 #include <sis_zint.h>
 int main()
