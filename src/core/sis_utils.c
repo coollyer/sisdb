@@ -5,7 +5,7 @@
 // 对 s_sis_dynamic_db 信息的提取和转换
 /////////////////////////////////////////////////
 
-s_sis_dynamic_db *sis_sdbinfo_load(const char *fdbstr)
+s_sis_dynamic_db *sis_sdbinfo_load(const char *dbname, const char *fdbstr)
 {
 	s_sis_dynamic_db *db = NULL;
 	s_sis_conf_handle *injson = sis_conf_load(fdbstr, sis_strlen(fdbstr));
@@ -18,8 +18,12 @@ s_sis_dynamic_db *sis_sdbinfo_load(const char *fdbstr)
 	if (!db)
 	{
 		LOG(5)("load conf info fail. %s \n", fdbstr);
+		return NULL;
 	}
-	else
+	if (dbname)
+	{
+		sis_dynamic_db_setname(db, dbname);
+	}
 	{
 		// s_sis_sds str = sis_sdsempty();
 		// str = sis_sdbinfo_to_conf(db, str);

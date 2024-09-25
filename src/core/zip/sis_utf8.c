@@ -445,6 +445,12 @@ int main()
 	sis_out_binary("--", oname, 16);
 	printf("%s %s %zu %zu\n", gname, oname, sis_strlen(gname), sis_strlen(oname));
 
+	sis_gbk_to_utf8(uname, sis_strlen(uname), gname, 128);
+	sis_utf8_to_gbk(gname, sis_strlen(gname), oname, 128);
+	sis_out_binary("--", gname, 16);
+	sis_out_binary("--", oname, 16);
+	printf("%s %s %zu %zu\n", gname, oname, sis_strlen(gname), sis_strlen(oname));
+
 	return 0;
 }
 #endif
