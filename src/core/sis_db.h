@@ -8,6 +8,7 @@
 #include <sis_csv.h>
 #include <sis_method.h>
 #include "sis_utils.h"
+#include "sis_map.h"
 
 /////////////////////////////////////////////////////////
 //  数据格是定义 
@@ -63,6 +64,11 @@ int sis_db_get_format_from_node(s_sis_json_node *node_, int default_);
 s_sis_sds sis_db_format_sds(s_sis_dynamic_db *db_, const char *key_, int iformat_, 
 	const char *in_, size_t ilen_, int isfields_);
 
+// 生成多表的结构定义
+#define s_sis_dbinfos s_sis_map_list
+s_sis_dbinfos *sis_dbinfos_push(s_sis_dbinfos *, const char *name, const char *conf);
+#define sis_dbinfos_as_sds sis_map_as_sdbs
+#define sis_dbinfos_free sis_map_list_destroy
 
 /////////////////////////////////////////////////////////
 // 多数据结构 统一排序输出的定义 

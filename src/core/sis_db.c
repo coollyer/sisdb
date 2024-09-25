@@ -203,6 +203,23 @@ s_sis_sds sis_db_format_sds(s_sis_dynamic_db *db_, const char *key_, int iformat
 	return other;
 }
 
+s_sis_dbinfos *sis_dbinfos_push(s_sis_dbinfos *mapdbs, const char *name, const char *conf)
+{
+	if (!mapdbs)
+	{
+		mapdbs = sis_map_list_create(sis_dynamic_db_destroy);
+	}
+	if (mapdbs)
+	{
+		s_sis_dynamic_db *db = sis_sdbinfo_load(name, conf);
+		if (db)
+		{
+			sis_map_list_set(mapdbs, db->name, db);
+		}
+	}
+	return mapdbs;
+}
+
 /////////////////////////////////////////////////////////
 // 多数据结构 统一排序输出的定义 
 /////////////////////////////////////////////////////////
