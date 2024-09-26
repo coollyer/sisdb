@@ -536,13 +536,13 @@ static inline int sis_bits_stream_charcmp(const char *s1_, size_t l1_, const cha
 	{
 		return l1_;
 	}
-    int isize = 0;
+    size_t isize = 0;
     const char *ptr = s1_;
     while (*ptr && isize < l1_)
     {
         ptr++; isize++;
     } 
-    int size = 0;
+    size_t size = 0;
     while(*s1_ == *s2_)
     {
         if (*s1_ == 0 && *s2_ == 0)
@@ -583,7 +583,7 @@ static inline int sis_bits_stream_put_incr_chars(s_sis_bits_stream *s_, char *in
 
 static inline int sis_bits_stream_get_buffer(s_sis_bits_stream *s_, char *in_, size_t ilen_)
 {
-    for (int i = 0; i < ilen_; i++)
+    for (int i = 0; i < (int)ilen_; i++)
     {
         in_[i] = sis_bits_stream_get(s_, 8);
     }
@@ -760,7 +760,7 @@ static inline int sis_bits_stream_get_chars(s_sis_bits_stream *s_, char *in_, si
     {
         char ch = sis_bits_stream_get(s_, 8);
         // printf("readchar --  : %d\n", s_->currpos);
-        if (i < ilen_)
+        if (i < (int)ilen_)
         {
             in_[i] = ch;
             len++;
