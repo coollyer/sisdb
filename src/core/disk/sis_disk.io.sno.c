@@ -563,6 +563,10 @@ int sis_disk_io_sub_sno_part(s_sis_disk_ctrl *cls_, s_sis_disk_rcatch *rcatch_)
                     {
                         _sis_disk_read_hid_sno(cls_, imem);
                     }
+                    else
+                    {
+                        LOG(1)("unzip fail.\n");
+                    }
                 }
                 else
                 {
