@@ -283,7 +283,21 @@ int sis_chk_utf8(const char *in_, size_t ilen_)
     {
         return 0;
     }
-    int isutf8 = 0;
+    int isascii = 1;
+    uint8*  ustrpos = (uint8*)in_;
+    for (int i = 0; i < ilen_; i++)
+    {
+        if (*ustrpos >= 0x80)
+        {
+            isascii = 0;
+        }
+        ustrpos++;
+    }
+    if (isascii)
+    {
+        return -2;
+    }
+    int isutf8 = 0; // ascii 字符
     int size = ilen_ * 2;
     char *uname = sis_malloc(size);
     char *gname = sis_malloc(size);
