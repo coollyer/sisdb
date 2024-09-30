@@ -35,7 +35,7 @@ bool sisdb_wmap_init(void *worker_, void *node_)
     {
         context->work_path = sis_sds_save_create(sis_json_get_str(node, "work-path"), "data");   
         context->work_name = sis_sds_save_create(sis_json_get_str(node, "work-name"), "mapdb");    
-        context->style = sis_json_get_int(node, "work-mode", 0) == 0 ? SIS_DISK_TYPE_MSN : SIS_DISK_TYPE_MAP; 
+        context->style = sis_json_get_int(node, "work-mode", 0) == 0 ? SIS_DISK_TYPE_MSN : SIS_DISK_TYPE_MDB; 
     }     
     context->work_sdbs = sis_sdsnew("*");
     context->work_keys = sis_sdsnew("*");

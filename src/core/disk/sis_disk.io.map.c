@@ -71,12 +71,16 @@ void sis_map_ksctrl_destroy(void *ksctrl_)
 // s_sis_map_fctrl
 ///////////////////////////////////////////////////////
 
-s_sis_map_fctrl *sis_map_fctrl_create(const char *fpath, const char *fname)
+s_sis_map_fctrl *sis_map_fctrl_create(const char *fpath, const char *fname, int style)
 {
+    if (style != SIS_DISK_TYPE_MSN && style != SIS_DISK_TYPE_MDB)
+    {
+        return NULL;
+    }
     s_sis_map_fctrl *fctrl = SIS_MALLOC(s_sis_map_fctrl, fctrl);
     
-    fctrl->fname = sis_disk_io_map_get_fname(fpath, fname);
-    fctrl->style = SIS_DISK_TYPE_MSN;
+    fctrl->fname = sis_disk_io_map_get_fname(fpath, fname, style);
+    fctrl->style = style;
 
     fctrl->status = SIS_MAP_STATUS_CLOSED;  
     fctrl->rwmode = 0; // 读  
@@ -141,10 +145,17 @@ s_sis_dynamic_db *sis_disk_io_map_get_dbinfo(s_sis_map_fctrl *fctrl, const char 
     return NULL;
 }
 
-s_sis_sds sis_disk_io_map_get_fname(const char *fpath_, const char *fname_)
+s_sis_sds sis_disk_io_map_get_fname(const char *fpath_, const char *fname_, int style)
 {
     s_sis_sds fname = sis_sdsempty();
-    fname = sis_sdscatfmt(fname, "%s/%s.%s", fpath_, fname_, SIS_DISK_MAP_CHAR);
+    if (style == SIS_DISK_TYPE_MSN)
+    {
+        fname = sis_sdscatfmt(fname, "%s/%s.%s", fpath_, fname_, SIS_DISK_MSN_CHAR);
+    }
+    else
+    {
+        fname = sis_sdscatfmt(fname, "%s/%s.%s", fpath_, fname_, SIS_DISK_MDB_CHAR);
+    }
     return fname; 
 }
 
@@ -236,9 +247,9 @@ s_sis_sds sis_disk_io_map_as_sdbs(s_sis_map_list *map_sdbs_)
 	return o;
 }
 
-int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_)
+int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int style)
 {
-    s_sis_sds fname = sis_disk_io_map_get_fname(fpath_, fname_);
+    s_sis_sds fname = sis_disk_io_map_get_fname(fpath_, fname_, style);
     if (sis_file_exists(fname))
     {
         sis_file_delete(fname);

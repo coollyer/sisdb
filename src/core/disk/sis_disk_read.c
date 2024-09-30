@@ -106,9 +106,9 @@ s_sis_disk_reader *sis_disk_reader_create(const char *path_, const char *name_, 
     o->status_open = 0;
     o->status_sub = 0;
 
-    if (style_ == SIS_DISK_TYPE_MAP || style_ == SIS_DISK_TYPE_MSN)
+    if (style_ == SIS_DISK_TYPE_MDB || style_ == SIS_DISK_TYPE_MSN)
     {
-        o->map_fctrl = sis_map_fctrl_create(path_, name_);
+        o->map_fctrl = sis_map_fctrl_create(path_, name_, style_);
     }
     return o;
 }
@@ -274,7 +274,7 @@ void sis_disk_reader_unsub(s_sis_disk_reader *reader_)
 {
     if (reader_->status_sub == 1)
     {
-        if (reader_->style == SIS_DISK_TYPE_MAP || reader_->style == SIS_DISK_TYPE_MSN)
+        if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
         {
             sis_disk_io_map_r_unsub(reader_->map_fctrl);
         }
@@ -299,7 +299,7 @@ void sis_disk_reader_unsub(s_sis_disk_reader *reader_)
 ////////////////////////////////////////////////////////////////
 int sis_disk_reader_open(s_sis_disk_reader *reader_)
 {
-    if (reader_->style == SIS_DISK_TYPE_MAP || reader_->style == SIS_DISK_TYPE_MSN)
+    if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
     {
         return 0;
     }
@@ -341,7 +341,7 @@ int sis_disk_reader_open(s_sis_disk_reader *reader_)
 }
 void sis_disk_reader_close(s_sis_disk_reader *reader_)
 {
-    if (reader_->style == SIS_DISK_TYPE_MAP || reader_->style == SIS_DISK_TYPE_MSN)
+    if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
     {
         return ;
     }
@@ -381,7 +381,7 @@ s_sis_dynamic_db *sis_disk_reader_getdb(s_sis_disk_reader *reader_, const char *
             }
         }
     }
-    else if (reader_->style == SIS_DISK_TYPE_MAP || reader_->style == SIS_DISK_TYPE_MSN)
+    else if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
     {
         int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
         if (o)
@@ -924,7 +924,7 @@ s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kn
         // 只支持根据日期获取
         obj = _disk_reader_get_sno_obj(reader_, kname_, sname_, smsec_);
     }
-    else if (reader_->style == SIS_DISK_TYPE_MAP || reader_->style == SIS_DISK_TYPE_MSN)
+    else if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
     {
         obj = _disk_reader_get_map_obj(reader_, kname_, sname_, smsec_);
     }
@@ -960,7 +960,7 @@ s_sis_object *sis_disk_reader_get_sdbs(s_sis_disk_reader *reader_, int idate)
     {
         reader_->munit = sis_disk_ctrl_create(reader_->style, reader_->fpath, reader_->fname, idate);
     }
-    else if (reader_->style == SIS_DISK_TYPE_MAP || reader_->style == SIS_DISK_TYPE_MSN)
+    else if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
     {
         int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
         if (o)

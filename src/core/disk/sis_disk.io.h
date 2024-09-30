@@ -38,7 +38,7 @@
 //    文件一律分块存储
 ////////////////////////////////////////////////////
 // 2. 统一管理 4 5 6 类型文件 只保留 所有key和sdb最新的结构体
-// 所有有效的 key 及相关信息 保存在 SIS_DISK_HID_MSG_MDB 块中
+// 所有有效的 key 及相关信息 保存在 SIS_DISK_HID_MSG_SMB 块中
 // 删除在 map 中做标记  pack 时才做清理
 #define  SIS_DISK_TYPE_SDB         3   // name/name.sdb
 // 4. 标准SDB数据文件 无时序 有索引 有文件尾 name.sdb 会有[所有]的key [最新]的结构体名和结构sdb
@@ -73,7 +73,7 @@
 // 因此文件打开即保持 每次读请求需要检查文件长度
 // 写入时先写数据 再加锁后写索引
 // 读取索引时需要加锁 这样读取数据时就不用加锁 
-#define  SIS_DISK_TYPE_MAP         8  // name/name.map mmap文件
+#define  SIS_DISK_TYPE_MDB         8  // name/name.map mmap文件
 // 原本计划增加无序列号的MAP文件 
 // 但由于只能按时间回放 和 有序列号的文件功能重叠太多 因此不做此单独处理 
 // 仅仅浪费一些磁盘空间 两种文件可以统一为一种
@@ -99,8 +99,9 @@
 #define  SIS_DISK_SNO_CHAR      "sno"
 #define  SIS_DISK_SIC_CHAR      "sic"
 #define  SIS_DISK_SDB_CHAR      "sdb"
-#define  SIS_DISK_MDB_CHAR      "mdb"
-#define  SIS_DISK_MAP_CHAR      "map"
+#define  SIS_DISK_SMD_CHAR      "smb"
+#define  SIS_DISK_MDB_CHAR      "mdb"   // SIS_DISK_TYPE_MDB 不带序列号 能插能删 只能按时间播放
+#define  SIS_DISK_MSN_CHAR      "msn"   // SIS_DISK_TYPE_MSN 带序列号 只能追加 按序号和时间播放
 #define  SIS_DISK_IDX_CHAR      "idx"
 #define  SIS_DISK_TMP_CHAR      "tmp"
 // SDB 文件目录名
@@ -181,9 +182,9 @@
 #define  SIS_DISK_HID_MSG_SIC     0xB  // size(dsize)+incrzipstream 
 // SNO数据块结束符 收到此消息后 表明数据压缩重新开始
 #define  SIS_DISK_HID_SIC_NEW     0xC  // size(dsize)+最新时间+pages(dsize)+序号(dsize)
-// MDB文件的key+sdb的索引信息 active 在 1.255 之间表示有效 0 表示删除 
+// SMB 文件的key+sdb的索引信息 active 在 1.255 之间表示有效 0 表示删除 
 // 后写入的 如果 ndate 一样会覆盖前面写入的数据 这样保证 map 只写增量数据 仅在pack 时才清理冗余的数据
-#define  SIS_DISK_HID_MSG_MDB     0xD // size(dsize)+klen(dsize)+kname+dblen(dsize)+dname+active(1)+ktype(1)+blocks(dsize)
+#define  SIS_DISK_HID_MSG_SMB     0xD // size(dsize)+klen(dsize)+kname+dblen(dsize)+dname+active(1)+ktype(1)+blocks(dsize)
 //        +[active(1)+ndate(dsize)]
 
 /////////////////////////////////////////////////////////
@@ -214,15 +215,11 @@
 //////////////
 // MAP文件的总控信息 固定结构 当前最新序列号 固定块起始偏移 块大小 key数量 sdb数量 
 #define  SIS_DISK_HID_MAP_CTRL     0x16 // sno(8)+offset(8)+bsize(4)+knums(4)+snums(4)
-// MAP文件的单key+单sdb的索引信息 固定结构 每页记录数 总记录数 当前块记录数 最新一条sno偏移位置 数据开始偏移 最新一条数据偏移位置 块数 ...
-// map文件读写和其他文件都不一样 hid号可以重复 SIS_DISK_HID_INDEX_MSG
+// MAP文件的索引块标志 每个sdb 都有自己的块索引信息 固定结构 每页记录数 总记录数 当前块记录数 数据开始偏移 最新一条数据偏移位置 块数 ...
 #define  SIS_DISK_HID_MAP_INDEX    0x13 // kidx(4)+sidx(4)+perrecs(4)+sumrecs(4)+currecs(4)+soffset(8)+offset(8)+doffset(8)+blocks(4)+[block(4)]
-// MAP文件的单key+单sdb的索引信息 固定结构 写入序号 
-// map文件读写和其他文件都不一样 hid号可以重复 SIS_DISK_HID_MSG_MDB
-#define  SIS_DISK_HID_MAP_DATA     0x14 // sno(8)*currecs(4) + [data]
-// MAP文件对单key的定位数据 指向 SIS_DISK_HID_MAP_INDEX 的信息 方便随时增加 key
-#define  SIS_DISK_HID_MAP_BLOCK    0x15 // code(16)+sno(8)
- 
+// MAP文件的数据块标志 从索引块信息得到首块号 直接定位 固定结构 写入序号 
+#define  SIS_DISK_HID_MAP_DATA     0x14 // sno(8)*currecs(4) + [data] 
+// MAP 文件的数据支持删除重写 MAP文件没有结束块信息
 
 // 文件结束块
 #define  SIS_DISK_HID_TAIL        0x1F  // 结束块标记

@@ -232,7 +232,7 @@ int sis_disk_io_write_mdb(s_sis_disk_ctrl *cls_, s_sis_disk_kdict *kdict_, s_sis
     sis_memory_cat_byte(memory, 1, punit->active);
     sis_memory_cat_ssize(memory, punit->idate);
 
-    wcatch->head.hid = SIS_DISK_HID_MSG_MDB;
+    wcatch->head.hid = SIS_DISK_HID_MSG_SMB;
     wcatch->head.zip = sis_disk_ctrl_work_zipmode(cls_);
     // size_t size = 
     sis_disk_io_write_sdb_work(cls_, wcatch);
@@ -636,7 +636,7 @@ int cb_sis_disk_io_read_sdb_mdb(void *source_, s_sis_disk_head *head_, char *ime
         sis_disk_reader_set_sdict(ctrl->map_sdicts, sis_memory(memory), sis_memory_get_size(memory));
         // sis_out_binary("sdbs", sis_memory(memory), sis_memory_get_size(memory));
         break;
-    case SIS_DISK_HID_MSG_MDB:
+    case SIS_DISK_HID_MSG_SMB:
         {
             int kidx = sis_memory_get_ssize(memory);
             s_sis_disk_kdict *kdict = sis_map_list_geti(ctrl->map_kdicts, kidx);

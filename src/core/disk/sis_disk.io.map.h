@@ -13,7 +13,7 @@
 // 应用场景 ：
 // 实盘 行情客户层 每天一个镜像文件 方便订阅、读取单全股票信息 可新增代码
 //      因子生产 回测 一个文件可以放 2021年后所有数据 最小粒度为 1分钟 可随时增加代码和表 但数据以增量有序方式写入 
-//      ??? 是否以此为基础 增加MDB类型数据 可以去掉写入顺序 仅仅以数据中的时间字段来排序数据 并支持插入 删除 修改等功能 ???
+//      ??? 是否以此为基础 增加 MDB 类型数据 可以去掉写入顺序 仅仅以数据中的时间字段来排序数据 并支持插入 删除 修改等功能 ???
 //                  
 /////////////////////////////////
 //    头 + key + sdb 定义后 为数据区
@@ -35,7 +35,6 @@
 // 然后是 SIS_DISK_HID_DICT_KEY 需要支持块存储
 //       SIS_DISK_HID_DICT_SDB 需要支持块存储
 //       SIS_DISK_HID_MAP_INDEX 加载全部索引信息
-//       SIS_DISK_HID_MAP_BLOCK 名字 + 开始索引块号 实际开辟的块需要乘以 表数量
 // 数据区根据需要进行加载
 //       SIS_DISK_HID_MAP_DATA
 
@@ -339,7 +338,7 @@ static inline int64 *sis_map_ksctrl_get_sno(s_sis_map_fctrl *fctrl, s_sis_map_ks
 // s_sis_map_fctrl
 ///////////////////////////////////////////////////////
 
-s_sis_map_fctrl *sis_map_fctrl_create(const char *fpath, const char *name);
+s_sis_map_fctrl *sis_map_fctrl_create(const char *fpath, const char *name, int style);
 void sis_map_fctrl_destroy(void *);
 
 // 得到索引区的开始指针
@@ -358,7 +357,7 @@ int64 sis_disk_io_map_get_ksidx(int32 kidx, int64 sidx);
 s_sis_dynamic_db *sis_disk_io_map_get_dbinfo(s_sis_map_fctrl *fctrl, const char *sname_);
 
 // 得到map的文件
-s_sis_sds sis_disk_io_map_get_fname(const char *fpath_, const char *fname_);
+s_sis_sds sis_disk_io_map_get_fname(const char *fpath_, const char *fname_, int style);
 
 // 以下这两个函数要特别注意 仅仅修改map表 不干别的
 int sis_disk_io_map_set_kdict(s_sis_map_fctrl *fctrl, const char *in_, size_t ilen_);
@@ -370,7 +369,7 @@ s_sis_sds sis_disk_io_map_as_keys(s_sis_map_list *map_keys_);
 s_sis_sds sis_disk_io_map_as_sdbs(s_sis_map_list *map_sdbs_);
 
 // 删除文件 可能被锁定 需要有延时重复机制
-int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_);
+int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int style);
 
 ////////////////////
 // write 

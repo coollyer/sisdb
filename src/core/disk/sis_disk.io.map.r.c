@@ -118,7 +118,7 @@ void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl)
 int sis_disk_io_map_check_mhead(s_sis_map_fctrl *fctrl, char *mapmem)
 {
     int style = ((s_sis_disk_main_head *)mapmem)->style;
-    if (style != SIS_DISK_TYPE_MAP && style != SIS_DISK_TYPE_MSN)
+    if (style != SIS_DISK_TYPE_MDB && style != SIS_DISK_TYPE_MSN)
     {
         LOG(5)("map file style error.[%s]\n", fctrl->fname);
         return SIS_MAP_STYLE_ERR;
@@ -148,7 +148,7 @@ void sis_disk_io_map_read_mhead(s_sis_map_fctrl *fctrl)
 int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
 {
     // s_sis_disk_main_head *mhead = (s_sis_disk_main_head *)fctrl->mapmem;
-    // if (mhead->style != SIS_DISK_TYPE_MAP)
+    // if (mhead->style != SIS_DISK_TYPE_MDB)
     // {
     //     return SIS_MAP_STYLE_ERR;
     // }

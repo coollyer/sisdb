@@ -20,13 +20,9 @@ s_sis_disk_writer *sis_disk_writer_create(const char *path_, const char *name_, 
     o->map_sdbs = sis_map_list_create(sis_dynamic_db_destroy);
     o->map_year = sis_map_list_create(NULL);
     o->map_date = sis_map_list_create(NULL);
-    if (style_ == SIS_DISK_TYPE_MAP || style_ == SIS_DISK_TYPE_MSN)
+    if (style_ == SIS_DISK_TYPE_MDB || style_ == SIS_DISK_TYPE_MSN)
     {
-        o->map_fctrl = sis_map_fctrl_create(path_, name_);
-        if (style_ == SIS_DISK_TYPE_MAP)
-        {
-            o->map_fctrl->style = SIS_DISK_TYPE_MAP;
-        }
+        o->map_fctrl = sis_map_fctrl_create(path_, name_, style_);
     }
     return o;
 }
@@ -62,7 +58,7 @@ int sis_disk_writer_open(s_sis_disk_writer *writer_, int idate_)
     {
         return 0;
     }
-    if (writer_->style == SIS_DISK_TYPE_MAP || writer_->style == SIS_DISK_TYPE_MSN)
+    if (writer_->style == SIS_DISK_TYPE_MDB || writer_->style == SIS_DISK_TYPE_MSN)
     {
         writer_->status = sis_disk_io_map_w_open(writer_->map_fctrl, writer_->fpath, writer_->fname);
         return writer_->status;
@@ -94,7 +90,7 @@ int sis_disk_writer_open(s_sis_disk_writer *writer_, int idate_)
 // 关闭所有文件 重写索引
 void sis_disk_writer_close(s_sis_disk_writer *writer_)
 {
-    if (writer_->status && (writer_->style == SIS_DISK_TYPE_MAP || writer_->style == SIS_DISK_TYPE_MSN))
+    if (writer_->status && (writer_->style == SIS_DISK_TYPE_MDB || writer_->style == SIS_DISK_TYPE_MSN))
     {
         sis_disk_io_map_close(writer_->map_fctrl);
     }
@@ -169,7 +165,7 @@ void sis_disk_writer_sdict_changed(s_sis_disk_writer *writer_, s_sis_dynamic_db 
 // 以保证后续写入数据时MAP是最新的
 int sis_disk_writer_set_kdict(s_sis_disk_writer *writer_, const char *in_, size_t ilen_)
 {
-    if (writer_->style == SIS_DISK_TYPE_MAP || writer_->style == SIS_DISK_TYPE_MSN)
+    if (writer_->style == SIS_DISK_TYPE_MDB || writer_->style == SIS_DISK_TYPE_MSN)
     {
         return 0;
     }
@@ -203,7 +199,7 @@ int sis_disk_writer_set_kdict(s_sis_disk_writer *writer_, const char *in_, size_
 // 只传递增量和变动的DB
 int sis_disk_writer_set_sdict(s_sis_disk_writer *writer_, const char *in_, size_t ilen_)
 {
-    if (writer_->style == SIS_DISK_TYPE_MAP || writer_->style == SIS_DISK_TYPE_MSN)
+    if (writer_->style == SIS_DISK_TYPE_MDB || writer_->style == SIS_DISK_TYPE_MSN)
     {
         return 0;
     }
@@ -356,7 +352,7 @@ int sis_disk_writer_inited(s_sis_disk_writer *writer_, const char *keys_, size_t
         break;
     case SIS_DISK_TYPE_SNO:
         break;
-    case SIS_DISK_TYPE_MAP:
+    case SIS_DISK_TYPE_MDB:
     case SIS_DISK_TYPE_MSN:
         o = sis_disk_writer_map_inited(writer_->map_fctrl, keys_, klen_, sdbs_, slen_);
         break;
@@ -377,7 +373,7 @@ int sis_disk_writer_data(s_sis_disk_writer *writer_, const char *kname_, const c
     case SIS_DISK_TYPE_SNO:
         o = sis_disk_writer_sno(writer_, kname_, sname_, in_, ilen_);
         break;
-    case SIS_DISK_TYPE_MAP:
+    case SIS_DISK_TYPE_MDB:
     case SIS_DISK_TYPE_MSN:
         o = sis_disk_io_map_w_data(writer_->map_fctrl,  kname_, sname_, in_, ilen_);
         break;
@@ -813,9 +809,9 @@ int sis_disk_writer_mul_remove(s_sis_disk_writer *writer_, const char *kname_)
 
 int sis_disk_control_remove(const char *path_, const char *name_, int style_, int idate_)
 {
-    if (style_ == SIS_DISK_TYPE_MAP || style_ == SIS_DISK_TYPE_MSN)
+    if (style_ == SIS_DISK_TYPE_MDB || style_ == SIS_DISK_TYPE_MSN)
     {
-        sis_disk_io_map_control_remove(path_, name_);
+        sis_disk_io_map_control_remove(path_, name_, style_);
     }
     else
     {

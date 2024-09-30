@@ -239,7 +239,7 @@ static void *_thread_maps_read_sub(void *argv_)
     context->work_reader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MAP, rmap_cb);
+        SIS_DISK_TYPE_MDB, rmap_cb);
 
     s_sis_msec_pair pair; 
     pair.start = (msec_t)sis_time_make_time(context->work_date.start, 0) * 1000;
@@ -360,7 +360,7 @@ int cmd_sisdb_rmap_get(void *worker_, void *argv_)
     s_sis_disk_reader *wreader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MAP, NULL);
+        SIS_DISK_TYPE_MDB, NULL);
     
     s_sis_msec_pair pair; 
     int startdate = sis_message_get_int(msg, "start-date");
@@ -404,7 +404,7 @@ int cmd_sisdb_rmap_getdb(void *worker_, void *argv_)
     s_sis_disk_reader *reader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MAP, NULL);
+        SIS_DISK_TYPE_MDB, NULL);
     if (!reader)
     {
         return SIS_METHOD_NIL;
