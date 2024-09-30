@@ -276,6 +276,36 @@ size_t sis_gbk_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_)
     *(out_ + osize) = 0x00;
 	return osize;
 }
+// 是不是utf格式字符串
+int sis_chk_utf8(const char *in_, size_t ilen_)
+{
+    if (ilen_ < 1)
+    {
+        return 0;
+    }
+    int isutf8 = 0;
+    int size = ilen_ * 2;
+    char *uname = sis_malloc(size);
+    char *gname = sis_malloc(size);
+    sis_gbk_to_utf8(in_, ilen_, uname, size);
+    sis_utf8_to_gbk(uname, sis_strlen(uname), gname, size);
+    if (!sis_strcasecmp(in_, gname))
+    {
+        isutf8 = -1; // gbk格式
+    }
+    else
+    {
+        sis_utf8_to_gbk(in_, ilen_, gname, size);
+        sis_gbk_to_utf8(gname, sis_strlen(gname), uname, size);
+        if (!sis_strcasecmp(in_, uname))
+        {
+            isutf8 = 1; // utf8格式
+        }
+    }
+    sis_free(uname);
+    sis_free(gname);
+    return isutf8;
+}
 
 #define SIS_BASE64_PAD '='
 #define SIS_BASE64DE_FIRST '+'

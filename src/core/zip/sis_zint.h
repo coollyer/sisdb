@@ -126,6 +126,10 @@ static inline int32 sis_zint32_i(zint32 in_)
 {
 	return !in_.sign ? in_.zint : -1 * in_.zint; 
 };
+static inline zint32 sis_zint32_zero(zint32 in_)
+{
+    return sis_double_to_zint32(0.0, in_.attr, 1);
+}
 static inline int32 sis_int32_i(int32 in_)
 {
     zint32 *in = (zint32 *)&in_;

@@ -276,6 +276,7 @@ int sis_file_csv_read_sub(const char *name_, char c_, void *cb_source, sis_metho
 	s_sis_file_handle fp = sis_file_open(name_, SIS_FILE_IO_READ, 0);
 	if (!fp)
 	{
+		LOG(5)("open %s fail.\n", name_);
 		return -1;
 	}
 	s_sis_file_csv *o = SIS_MALLOC(s_sis_file_csv, o);
@@ -289,6 +290,7 @@ int sis_file_csv_read_sub(const char *name_, char c_, void *cb_source, sis_metho
 	unit.argv = NULL;
 	unit.argsize = NULL;
 
+    LOG(5)("read %s start...\n", name_);
 	// size_t rsize = 0;
 	sis_file_seek(o->fp, 0, SEEK_SET);
 	s_sis_memory *memory = sis_memory_create();
@@ -370,6 +372,7 @@ int sis_file_csv_read_sub(const char *name_, char c_, void *cb_source, sis_metho
 	// 解析数据结束
 	sis_file_close(o->fp);
 	sis_free(o);	
+	LOG(5)("read %s ok.\n", name_);
 	return 0;
 }
 #if 0

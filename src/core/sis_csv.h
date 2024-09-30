@@ -69,7 +69,7 @@ s_sis_sds sis_csv_make_end(s_sis_sds in_);
 
 #define  SIS_CSV_GET_STRING(ia,ii,oa,oz)  {   \
 	int z = ia->argsize[ii] > (oz - 1) ? oz - 1 : ia->argsize[ii]; \
-    memmove(oa, ia->argv[ii], z); oa[z] = 0;  \
+    memmove(oa, ia->argv[ii], z); oa[z] = 0; sis_trim(oa);  \
 }
 // 对于大文件csv 采用回调方式一条一条信息返回 进行读取 
 // s_sis_file_csv_unit 返回参数结构体
