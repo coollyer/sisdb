@@ -10,6 +10,8 @@
 // 作用：实时数据写入和共享 多个因子各自写入文件 其他不同用户筛选读取
 //      合并所有日线数据或5分钟数据到一个大文件中 有新数据可以不断增加数据 避免小文件过多 提高访问速度
 //      传递出去的数据 kname sname data 都是不会做修改的数据 避免内存数据拷贝 *** 加快速度 ***
+// 好处：
+//      可以把需要的数据集中放到一个文件中直接获取 不用浪费时间和内存做顺序重排
 // 应用场景 ：
 // 实盘 行情客户层 每天一个镜像文件 方便订阅、读取单全股票信息 可新增代码
 //      因子生产 回测 一个文件可以放 2021年后所有数据 最小粒度为 1分钟 可随时增加代码和表 但数据以增量有序方式写入 
@@ -53,41 +55,46 @@
 #define  SIS_MAP_NO_EXISTS  -5
 
 // map文件最小参数 没有key 没有sdb的情况下
-#define SIS_MAP_MIN_SIZE      (1024*8) // SIS_DISK_MAXLEN_MAPPAGE
+// #define SIS_MAP_MIN_SIZE      (1024*8) 
+#define SIS_MAP_MIN_SIZE  SIS_DISK_MAXLEN_MAPPAGE
 
-#define SIS_MAP_MAX_SDBNUM         1024     // 支持4096个表
-// 如果平均每个表因子数量为10 那么最大支持 4万个因子
-#define SIS_MAP_MAX_KEYNUM         1024*64 // 支持65536个股票  
+#define SIS_MAP_HEAD_INTS          64       // 最少64个4字节整数
+
+// 没用
+// #define SIS_MAP_MAX_KEYNUM         1024*64 // 支持65536个股票  
 // 按表分开存储 锁文件约有1M 默认建 .mlock 目录
 
 #define SIS_MAP_INCR_SIZE         (16*1024)  // 每次文件增长不少于500M
 // 需要扩容时 最少按 1024 个块增加
-
-#define SIS_MAP_OTHER_SIZE  (SIS_MAP_MIN_SIZE - 16 - (SIS_MAP_MAX_SDBNUM + 2) * 4 - 11 * 4 - 1)
 #define SIS_MAP_MAYUSE_LEN  (SIS_MAP_MIN_SIZE - sizeof(s_sis_map_block))
+// 
+#define SIS_MAP_MAX_SDBNUM  ((SIS_MAP_MIN_SIZE - 16 - SIS_MAP_HEAD_INTS * 4) / 4)   // 支持8192个表
+// 如果平均每个表因子数量为10 那么最大支持 8万个因子
 
-// 剩余字段保证 sizeof(s_sis_disk_main_head) + sizeof(s_sis_map_head) = SIS_MAP_MIN_SIZE
 ////////////////////////////////////////////////
 // map 文件的控制信息 SIS_DISK_HID_MAP_CTRL
 typedef struct s_sis_map_head {
     SIS_DISK_BLOCK_HEAD
-    int32            bsize;         // 块的尺寸
-    int64            fsize;         // 当前最新map的尺寸 == 文件长度
-    int32            maxblks;       // 最大块的数量 maxblks * bsize = fsize文件长度
-    int32            useblks;       // 使用块的数量 useblks * bsize = 新数据写入位置
-    int64            lastsno;       // 当前数据最新序列号
-    int32            lastseq;       // 当前索引最新序列号 可用于确定索引写入顺序
-    int32            keynums;       // key数量
-    int32            sdbnums;       // sdb数量
-    // -----------
-    int32            recbfno;       // 回收块头编号 当数据块缩减时 不用的块号放在这个块里  
-    int32            keyfbno;       // 起始key块信息
-    int32            sdbfbno;       // 起始sdb块信息
-    int32            idxfbno[SIS_MAP_MAX_SDBNUM];  // 起始idx块信息
-    char             other[SIS_MAP_OTHER_SIZE];       
-    // 需要建立内存映射 方便读写
-    // sdbnums keynums 增加时所有读者需要读取增加的数据
+    char    chr[3];                         //  1 字节对齐
+    // 后面跟32个整数
+    int32   bsize;                          //  2 块的尺寸
+    int64   fsize;                          //  4 当前最新map的尺寸 == 文件长度
+    int32   maxblks;                        //    最大块的数量 maxblks * bsize = fsize文件长度
+    int32   useblks;                        //    使用块的数量 useblks * bsize = 新数据写入位置
+    int64   lastsno;                        //  8 当前数据最新序列号
+    int32   lastseq;                        //    当前索引最新序列号 可用于确定索引写入顺序
+    int32   keynums;                        //    key数量
+    int32   sdbnums;                        // 11 sdb数量
+    // -----                 
+    int32   recfbno;                        // 12 回收块头编号 当数据块缩减时 不用的块号放在这个块里  
+    int32   keyfbno;                        // 13 起始key块信息
+    int32   sdbfbno;                        // 14 起始sdb块信息
+    int32   other[SIS_MAP_HEAD_INTS - 14];  //    SIS_MAP_HEAD_INTS = 合计所有数量 
+    int32   idxfbno[SIS_MAP_MAX_SDBNUM];    // 表的起始idx块信息     
 } s_sis_map_head;
+
+// 头关键信息长度
+#define SIS_MAP_HEAD_SIZE   (14 * 4)
 
 ////////////////////////////////////////////////
 //// -- 下面就是固定块的信息 /////

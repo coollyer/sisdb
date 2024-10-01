@@ -70,7 +70,7 @@ void sis_disk_io_map_fw_mhead(s_sis_map_fctrl *fctrl)
     fctrl->mhead_p->maxblks = fctrl->mhead_r.maxblks;  
     fctrl->mhead_p->lastsno = 0; 
     fctrl->mhead_p->lastseq = 0; 
-    fctrl->mhead_p->recbfno = -1;
+    fctrl->mhead_p->recfbno = -1;
     fctrl->mhead_p->keynums = fctrl->mhead_r.keynums;
     fctrl->mhead_p->sdbnums = fctrl->mhead_r.sdbnums;
     fctrl->mhead_p->keyfbno = -1; // -1 表示从 useblks 获取块信息

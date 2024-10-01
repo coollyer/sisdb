@@ -3,40 +3,40 @@
 #include "server.h"
 
 #include <sis_modules.h>
-#include <sisdb_rmap.h>
+#include <sisdb_rmsn.h>
 #include <sis_obj.h>
 #include "sis_utils.h"
 #include "sis_db.h"
 
 // 从行情流文件中获取数据源
-static s_sis_method _sisdb_rmap_methods[] = {
-  {"get",    cmd_sisdb_rmap_get, 0, NULL},
-  {"getdb",  cmd_sisdb_rmap_getdb, 0, NULL},
-  {"sub",    cmd_sisdb_rmap_sub, 0, NULL},
-  {"unsub",  cmd_sisdb_rmap_unsub, 0, NULL},
-  {"setcb",  cmd_sisdb_rmap_setcb, 0, NULL}
+static s_sis_method _sisdb_rmsn_methods[] = {
+  {"get",    cmd_sisdb_rmsn_get, 0, NULL},
+  {"getdb",  cmd_sisdb_rmsn_getdb, 0, NULL},
+  {"sub",    cmd_sisdb_rmsn_sub, 0, NULL},
+  {"unsub",  cmd_sisdb_rmsn_unsub, 0, NULL},
+  {"setcb",  cmd_sisdb_rmsn_setcb, 0, NULL}
 };
 
 ///////////////////////////////////////////////////
 // *** s_sis_modules sis_modules_[dir name]  *** //
 ///////////////////////////////////////////////////
-s_sis_modules sis_modules_sisdb_rmap = {
-    sisdb_rmap_init,
+s_sis_modules sis_modules_sisdb_rmsn = {
+    sisdb_rmsn_init,
     NULL,
-    sisdb_rmap_working,
+    sisdb_rmsn_working,
     NULL,
-    sisdb_rmap_uninit,
+    sisdb_rmsn_uninit,
     NULL,
     NULL,
-    sizeof(_sisdb_rmap_methods)/sizeof(s_sis_method),
-    _sisdb_rmap_methods,
+    sizeof(_sisdb_rmsn_methods)/sizeof(s_sis_method),
+    _sisdb_rmsn_methods,
 };
 
-bool sisdb_rmap_init(void *worker_, void *node_)
+bool sisdb_rmsn_init(void *worker_, void *node_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
     s_sis_json_node *node = (s_sis_json_node *)node_;
-    s_sisdb_rmap_cxt *context = SIS_MALLOC(s_sisdb_rmap_cxt, context);
+    s_sisdb_rmsn_cxt *context = SIS_MALLOC(s_sisdb_rmsn_cxt, context);
     worker->context = context;
 
     s_sis_json_node *init = sis_json_cmp_child_node(node, "work-date");
@@ -80,15 +80,15 @@ bool sisdb_rmap_init(void *worker_, void *node_)
     return true;
 }
 
-void sisdb_rmap_uninit(void *worker_)
+void sisdb_rmsn_uninit(void *worker_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
 
     // printf("%s : %d\n", __func__, context->status);
     if (context->status == SIS_RMAP_WORK || context->status == SIS_RMAP_CALL )
     {
-        sisdb_rmap_sub_stop(context);
+        sisdb_rmsn_sub_stop(context);
         context->status = SIS_RMAP_EXIT;
     }
 
@@ -112,7 +112,7 @@ static msec_t _speed_start = 0;
 
 static void cb_open(void *context_, int idate)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
     if (context->cb_sub_open)
     {
         char sdate[32];
@@ -124,7 +124,7 @@ static void cb_open(void *context_, int idate)
 }
 static void cb_close(void *context_, int idate)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
     if (context->cb_sub_close)
     {
         char sdate[32];
@@ -135,7 +135,7 @@ static void cb_close(void *context_, int idate)
 }
 static void cb_start(void *context_, int idate)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
     if (context->cb_sub_start)
     {
         char sdate[32];
@@ -147,7 +147,7 @@ static void cb_start(void *context_, int idate)
 }
 static void cb_stop(void *context_, int idate)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
     LOG(8)("rmap sub stop. %d cost : %lld\n", idate, sis_time_get_now_msec() - _speed_start);
      // stop 放这里
     if (context->cb_sub_stop)
@@ -159,7 +159,7 @@ static void cb_stop(void *context_, int idate)
 }
 static void cb_break(void *context_, int idate)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
     LOG(8)("sno sub break. %d cost : %lld\n", idate, sis_time_get_now_msec() - _speed_start);
      // stop 放这里
     // if (context->status != SIS_RMAP_BREAK)
@@ -172,7 +172,7 @@ static void cb_break(void *context_, int idate)
 }
 static void cb_dict_keys(void *context_, void *key_, size_t size) 
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
 	s_sis_sds srckeys = sis_sdsnewlen((char *)key_, size);
     // printf("====%s \n === %s\n",srckeys, (char *)key_);
     sis_sdsfree(context->rmap_keys);
@@ -185,7 +185,7 @@ static void cb_dict_keys(void *context_, void *key_, size_t size)
 }
 static void cb_dict_sdbs(void *context_, void *sdb_, size_t size)  
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
 	s_sis_sds srcsdbs = sis_sdsnewlen((char *)sdb_, size);
 	sis_sdsfree(context->rmap_sdbs);
     context->rmap_sdbs = sis_match_sdb_of_sds(context->work_sdbs, srcsdbs);
@@ -200,7 +200,7 @@ static void cb_dict_sdbs(void *context_, void *sdb_, size_t size)
 // static int _read_nums = 0;
 static void cb_chardata(void *context_, const char *kname_, const char *sname_, void *out_, size_t olen_)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)context_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)context_;
     if (context->cb_sub_chars)
     {
         s_sis_db_chars inmem = {0};
@@ -223,7 +223,7 @@ static void cb_chardata(void *context_, const char *kname_, const char *sname_, 
  */
 static void *_thread_maps_read_sub(void *argv_)
 {
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)argv_;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)argv_;
 
     s_sis_disk_reader_cb *rmap_cb = SIS_MALLOC(s_sis_disk_reader_cb, rmap_cb);
     rmap_cb->cb_source    = context;
@@ -239,7 +239,7 @@ static void *_thread_maps_read_sub(void *argv_)
     context->work_reader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MDB, rmap_cb);
+        SIS_DISK_TYPE_MSN, rmap_cb);
 
     s_sis_msec_pair pair; 
     pair.start = (msec_t)sis_time_make_time(context->work_date.start, 0) * 1000;
@@ -263,7 +263,7 @@ static void *_thread_maps_read_sub(void *argv_)
  * @brief 启动一天的行情订阅
  * @param context 工作者上下文
  */
-void sisdb_rmap_sub_start(s_sisdb_rmap_cxt *context) 
+void sisdb_rmsn_sub_start(s_sisdb_rmsn_cxt *context) 
 {
     // 有值就干活 完毕后释放
     if (context->status == SIS_RMAP_WORK)
@@ -276,7 +276,7 @@ void sisdb_rmap_sub_start(s_sisdb_rmap_cxt *context)
         sis_thread_create(_thread_maps_read_sub, context, &context->work_thread);
     }
 }
-void sisdb_rmap_sub_stop(s_sisdb_rmap_cxt *context)
+void sisdb_rmsn_sub_stop(s_sisdb_rmsn_cxt *context)
 {
     if (context->work_reader)
     {
@@ -302,7 +302,7 @@ void sisdb_rmap_sub_stop(s_sisdb_rmap_cxt *context)
  * @param context 工作者上下文
  * @param msg 通信上下文
  */
-void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
+void _sisdb_rmsn_init(s_sisdb_rmsn_cxt *context, s_sis_message *msg)
 {
     sis_sds_save_set(context->work_path, sis_message_get_str(msg, "work-path"));
     sis_sds_save_set(context->work_name, sis_message_get_str(msg, "work-name"));
@@ -322,7 +322,7 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
             context->work_sdbs = sis_sdsdup(str);
         }
     }
-    context->submode = sis_message_get_int(msg, "work-mode");
+    context->submode = sis_message_get_int(msg, "sub-mode");
     context->work_date.move = 0;
     if (sis_message_exist(msg, "start-date"))
     {
@@ -349,10 +349,10 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
     context->cb_dict_keys   = sis_message_get_method(msg, "cb_dict_keys"  );
     context->cb_sub_chars   = sis_message_get_method(msg, "cb_sub_chars"  );
 }
-int cmd_sisdb_rmap_get(void *worker_, void *argv_)
+int cmd_sisdb_rmsn_get(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
 
     s_sis_message *msg = (s_sis_message *)argv_; 
     // 设置表结构
@@ -360,7 +360,7 @@ int cmd_sisdb_rmap_get(void *worker_, void *argv_)
     s_sis_disk_reader *wreader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MDB, NULL);
+        SIS_DISK_TYPE_MSN, NULL);
     
     s_sis_msec_pair pair; 
     int startdate = sis_message_get_int(msg, "start-date");
@@ -393,10 +393,10 @@ int cmd_sisdb_rmap_get(void *worker_, void *argv_)
     }
     return SIS_METHOD_OK;
 }
-int cmd_sisdb_rmap_getdb(void *worker_, void *argv_)
+int cmd_sisdb_rmsn_getdb(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
 
     s_sis_message *msg = (s_sis_message *)argv_; 
     // 设置表结构
@@ -404,7 +404,7 @@ int cmd_sisdb_rmap_getdb(void *worker_, void *argv_)
     s_sis_disk_reader *reader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MDB, NULL);
+        SIS_DISK_TYPE_MSN, NULL);
     if (!reader)
     {
         return SIS_METHOD_NIL;
@@ -422,10 +422,10 @@ int cmd_sisdb_rmap_getdb(void *worker_, void *argv_)
     return SIS_METHOD_OK;
 }
 
-int cmd_sisdb_rmap_sub(void *worker_, void *argv_)
+int cmd_sisdb_rmsn_sub(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
 
     SIS_WAIT_OR_EXIT(context->status == SIS_RMAP_NONE);  
     // 可能上一个线程还未结束
@@ -436,28 +436,28 @@ int cmd_sisdb_rmap_sub(void *worker_, void *argv_)
     {
         return SIS_METHOD_ERROR;
     }
-    _sisdb_rmap_init(context, msg);
+    _sisdb_rmsn_init(context, msg);
     
     context->status = SIS_RMAP_CALL;
     
-    sisdb_rmap_sub_start(context);
+    sisdb_rmsn_sub_start(context);
 
     return SIS_METHOD_OK;
 }
-int cmd_sisdb_rmap_unsub(void *worker_, void *argv_)
+int cmd_sisdb_rmsn_unsub(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
     // context->status = SIS_RMAP_BREAK;
-    sisdb_rmap_sub_stop(context);
+    sisdb_rmsn_sub_stop(context);
 
     return SIS_METHOD_OK;
 }
 
-int cmd_sisdb_rmap_setcb(void *worker_, void *argv_)
+int cmd_sisdb_rmsn_setcb(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
 
     if (context->status != SIS_RMAP_NONE)
     {
@@ -468,23 +468,23 @@ int cmd_sisdb_rmap_setcb(void *worker_, void *argv_)
     {
         return SIS_METHOD_ERROR;
     }
-    _sisdb_rmap_init(context, msg);
+    _sisdb_rmsn_init(context, msg);
     
     context->status = SIS_RMAP_WORK;
 
     return SIS_METHOD_OK;
 }
 
-void sisdb_rmap_working(void *worker_)
+void sisdb_rmsn_working(void *worker_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
-    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    s_sisdb_rmsn_cxt *context = (s_sisdb_rmsn_cxt *)worker->context;
     
     SIS_WAIT_OR_EXIT(context->status == SIS_RMAP_WORK);  
     if (context->status == SIS_RMAP_WORK)
     {
         LOG(5)("sub history start. [%d]\n", context->work_date.start);
-        sisdb_rmap_sub_start(context);
+        sisdb_rmsn_sub_start(context);
         LOG(5)("sub history end. [%d]\n", context->work_date.stop);
     }
 }
@@ -558,7 +558,7 @@ int main() {
 #endif
 #if 0
 // 测试 snapshot 转 新格式的例子
-const char *sisdb_rmap = "\"sisdb_rmap\" : { \
+const char *sisdb_rmsn = "\"sisdb_rmsn\" : { \
     \"work-path\" : \"../../data/\" }";
 
 #include "server.h"
@@ -619,7 +619,7 @@ int main()
     sis_server_init();
     s_sis_worker *nowwork = NULL;
     {
-        s_sis_json_handle *handle = sis_json_load(sisdb_rmap, sis_strlen(sisdb_rmap));
+        s_sis_json_handle *handle = sis_json_load(sisdb_rmsn, sis_strlen(sisdb_rmsn));
         nowwork = sis_worker_create(NULL, handle->node);
         sis_json_close(handle);
     }

@@ -141,8 +141,8 @@ int sis_disk_io_map_check_mhead(s_sis_map_fctrl *fctrl, char *mapmem)
 void sis_disk_io_map_read_mhead(s_sis_map_fctrl *fctrl)
 {
     fctrl->mhead_p = (s_sis_map_head *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
-    int headsize = sizeof(s_sis_map_head) - SIS_MAP_OTHER_SIZE - (SIS_MAP_MAX_SDBNUM - fctrl->mhead_p->sdbnums) * sizeof(int);
-    memmove(&fctrl->mhead_r, fctrl->mhead_p, headsize);    
+    memmove(&fctrl->mhead_r, fctrl->mhead_p, SIS_MAP_HEAD_SIZE);
+    memmove(&fctrl->mhead_r.idxfbno[0], &fctrl->mhead_p->idxfbno[0], fctrl->mhead_p->sdbnums * sizeof(int));    
     LOG(5)("%p %d | %d %d\n", fctrl->mapmem, fctrl->mhead_r.fsize, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
 }
 int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)

@@ -258,7 +258,7 @@ int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int s
     return 0;
 }
 
-#if 0
+#if 1
 
 #define FNAME  "mymap"
 
@@ -511,7 +511,7 @@ int main(int argc, char **argv)
         cb.cb_dict_sdbs = cb_sdb;
         cb.cb_break = cb_break;
         cb.cb_chardata  = cb_chardata;
-        s_sis_disk_reader *rcxt = sis_disk_reader_create(".", FNAME, SIS_DISK_TYPE_MSN, &cb);
+        s_sis_disk_reader *rcxt = sis_disk_reader_create(".", FNAME, SIS_DISK_TYPE_MDB, &cb);
         cb.cb_source = rcxt;
         read_sdb(rcxt);
         sis_disk_reader_destroy(rcxt);
@@ -523,7 +523,7 @@ int main(int argc, char **argv)
     if (argv[1][0] == 'w')
     {
         // 新写数据
-        s_sis_disk_writer *wcxt = sis_disk_writer_create(".", FNAME, SIS_DISK_TYPE_MSN);
+        s_sis_disk_writer *wcxt = sis_disk_writer_create(".", FNAME, SIS_DISK_TYPE_MDB);
         write_sdb(wcxt);
         // write_sdb_msec(wcxt);  // 按时间写入
         sis_disk_writer_destroy(wcxt);

@@ -220,9 +220,13 @@
 // MAP文件的数据块标志 从索引块信息得到首块号 直接定位 固定结构 写入序号 
 #define  SIS_DISK_HID_MAP_DATA     0x14 // sno(8)*currecs(4) + [data] 
 // MAP 文件的数据支持删除重写 MAP文件没有结束块信息
+// 下面的块保存的低于最新块号的被删除的数据块号 int32
+// 新增数据优先从该块获取块号 通常总是从最后面拿块号 知道清空
+// 这个块一单生成就不会再消失
+#define  SIS_DISK_HID_MAP_BLOCK    0x15 // 
 
 // 文件结束块
-#define  SIS_DISK_HID_TAIL        0x1F  // 结束块标记
+#define  SIS_DISK_HID_TAIL          0x1F  // 结束块标记
 
 // 定义压缩方法
 // 由于 incrzip 的解压速度稍逊于 snappy 所以通用格式采用 snappy 压缩 
