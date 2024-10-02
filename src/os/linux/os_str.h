@@ -93,6 +93,42 @@ static inline size_t sis_strlen(const char *str_)
 	return str_ ? strlen(str_) : 0;
 }
 
+static inline int64 sis_str_2_int(const char *ptr)
+{
+    int64 i64 = 0;
+    int len = (int)strlen(ptr);
+	if (len < 1)
+	{
+		return i64;
+	}
+
+	for (int i = 0; i < len; i++)
+	{
+		if (!isdigit(ptr[i]))
+		{
+            if (ptr[i] == 'G' || ptr[i] == 'g')
+            {
+                return i64 * 1024 * 1024 * 1024;
+            }
+            else if (ptr[i] == 'M' || ptr[i] == 'm')
+            {
+                return i64 * 1024 * 1024;
+            }
+            else if (ptr[i] == 'K' || ptr[i] == 'k')
+            {
+                return i64 * 1024;
+            }
+            else if (ptr[i] == 'T' || ptr[i] == 't')
+            {
+                return i64 * 1024 * 1024 * 1024 * 1024;
+            }
+            break;
+		}
+        i64 = i64 == 0 ? ptr[i] - '0' : i64 * 10 + (ptr[i] - '0');
+	}
+    return i64;
+}
+
 static inline int sis_lldtoa(long long val_, char *buf_, size_t ilen_, unsigned radix_)
 {
 	char *p;		 /*   pointer   to   traverse   string   */

@@ -15,7 +15,11 @@ void safe_memory_start()
 {
     if (!__hmem_class)
     {
-        __hmem_class = sis_hmem_create((long long)32 * 1024 * 1024 * 1024);
+        // 得到实际大小
+        int64 size = sis_str_2_int(HUGE_MEM);
+        // sis_out_binary("::", HUGE_MEM, 16); 
+        // printf("%lld\n", size);
+        __hmem_class = sis_hmem_create(size == 0 ? (long long)32 * 1024 * 1024 * 1024 : size);
         printf("hmem memory begin.\n");
     }
 }
@@ -26,6 +30,7 @@ void safe_memory_stop()
     {
         sis_hmem_destroy(__hmem_class);
         __hmem_class = NULL;
+        printf("hmem memory end.\n");
     }
 }
 

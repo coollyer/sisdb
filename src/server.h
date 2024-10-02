@@ -64,6 +64,8 @@ int sis_server_init();
 
 void sis_server_uninit();
 
+void sis_server_exit();
+
 #ifdef __cplusplus
 }
 #endif

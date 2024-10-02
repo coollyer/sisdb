@@ -416,6 +416,7 @@ void sis_disk_sno_rctrl_start(s_sis_disk_ctrl *cls_)
                 chars->data, chars->size);
         }        
         chars = sis_disk_sno_rctrl_rpop(cls_->sno_rctrl);
+        // LOG(8)("start chars ok= %p\n", chars);
     }
     LOG(8)("start chars ok= %p\n", chars);
 }

@@ -54,6 +54,7 @@ void _sig_kill(int sn)
 	// 最简单的方法
 	if (sis_get_signal() == SIS_SIGNAL_EXIT)
 	{
+        safe_memory_stop();
 		printf("force exit!\n");  
 		exit(0); 
 	}
@@ -301,6 +302,11 @@ int sis_server_init()
 void sis_server_uninit()
 {
 	sis_map_pointer_destroy(_server.modules);
+}
+void sis_server_exit()
+{
+    safe_memory_stop();
+    exit(0);
 }
 
  #ifndef TEST_DEBUG 

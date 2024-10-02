@@ -277,6 +277,30 @@ static inline int sis_is_mixed(double min1, double max1, double min2, double max
 	return 0;
 }
 
+// // 求2的几次幂
+// int sis_pow2exp(int64 n) 
+// {
+//     int exp = 0;
+//     if (n <= 0)
+//     {
+//         return -1;
+//     }
+//     if (n == 1)
+//     {
+//         return 0;
+//     }
+//     if (n <= 0 || (n & (n - 1)) != 0) 
+//     {
+//         return -1;
+//     }
+//     while (n > 1) 
+//     {
+//         n >>= 1;
+//         exp++;
+//     }
+//     return exp;
+// }
+
 static inline void sis_init_random()
 {
 	srand((unsigned)time(NULL));

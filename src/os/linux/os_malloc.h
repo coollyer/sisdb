@@ -22,9 +22,10 @@ static inline void safe_memory_stop(){};
 #include <string.h>
 #include <stdlib.h>
 #include <os_thread.h>
-#include <os_hmem.h>
 
 #ifdef HUGE_MEM
+
+#include <os_hmem.h>
 
 extern s_sis_hmem    *__hmem_class;
 
@@ -47,9 +48,6 @@ void safe_memory_stop();
 #define sis_free(__m__) ({ \
     if (__m__) {  \
         sis_hmem_free(__hmem_class, __m__); \
-    } \
-    if (sis_hmem_isnil(__hmem_class)) { \
-        safe_memory_stop(); \
     } \
 }) \
 
