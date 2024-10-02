@@ -22,6 +22,43 @@ static inline void safe_memory_stop(){};
 #include <string.h>
 #include <stdlib.h>
 #include <os_thread.h>
+#include <os_hmem.h>
+
+#ifdef HUGE_MEM
+
+extern s_sis_hmem    *__hmem_class;
+
+void safe_memory_start();
+void safe_memory_stop();
+
+#define sis_malloc(__size__) ({   \
+    safe_memory_start();\
+    (void *)(sis_hmem_malloc(__hmem_class, __size__)); \
+}) \
+
+#define SIS_MALLOC(__type__,__val__) (__type__ *)sis_malloc(sizeof(__type__)); \
+    memset(__val__, 0, sizeof(__type__));
+
+#define sis_calloc(__size__)  ({   \
+    safe_memory_start();\
+    (void *)(sis_hmem_calloc(__hmem_class, __size__)); \
+}) \
+
+#define sis_free(__m__) ({ \
+    if (__m__) {  \
+        sis_hmem_free(__hmem_class, __m__); \
+    } \
+    if (sis_hmem_isnil(__hmem_class)) { \
+        safe_memory_stop(); \
+    } \
+}) \
+
+#define sis_realloc(__m__, __size__) ({   \
+    safe_memory_start();\
+    (void *)(sis_hmem_realloc(__hmem_class, __m__, __size__)); \
+}) \
+
+#else
 
 #define MEMORY_INFO_SIZE  32
 
@@ -133,6 +170,8 @@ static inline void safe_memory_freenode(void *__p__)
     safe_memory_newnode(__p, __size__, __LINE__,__func__); \
     (void *)((char *)__p + MEMORY_NODE_SIZE); \
 }) \
+
+#endif
 
 #endif
 

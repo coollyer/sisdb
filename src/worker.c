@@ -185,6 +185,7 @@ void *_service_work_thread(void *argv_)
 	}	
     sis_wait_thread_stop(service_thread->work_thread);
 	LOG(5)("work [%s] end.\n", worker->workername);
+    worker->status = SIS_WORK_INIT_STOP;
     return NULL;
 }
 // 获得完整的 workname
@@ -520,14 +521,6 @@ int sis_worker_command(s_sis_worker *worker_, const char *cmd_, void *msg_)
     {
         return SIS_METHOD_NOWORK;
     }
-    // s_sis_dict_entry *de;
-    // s_sis_dict_iter *di = sis_dict_get_iter(worker_->methods);
-    // while ((de = sis_dict_next(di)) != NULL)
-    // {
-    //     s_sis_method *val = (s_sis_method *)sis_dict_getval(de);
-    //     printf("---- %s : %p %s\n", val->name, val->proc, val->style);
-    // }
-    // sis_dict_iter_free(di);
     // 必须等方法启动完毕
     SIS_WAIT_LONG(worker->status & SIS_WORK_INIT_METHOD);
 

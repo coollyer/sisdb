@@ -7,6 +7,30 @@
 
 #ifndef __RELEASE__
 
+#ifdef HUGE_MEM
+
+s_sis_hmem  *__hmem_class = NULL;
+
+void safe_memory_start()
+{
+    if (!__hmem_class)
+    {
+        __hmem_class = sis_hmem_create((long long)32 * 1024 * 1024 * 1024);
+        printf("hmem memory begin.\n");
+    }
+}
+
+void safe_memory_stop()
+{
+    if (__hmem_class)
+    {
+        sis_hmem_destroy(__hmem_class);
+        __hmem_class = NULL;
+    }
+}
+
+#else
+
 s_memory_node *__memory_first, *__memory_last;
 s_sis_mutex_t  __memory_mutex;
 
@@ -63,6 +87,8 @@ void safe_memory_stop()
     sis_mutex_destroy(&__memory_mutex);
     printf("safe memory end. %zu\n", size);
 }
+
+#endif
 #endif
 // void check_memory_newnode(void *__p__,int line_,const char *func_)
 // {

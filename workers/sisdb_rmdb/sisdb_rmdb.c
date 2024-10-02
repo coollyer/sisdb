@@ -7,6 +7,7 @@
 #include <sis_obj.h>
 #include "sis_utils.h"
 #include "sis_db.h"
+#include "sis_disk.io.map.h"
 
 // 从行情流文件中获取数据源
 static s_sis_method _sisdb_rmdb_methods[] = {

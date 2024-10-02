@@ -258,7 +258,7 @@ int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int s
     return 0;
 }
 
-#if 1
+#if 0
 
 #define FNAME  "mymap"
 

@@ -133,14 +133,23 @@ bool _server_open(const char *cmdinfo, const char *dayinfo)
 		s_sis_json_node *node = sis_json_search_node(_server.cfgnode, "work-date", 3);
 		if (node)
 		{
-			s_sis_json_node *nptr = sis_json_create_array();
-			int nums = sis_str_substr_nums(dayinfo, sis_strlen(dayinfo), ',');
-			for (int i = 0; i < nums; i++)
-			{
-				char ptr[128];
-				sis_str_substr(ptr, 128, dayinfo, ',', i);
-				sis_json_array_add_string(nptr, ptr, sis_strlen(ptr));
-			}
+            s_sis_json_node *nptr = sis_json_create_array();
+            // 有 - 表示连续日期 没有表示 单日 
+            if (sis_str_exist_ch(dayinfo, sis_strlen(dayinfo), ",", 1))
+            {
+                int nums = sis_str_substr_nums(dayinfo, sis_strlen(dayinfo), ',');
+                for (int i = 0; i < nums; i++)
+                {
+                    char ptr[128];
+                    sis_str_substr(ptr, 128, dayinfo, ',', i);
+                    sis_json_array_add_string(nptr, ptr, sis_strlen(ptr));
+                }
+            }
+            else
+            {
+                sis_json_array_add_string(nptr, dayinfo, sis_strlen(dayinfo));
+                sis_json_array_add_string(nptr, dayinfo, sis_strlen(dayinfo));
+            }
 			s_sis_json_node *father = sis_json_father_node(node);
 			sis_json_delete_node(node);
 			sis_json_object_add_node(father, "work-date", nptr);
@@ -298,6 +307,7 @@ void sis_server_uninit()
  
 int main(int argc, char *argv[])
 {
+
 	sis_sprintf(_server.conf_name, 1024, "%s.conf", argv[0]);
 	sis_sprintf(_server.json_name, 1024, "%s.json", argv[0]);
 	int c = 1;
@@ -413,6 +423,20 @@ int main(int argc, char *argv[])
 		_server.status = SERVER_STATUS_WORK;
 		while (_server.status != SERVER_STATUS_NONE)
 		{
+            s_sis_worker *workstop = NULL;
+            s_sis_dict_entry *de;
+            s_sis_dict_iter *di = sis_dict_get_iter(_server.workers);
+            while ((de = sis_dict_next(di)) != NULL)
+            {
+                s_sis_worker *work = (s_sis_worker *)sis_dict_getval(de);
+                if (work->status == SIS_WORK_INIT_STOP)
+                {
+                    workstop = work;
+                    sis_map_pointer_del(_server.workers, workstop->workername);
+                    break;
+                }
+            }
+            sis_dict_iter_free(di);
 			if (sis_map_pointer_getsize(_server.workers) < 1)
 			{
 				// 所有work结束就退出
