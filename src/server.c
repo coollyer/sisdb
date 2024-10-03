@@ -54,7 +54,6 @@ void _sig_kill(int sn)
 	// 最简单的方法
 	if (sis_get_signal() == SIS_SIGNAL_EXIT)
 	{
-        safe_memory_stop();
 		printf("force exit!\n");  
 		exit(0); 
 	}

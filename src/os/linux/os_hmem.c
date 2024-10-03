@@ -4,6 +4,30 @@
 
 // 注意 这里的内存申请 不加 sis 前缀
 
+#define HMEM_SHOWINFO
+#define HMEM_SUMMARY
+
+#ifdef HMEM_SUMMARY
+
+typedef struct s_hmem_summary
+{	
+	msec_t  start_usec;   // sis_time_get_now_usec();
+	msec_t  ago_usec;   // sis_time_get_now_usec();
+
+    int64   mall_nums;
+    int64   mall_size;
+    int64   free_nums;
+    int64   free_size;
+
+    int64   cur_mall_nums;
+    int64   cur_mall_size;
+    int64   cur_free_nums;
+    int64   cur_free_size;
+} s_hmem_summary;
+
+s_hmem_summary _hmemsum;
+
+#endif
 /////////////////////////////////////
 //
 //////////////////////////////////////////
@@ -53,20 +77,15 @@ s_sis_hmem *sis_hmem_create(int64 msize)
     {
         return NULL;
     }
+#ifdef HMEM_SUMMARY
+    memmove(&_hmemsum, 0, sizeof(s_hmem_summary));
+    _hmemsum.start_usec = sis_time_get_now_usec();
+    _hmemsum.ago_usec = sis_time_get_now_usec();
+#endif
     return hmem;
 }
-void sis_hmem_destroy(s_sis_hmem *hmem)
+void sis_hmem_exit(s_sis_hmem *hmem)
 {
-    if (hmem->usbale)
-    {
-        s_hmem_node *next = hmem->usbale;
-        while (next)
-        {
-            s_hmem_node *prev = next;
-            next = next->next;
-            free(prev);	
-        }
-    }
     if (hmem->memmap)
     {
         sis_unmmap(hmem->memmap, hmem->msize);
@@ -78,20 +97,56 @@ void sis_hmem_destroy(s_sis_hmem *hmem)
     sis_mutex_destroy(&hmem->mutex);
     free(hmem);
 }
-
-void sis_hmem_show_nodes(s_sis_hmem *hmem, const char *info)
+void sis_hmem_destroy(s_sis_hmem *hmem)
 {
-    printf("==========\n");
+    sis_mutex_lock(&hmem->mutex);
+    if (hmem->usbale)
     {
         s_hmem_node *next = hmem->usbale;
         while (next)
         {
-            printf("%s usable: %5lld %5lld %20p %20p %20p\n", info, next->head, next->tail, next->prev, next, next->next);
+            s_hmem_node *prev = next;
             next = next->next;
+            free(prev);	
         }
+        hmem->usbale = NULL;
     }
+    sis_mutex_unlock(&hmem->mutex);
+    sis_hmem_exit(hmem);
 }
+#ifdef HMEM_SHOWINFO
+void sis_hmem_show_nodes(s_sis_hmem *hmem, const char *info)
+{
+    // printf("==========\n");
+    // {
+    //     s_hmem_node *next = hmem->usbale;
+    //     while (next)
+    //     {
+    //         printf("%s usable: %5lld %5lld %20p %20p %20p\n", info, next->head, next->tail, next->prev, next, next->next);
+    //         next = next->next;
+    //     }
+    // }
+#ifdef HMEM_SUMMARY
+    if (_hmemsum.mall_nums % 10000 == 0)
+    {
+        msec_t curusec = sis_time_get_now_usec();
+        printf("%6lld %10lld %10lld %10lld %10lld %10.2f| %10lld %10lld %10lld %10lld %10.2f\n", curusec - _hmemsum.ago_usec, 
+            _hmemsum.mall_nums, _hmemsum.mall_size, 
+            _hmemsum.free_nums, _hmemsum.free_size,
+            SIS_DIVF(_hmemsum.mall_size, _hmemsum.mall_nums),
+            _hmemsum.cur_mall_nums, _hmemsum.cur_mall_size, 
+            _hmemsum.cur_free_nums, _hmemsum.cur_free_size,
+            SIS_DIVF(_hmemsum.cur_mall_size, _hmemsum.cur_mall_nums));
+        _hmemsum.cur_mall_nums = 0; 
+        _hmemsum.cur_mall_size = 0;
+        _hmemsum.cur_free_nums = 0;
+        _hmemsum.cur_free_size = 0;
+        _hmemsum.ago_usec = curusec;
+    }
+#endif
 
+}
+#endif
 void *_hmem_malloc(s_sis_hmem *hmem, int64 nsize)
 {
     char *rmem = NULL;
@@ -138,9 +193,18 @@ void *_hmem_malloc(s_sis_hmem *hmem, int64 nsize)
         }
         next = next->next;
     }
-    // sis_hmem_show_nodes(hmem, "malloc");
     if (rmem)
     {
+#ifdef HMEM_SHOWINFO
+#ifdef HMEM_SUMMARY
+    _hmemsum.mall_nums++;
+    _hmemsum.mall_size+=nsize;
+    _hmemsum.cur_mall_nums++;
+    _hmemsum.cur_mall_size+=nsize;
+#endif
+
+    sis_hmem_show_nodes(hmem, "malloc");
+#endif
         return rmem + sizeof(s_hmem_head);
     }
     else
@@ -192,13 +256,22 @@ void sis_hmem_free(s_sis_hmem *hmem, void *ptr)
 {
     sis_mutex_lock(&hmem->mutex);
     s_hmem_head *ohead = (s_hmem_head *)((char *)ptr - sizeof(s_hmem_head));
-    if (ohead->size >= 0)
+    size_t size = ohead->size;
+    if (size >= 0)
     {
         // 回收
         sis_hmem_recy_occupy(hmem, ohead);
     }
     sis_mutex_unlock(&hmem->mutex);
-    // sis_hmem_show_nodes(hmem, "free");
+#ifdef HMEM_SHOWINFO
+#ifdef HMEM_SUMMARY
+    _hmemsum.free_nums++;
+    _hmemsum.free_size+=size;
+    _hmemsum.cur_free_nums++;
+    _hmemsum.cur_free_size+=size;
+#endif
+    sis_hmem_show_nodes(hmem, " free ");
+#endif
 }
 
 void sis_hmem_recy_occupy(s_sis_hmem *hmem, s_hmem_head *ohead)

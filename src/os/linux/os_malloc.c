@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <os_fork.h>
 #ifndef __RELEASE__
 
 #ifdef HUGE_MEM
@@ -28,7 +28,7 @@ void safe_memory_stop()
 {
     if (__hmem_class)
     {
-        sis_hmem_destroy(__hmem_class);
+        sis_hmem_exit(__hmem_class);
         __hmem_class = NULL;
         printf("hmem memory end.\n");
     }
@@ -70,25 +70,28 @@ void safe_memory_stop()
     {
         printf("no free memory:\n");
     }
-    sis_mutex_lock(&__memory_mutex);
     size_t size = 0;
-    int i = 0;
-    while (node)
+    if (sis_get_signal() != SIS_SIGNAL_EXIT)
     {
-        unsigned char *ptr = (unsigned char *)node + MEMORY_NODE_SIZE;
-        size += node->size + MEMORY_NODE_SIZE;
-        printf("[%4d] %p [%d] func:%s, lines:%d :: ", i++,
-               ptr, node->size, node->info, node->line);
-        if (!safe_memory_cmp(node->info, "sis_strdup")||
-            !safe_memory_cmp(node->info, "sis_sds_addlen")||
-            !safe_memory_cmp(node->info, "sis_sdsnewlen"))
+        sis_mutex_lock(&__memory_mutex);
+        int i = 0;
+        while (node)
         {
-            printf("%s", ptr);
+            unsigned char *ptr = (unsigned char *)node + MEMORY_NODE_SIZE;
+            size += node->size + MEMORY_NODE_SIZE;
+            printf("[%4d] %p [%d] func:%s, lines:%d :: ", i++,
+                ptr, node->size, node->info, node->line);
+            if (!safe_memory_cmp(node->info, "sis_strdup")||
+                !safe_memory_cmp(node->info, "sis_sds_addlen")||
+                !safe_memory_cmp(node->info, "sis_sdsnewlen"))
+            {
+                printf("%s", ptr);
+            }
+            printf("\n");
+            node = node->next;
         }
-        printf("\n");
-        node = node->next;
+        sis_mutex_unlock(&__memory_mutex);
     }
-    sis_mutex_unlock(&__memory_mutex);
     sis_mutex_destroy(&__memory_mutex);
     printf("safe memory end. %zu\n", size);
 }

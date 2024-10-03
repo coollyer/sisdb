@@ -49,6 +49,7 @@ extern "C" {
 
 s_sis_hmem *sis_hmem_create(int64);
 void sis_hmem_destroy(s_sis_hmem *);
+void sis_hmem_exit(s_sis_hmem *hmem);
 
 void *sis_hmem_malloc(s_sis_hmem *, int64);
 void *sis_hmem_calloc(s_sis_hmem *, int64);
