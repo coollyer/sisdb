@@ -133,10 +133,10 @@ void sis_hmem_show_nodes(s_sis_hmem *hmem, const char *info)
         printf("%6lld %10lld %10lld %10lld %10lld %10.2f| %10lld %10lld %10lld %10lld %10.2f\n", curusec - _hmemsum.ago_usec, 
             _hmemsum.mall_nums, _hmemsum.mall_size, 
             _hmemsum.free_nums, _hmemsum.free_size,
-            SIS_DIVF(_hmemsum.mall_size, _hmemsum.mall_nums),
+            _hmemsum.mall_nums > 0 ? (double)_hmemsum.mall_size / _hmemsum.mall_nums : 0.0,
             _hmemsum.cur_mall_nums, _hmemsum.cur_mall_size, 
             _hmemsum.cur_free_nums, _hmemsum.cur_free_size,
-            SIS_DIVF(_hmemsum.cur_mall_size, _hmemsum.cur_mall_nums));
+            _hmemsum.cur_mall_nums > 0 ? (double)_hmemsum.cur_mall_size / _hmemsum.cur_mall_nums : 0.0);
         _hmemsum.cur_mall_nums = 0; 
         _hmemsum.cur_mall_size = 0;
         _hmemsum.cur_free_nums = 0;

@@ -427,6 +427,6 @@ void sisdb_sno2csv_working(void *worker_)
     // if (context->work_date.stop > 0)
     {
         // stop 不为 0 通常表示只做一次运算
-        sis_server_exit();
+        // exit(0);  // stop 不为0 直接退出
     }
 }
