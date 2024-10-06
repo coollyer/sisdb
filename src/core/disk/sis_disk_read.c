@@ -365,7 +365,6 @@ void sis_disk_reader_close(s_sis_disk_reader *reader_)
     }
 }
 
-
 s_sis_dynamic_db *sis_disk_reader_getdb(s_sis_disk_reader *reader_, const char *sname_)
 {
     s_sis_dynamic_db *db = NULL;
@@ -890,29 +889,118 @@ s_sis_object *_disk_reader_get_sno_obj(s_sis_disk_reader *reader_, const char *k
     return NULL;
 }
 
-s_sis_object *_disk_reader_get_map_obj(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
+s_sis_disk_var _disk_reader_get_sno_var(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
 {
+    s_sis_disk_var var = {0};
     if (sis_is_multiple_sub(kname_, sis_strlen(kname_)) || sis_is_multiple_sub(sname_, sis_strlen(sname_)))
     {
         LOG(5)("no mul key or sdb: %s\n", kname_, sname_);
-        return NULL;
+        return var;
     }
     if (reader_->status_sub == 1 || !kname_ || !sname_)
     {
-        return NULL;
+        return var;
+    }   
+    reader_->search_msec.start = smsec_->start;
+    reader_->search_msec.stop  = smsec_->stop;
+    
+    reader_->isone = 1;
+    sis_disk_reader_init(reader_, kname_, sname_, smsec_, 0);
+
+    // 只读结构化数据
+    sis_disk_reader_make_sno(reader_);
+
+    s_sis_dynamic_db *sdb = sis_disk_reader_getdb(reader_, sname_);
+
+    if (sis_map_list_getsize(reader_->subidxs) > 0)
+    {
+        s_sis_memory *memory = sis_memory_create();
+        reader_->status_sub = 1;
+        // 只有一个键
+        s_sis_disk_reader_sub *subwork = (s_sis_disk_reader_sub *)sis_map_list_geti(reader_->subidxs, 0);
+        int count = sis_disk_reader_sub_getsize(subwork);
+        for (int j = 0; j < count; j++)
+        {
+            s_sis_disk_reader_unit *runit = (s_sis_disk_reader_unit *)sis_pointer_list_get(subwork->units, j);
+            s_sis_disk_rcatch *rcatch = runit->ctrl->rcatch;
+            s_sis_disk_idx *subidx = (s_sis_disk_idx *)sis_pointer_list_get(subwork->kidxs, j);
+            for (int k = 0; k < subidx->idxs->count; k++)
+            {
+                s_sis_disk_idx_unit *idxunit = (s_sis_disk_idx_unit *)sis_struct_list_get(subidx->idxs, k);
+                sis_disk_rcatch_init_of_idx(rcatch, idxunit);
+                sis_disk_io_read_sno(runit->ctrl, rcatch);
+                // sis_out_binary(".out.",sis_memory(rcatch->memory), sis_memory_get_size(rcatch->memory));
+                while(sis_memory_get_size(rcatch->memory) > 0)
+                {
+                    // size_t size = 
+                    sis_memory_get_ssize(rcatch->memory);
+                    // printf("[%d] %llu %llu | %d %d %zu\n", subidx->idxs->count, rcatch->rinfo->offset, rcatch->rinfo->size, rcatch->kidx, rcatch->sidx, size);
+                    sis_memory_cat(memory, sis_memory(rcatch->memory), sdb->size);
+                    sis_memory_move(rcatch->memory, sdb->size);
+                }
+            }
+        }
+        // 订阅结束
+        reader_->status_sub = 0;
+        if (sis_memory_get_size(memory) > 0)
+        {
+            var.memory = memory;
+            var.dbinfo = sdb;
+            return var;
+        }
+        sis_memory_destroy(memory);
+    }
+    return var;
+}
+s_sis_disk_var _disk_reader_get_map_var(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
+{
+    s_sis_disk_var var = {0};
+
+    if (sis_is_multiple_sub(kname_, sis_strlen(kname_)) || sis_is_multiple_sub(sname_, sis_strlen(sname_)))
+    {
+        LOG(5)("no mul key or sdb: %s\n", kname_, sname_);
+        return var;
+    }
+    if (reader_->status_sub == 1 || !kname_ || !sname_)
+    {
+        return var;
     }   
 
     int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
     if (o)
     {
         LOG(5)("no open %s. %d\n", reader_->map_fctrl->fname, o);
-        return NULL;
+        return var;
     }
-    s_sis_object *obj = sis_disk_io_map_r_get_obj(reader_->map_fctrl, kname_, sname_, smsec_);
-    
+    s_sis_memory *memory = sis_disk_io_map_r_get_mem(reader_->map_fctrl, kname_, sname_, smsec_);
+    if (memory)
+    {
+        var.memory = memory;
+        var.dbinfo = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+    }
+
     sis_disk_io_map_close(reader_->map_fctrl);
 
-    return obj;
+    return var;
+}
+
+s_sis_disk_var sis_disk_reader_get_var(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
+{   
+    s_sis_disk_var var = {0};
+    if (reader_->style == SIS_DISK_TYPE_SNO)
+    {
+        // 只支持根据日期获取
+        var = _disk_reader_get_sno_var(reader_, kname_, sname_, smsec_);
+    }
+    else if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
+    {
+        var = _disk_reader_get_map_var(reader_, kname_, sname_, smsec_);
+    }
+    else if (reader_->style == SIS_DISK_TYPE_SDB)
+    {
+        // var = _disk_reader_get_sdb_var(reader_, kname_, sname_, smsec_);
+    }
+    return var; 
 }
 // 从对应文件中获取数据 拼成完整的数据返回 只支持 SNO SDB 单键单表 
 s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
@@ -926,7 +1014,7 @@ s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kn
     }
     else if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
     {
-        obj = _disk_reader_get_map_obj(reader_, kname_, sname_, smsec_);
+        // obj = _disk_reader_get_map_obj(reader_, kname_, sname_, smsec_);
     }
     else if (reader_->style == SIS_DISK_TYPE_SDB)
     {

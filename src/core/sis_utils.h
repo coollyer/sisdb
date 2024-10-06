@@ -70,6 +70,8 @@ int sis_json_merge_rpath(s_sis_json_node *node_, const char *rkey, const char *r
 // match_keys : * --> whole_keys
 // match_keys : k,m1 | whole_keys : k1,k2,m1,m2 --> k1,k2,m1
 s_sis_sds sis_match_key(s_sis_sds match_keys, s_sis_sds whole_keys);
+// 对匹配的字符长度限制
+s_sis_sds sis_match_key_and_len(s_sis_sds match_keys, int len, s_sis_sds whole_keys);
 // 得到匹配的sdbs
 // match_sdbs : * | whole_sdbs : {s1:{},s2:{},k1:{}} --> s1,s2,k1
 // match_sdbs : s1,s2,s4 | whole_sdbs : {s1:{},s2:{},k1:{}} --> s1,s2

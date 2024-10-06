@@ -34,8 +34,8 @@ bool sisdb_wmap_init(void *worker_, void *node_)
     worker->context = context;
     {
         context->work_path = sis_sds_save_create(sis_json_get_str(node, "work-path"), "data");   
-        context->work_name = sis_sds_save_create(sis_json_get_str(node, "work-name"), "mapdb");    
-        context->style = sis_json_get_int(node, "work-mode", 0) == 0 ? SIS_DISK_TYPE_MSN : SIS_DISK_TYPE_MDB; 
+        context->work_name = sis_sds_save_create(sis_json_get_str(node, "work-name"), "mapdb");   
+        context->work_type = sis_json_get_int(node, "work-type", 0) == 0 ? SIS_DISK_TYPE_MDB : SIS_DISK_TYPE_MSN;  
     }     
     context->work_sdbs = sis_sdsnew("*");
     context->work_keys = sis_sdsnew("*");
@@ -79,20 +79,24 @@ bool sisdb_wmap_start(s_sisdb_wmap_cxt *context)
     sis_sdsfree(context->wmap_keys); context->wmap_keys = NULL;
     sis_sdsfree(context->wmap_sdbs); context->wmap_sdbs = NULL;
     
-    if (context->wmode)
+    if (context->overwrite)
     {
         sis_disk_control_remove(sis_sds_save_get(context->work_path), sis_sds_save_get(context->work_name), 
-            context->style, context->work_date > 0 ? context->work_date : -1);
+            context->work_type, -1);
     }
         
     context->writer = sis_disk_writer_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        context->style);
+        context->work_type);
     if (sis_disk_writer_open(context->writer, 0) == 0)
     {
         LOG(5)("open wmap fail.\n");
         return false;
+    }
+    else
+    {
+        LOG(5)("open wmap ok. %s %s\n", sis_sds_save_get(context->work_path), sis_sds_save_get(context->work_name));
     }
     return true;
 }
@@ -103,14 +107,10 @@ static int cb_sub_open(void *worker_, void *argv_)
 {
 	s_sis_worker *worker = (s_sis_worker *)worker_; 
     s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context;
-    
-    if (!argv_)
+    context->open_date = 0;
+    if (argv_)
     {
-        context->work_date = sis_time_get_idate(0);
-    }
-    else
-    {
-        context->work_date = sis_atoll((char *)argv_);
+        context->open_date = sis_atoll((char *)argv_);
     }
     if (!context->writer)
     {
@@ -122,7 +122,7 @@ static int cb_sub_open(void *worker_, void *argv_)
         {
             context->status = SIS_WMAP_OPEN;
         }
-        LOG(5)("wmap start. %d status : %d\n", context->work_date, context->status);
+        LOG(5)("wmap open. %d status : %d\n", context->open_date, context->status);
         _wmap_msec = sis_time_get_now_msec();
     }
     return SIS_METHOD_OK;
@@ -131,14 +131,19 @@ static int cb_sub_close(void *worker_, void *argv_)
 {
 	s_sis_worker *worker = (s_sis_worker *)worker_; 
     s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context;
+    context->stop_date = 0;
+    if (argv_)
+    {
+        context->stop_date = sis_atoll((char *)argv_);
+    }
     if (context->status == SIS_WMAP_FAIL)
     {
         context->status = SIS_WMAP_INIT;
         return SIS_METHOD_ERROR;
     }
-    LOG(5)("wmap stop cost = %lld\n", sis_time_get_now_msec() - _wmap_msec);
+    LOG(5)("wmap close cost = %lld\n", sis_time_get_now_msec() - _wmap_msec);
     sisdb_wmap_stop(context);
-    LOG(5)("wmap stop cost = %lld\n", sis_time_get_now_msec() - _wmap_msec);
+    LOG(5)("wmap close cost = %lld\n", sis_time_get_now_msec() - _wmap_msec);
 
     sis_sdsfree(context->wmap_keys); context->wmap_keys = NULL;
     sis_sdsfree(context->wmap_sdbs); context->wmap_sdbs = NULL;
@@ -148,14 +153,25 @@ static int cb_sub_close(void *worker_, void *argv_)
 }
 static int cb_sub_start(void *worker_, void *argv_)
 {
-	// s_sis_worker *worker = (s_sis_worker *)worker_; 
-    // s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context; 
+	s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context; 
+    context->curr_date = sis_atoll((char *)argv_);
+    
+    if (context->covermode)
+    {
+        sis_disk_writer_delete(context->writer, 
+            context->wmap_keys,
+            context->wmap_sdbs,
+            context->curr_date);
+    }
     return SIS_METHOD_OK;
 }
 static int cb_sub_stop(void *worker_, void *argv_)
 {
-	// s_sis_worker *worker = (s_sis_worker *)worker_; 
-    // s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context;
+	s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context;
+    context->curr_date = 0;
+    sis_disk_writer_sync(context->writer);
     return SIS_METHOD_OK;
 }
 static int cb_dict_keys(void *worker_, void *argv_)
@@ -189,19 +205,22 @@ static int cb_sub_chars(void *worker_, void *argv_)
     {
         return SIS_METHOD_ERROR;
     }
+
     if (context->status == SIS_WMAP_OPEN)
     {
+        // printf("status = %d %s %s\n", context->status, context->wmap_keys, context->wmap_sdbs);
         sis_disk_writer_inited(context->writer, 
             context->wmap_keys, sis_sdslen(context->wmap_keys),
             context->wmap_sdbs, sis_sdslen(context->wmap_sdbs));
         context->status = SIS_WMAP_HEAD;
     }
 
-    s_sis_db_chars *inmem = (s_sis_db_chars *)argv_;
-    sis_disk_writer_data(context->writer, inmem->kname, inmem->sname, inmem->data, inmem->size);
-    // if (!sis_strcasecmp(inmem->kname, "SH600745"))
+    s_sis_db_chars *pchars = (s_sis_db_chars *)argv_;
+    // printf("--1-- %s %s \n",pchars->kname, pchars->sname);
+    sis_disk_writer_data(context->writer, pchars->kname, pchars->sname, pchars->data, pchars->size);
+    // if (!sis_strcasecmp(pchars->kname, "SH600745"))
     // {
-    //     printf("%s %zu\n", __func__, inmem->size);
+    //     printf("%s %d\n", __func__, pchars->size);
     // }
 	return SIS_METHOD_OK;
 }
@@ -227,7 +246,8 @@ int cmd_sisdb_wmap_getcb(void *worker_, void *argv_)
     sis_sds_save_set(context->work_path, sis_message_get_str(msg, "work-path"));
     sis_sds_save_set(context->work_name, sis_message_get_str(msg, "work-name"));
     
-    context->wmode = sis_message_get_int(msg, "overwrite");
+    context->overwrite = sis_message_get_int(msg, "overwrite");
+    context->covermode = sis_message_get_int(msg, "covermode");
 
     sis_message_set(msg, "cb_source", worker, NULL);
     sis_message_set_method(msg, "cb_sub_open"    ,cb_sub_open);

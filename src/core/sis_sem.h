@@ -7,6 +7,8 @@
 #include "sis_list.h"
 #include <sis_malloc.h>
 
+#define SEM_DEBUG     //  状态下不设置map读写锁
+
 #define SEM_MAP_TYPE   uint8
 #define SEM_MAP_MAXI   0xFF
 

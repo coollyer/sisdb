@@ -18,9 +18,10 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
             // sis_out_binary(":::", curblk, 32);
             // printf("si = %d %d  %d %d %zu %lld\n", si, fctrl->mhead_r.idxfbno[si], index, sdict->ksiblks->count, sizeof(s_sis_map_block), ((int64)curblk - (int64)fctrl->mapmem) / SIS_MAP_MIN_SIZE);
             // printf("si = %d\n", curblk->next);
-            if (index == 0 && sdict->ksiblks->count == 0)
+            if (sdict->ksiblks->count == 0)
             {
                 sis_int_list_push(sdict->ksiblks, fctrl->mhead_r.idxfbno[si]);
+                index++;
             }
             if (curblk->next == -1)
             {
@@ -33,7 +34,13 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
             index++;
             curblk = sis_map_block_head(fctrl, curblk->next);
         }
+        for (int i = 0; i < sdict->ksiblks->count; i++)
+        {
+            printf("read mindex : %d %lld\n", sdict->index, sis_int_list_get(sdict->ksiblks,i));
+        }
+        
     }
+
 }
 
 void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
@@ -56,7 +63,11 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             }
             // 下面开始读数据
             ksctrl->mindex_p = sis_map_fctrl_get_mindex(fctrl, ksctrl->sdict, ksctrl->kdict->index);
-
+            // if (ksctrl->kdict->index > 4203)
+            // {
+            //     printf("%d %d | %p | %d %d %d %d\n", ksctrl->sdict->index, ksctrl->kdict->index, ksctrl->mindex_p, ksctrl->mindex_p->varfbno, fctrl->mhead_p->keynums, fctrl->mhead_p->sdbnums, fctrl->ksirecs);
+            //     sis_out_binary("mindex--:", ksctrl->mindex_p, 2 * sizeof(s_sis_map_index));
+            // }
             memmove(&ksctrl->mindex_r, ksctrl->mindex_p, sizeof(s_sis_map_index));   
             sis_int_list_clear(ksctrl->varblks);
             if (ksctrl->mindex_r.varfbno >= 0)
@@ -64,7 +75,8 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
                 s_sis_map_block *curblk = sis_map_block_head(fctrl, ksctrl->mindex_r.varfbno);
                 sis_int_list_push(ksctrl->varblks, ksctrl->mindex_r.varfbno);
                 while (1)
-                {
+                {   
+                    // printf("%d  %d, %p\n", ksctrl->mindex_r.varfbno, curblk->next, curblk);
                     if (curblk->next == -1)
                     {
                         break;
@@ -75,12 +87,12 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             }             
         }
     } 
-    printf("===1.2===\n");
+    printf("read ksctrl: %d %d %d\n", sis_map_kints_getsize(fctrl->map_kscs), fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
 }
 
 void sis_disk_io_map_read_kdict(s_sis_map_fctrl *fctrl)
 {
-    printf("rkeys: %d\n", fctrl->mhead_r.keyfbno);
+    // printf("rkeys: %d\n", fctrl->mhead_r.keyfbno);
     sis_sdsfree(fctrl->wkeys); 
     fctrl->wkeys = sis_sdsempty();
     s_sis_map_block *curblk = sis_map_block_head(fctrl, fctrl->mhead_r.keyfbno);
@@ -98,7 +110,7 @@ void sis_disk_io_map_read_kdict(s_sis_map_fctrl *fctrl)
 }
 void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl)
 {
-    printf("rsdbs: %d\n", fctrl->mhead_r.sdbfbno);
+    // printf("rsdbs: %d\n", fctrl->mhead_r.sdbfbno);
     
     sis_sdsfree(fctrl->wsdbs); 
     fctrl->wsdbs = sis_sdsempty();
@@ -112,6 +124,7 @@ void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl)
         }
         curblk = sis_map_block_head(fctrl, curblk->next);
     }
+    printf("rsdbs: %d %s\n", fctrl->mhead_r.sdbfbno, fctrl->wsdbs);
     sis_disk_io_map_set_sdict(fctrl, fctrl->wsdbs, sis_sdslen(fctrl->wsdbs));
     fctrl->mhead_r.sdbnums = sis_map_list_getsize(fctrl->map_sdbs);
 }
@@ -125,7 +138,7 @@ int sis_disk_io_map_check_mhead(s_sis_map_fctrl *fctrl, char *mapmem)
     }
     fctrl->style = style;
     s_sis_map_head *mhead_p = (s_sis_map_head *)(mapmem + sizeof(s_sis_disk_main_head));
-    if (mhead_p->fsize != mhead_p->maxblks * mhead_p->bsize)
+    if (mhead_p->fsize != (int64)mhead_p->maxblks * mhead_p->bsize)
     {
         LOG(5)("map file is error.[%s]\n", fctrl->fname);
         return SIS_MAP_SIZE_ERR;
@@ -143,7 +156,7 @@ void sis_disk_io_map_read_mhead(s_sis_map_fctrl *fctrl)
     fctrl->mhead_p = (s_sis_map_head *)(fctrl->mapmem + sizeof(s_sis_disk_main_head));
     memmove(&fctrl->mhead_r, fctrl->mhead_p, SIS_MAP_HEAD_SIZE);
     memmove(&fctrl->mhead_r.idxfbno[0], &fctrl->mhead_p->idxfbno[0], fctrl->mhead_p->sdbnums * sizeof(int));    
-    LOG(5)("%p %d | %d %d\n", fctrl->mapmem, fctrl->mhead_r.fsize, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
+    LOG(5)("%p %lld | %d %d\n", fctrl->mapmem, fctrl->mhead_r.fsize, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
 }
 int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
 {
@@ -264,7 +277,7 @@ int sis_disk_io_map_r_sub(s_sis_map_fctrl *fctrl, const char *keys_, const char 
     return 0;
 }
 
-s_sis_object *sis_disk_io_map_r_get_obj(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
+s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
 {
     s_sis_map_sdict *sdict = sis_map_list_get(fctrl->map_sdbs, sname_);
     if (!sdict)
@@ -324,14 +337,16 @@ s_sis_object *sis_disk_io_map_r_get_obj(s_sis_map_fctrl *fctrl, const char *knam
     }
     if (sis_memory_get_size(memory) > 0)
     {
-        return sis_object_create(SIS_OBJECT_MEMORY, memory);
+        return memory;
     }
+    sis_memory_destroy(memory);
     return NULL;
 }
 
 int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_msec_pair *msec)
 {
     int agos = 0;
+    printf("%lld %lld %d %d\n", msec->start, msec->stop, sis_msec_get_idate(msec->start), sis_msec_get_idate(msec->stop));
     if (msec->start == 0 && msec->stop == 0)
     {
         // 等最新的数据 和 get 完全不同
@@ -362,6 +377,7 @@ int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *k
                 for (int i = 0; i < recs; i++)
                 {
                     msec_t *curmsec = (msec_t *)(var + ksctrl->sdict->table->field_time->offset);
+                    printf("%lld,%d %d %d \n", *curmsec, sis_msec_get_idate(*curmsec), i, recs);
                     if (*curmsec >= msec->start) 
                     {
                         return i + agos;
@@ -420,9 +436,11 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
 {
     sis_pointer_list_clear(subctrl->subvars);
     int count = sis_map_kints_getsize(fctrl->map_kscs);
+    printf("== init == : %d %d %d\n", count, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
     for (int i = 0; i < count; i++)
     {
         s_sis_map_ksctrl *ksctrl = sis_map_kints_geti(fctrl->map_kscs, i);
+        printf("== init : %d %d %d\n", i, count, ksctrl->mindex_r.sumrecs);
         if (subctrl->mpair.stop > 0 && ksctrl->mindex_r.sumrecs < 1)
         {
             // 如果是限定时间 并且没有数据就不往下面写了
@@ -744,7 +762,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
             while (1)
             {
                 msec_t curmsec = *(subinfo->timefd);
-                printf("===6.1===%d %lld %lld %lld\n", subinfo->cursor, subinfo->ksctrl->ksidx, curmsec, msubctrl->mpair.stop);
+                // printf("===6.1===%d %lld %lld %lld\n", subinfo->cursor, subinfo->ksctrl->ksidx, curmsec, msubctrl->mpair.stop);
                 if (msubctrl->mpair.stop > 0 && curmsec > msubctrl->mpair.stop)
                 {
                     // 时间超过 不再处理 除非不限制日期
@@ -767,8 +785,8 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
                     i--;
                     break;
                 }
-                printf("===6.2===%s.%s %d %lld  %lld | %lld %lld\n", subinfo->ksctrl->kdict->kname, subinfo->ksctrl->sdict->table->name,
-                    i, curmsec, subv, *subinfo->sortfd, subinfo->timefd ? *subinfo->timefd : 0);
+                // printf("===6.2===%s.%s %d %lld  %lld | %lld %lld\n", subinfo->ksctrl->kdict->kname, subinfo->ksctrl->sdict->table->name,
+                //     i, curmsec, subv, *subinfo->sortfd, subinfo->timefd ? *subinfo->timefd : 0);
 
                 {   // 这里处理开始结束回调
                     int currdate = sis_msec_get_idate(curmsec);
@@ -802,7 +820,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
                     sends ++;
                     sis_map_subinfo_set_fd(subinfo, fctrl);
                 }
-                printf("===6.3=== %d %d %d\n", ++sendnums, subinfo->cursor, subinfo->ksctrl->mindex_r.sumrecs);
+                // printf("===6.3=== %d %d %d\n", ++sendnums, subinfo->cursor, subinfo->ksctrl->mindex_r.sumrecs);
                 if (subinfo->cursor >= subinfo->ksctrl->mindex_r.sumrecs)
                 {
                     break;
@@ -922,7 +940,7 @@ int sis_map_subctrl_check(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
         {
             continue;
         }
-        int newblks = ksctrl->mindex_p->sumrecs / ksctrl->mindex_r.perrecs + 1;
+        int newblks = MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs);
         if (newblks > ksctrl->varblks->count)
         {
             if (ksctrl->varblks->count == 0)

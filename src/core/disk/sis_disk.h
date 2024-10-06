@@ -120,6 +120,11 @@ typedef struct s_sis_disk_reader {
     struct s_sis_map_fctrl      *map_fctrl;   // map文件读写的控制结构
 } s_sis_disk_reader;
 
+// get 返回的单一表结构和数据
+typedef struct s_sis_disk_var {
+    s_sis_memory       *memory; 
+    s_sis_dynamic_db   *dbinfo;   // 和数据搭配的表结构
+} s_sis_disk_var;
 
 ///////////////////////////
 //  s_sis_disk_writer
@@ -190,6 +195,10 @@ int sis_disk_writer_sno(s_sis_disk_writer *, const char *kname_, const char *sna
 int sis_disk_writer_inited(s_sis_disk_writer *, const char *keys_, size_t klen_, const char *sdbs_, size_t slen_);
 // 写入数据 0 写入失败 成功返回写入的字节数
 int sis_disk_writer_data(s_sis_disk_writer *, const char *kname_, const char *sname_, void *in_, size_t ilen_);
+// 删除某日的数据
+int sis_disk_writer_delete(s_sis_disk_writer *, const char *keys_, const char *sdbs_, int idate_);
+
+int sis_disk_writer_sync(s_sis_disk_writer *);
 
 //////////////////////////////////////////
 //  sdb 
@@ -264,6 +273,8 @@ s_sis_node *sis_disk_reader_get_mul(s_sis_disk_reader *, const char *kname_);
 // sname_ smsec_ = NULL 表示仅仅获取无时序的单键数据（单键数据不支持订阅）
 // 返回值为 s_sis_memory
 s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_);
+
+s_sis_disk_var sis_disk_reader_get_var(s_sis_disk_reader *, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_);
 
 // 获取sno键值
 s_sis_object *sis_disk_reader_get_keys(s_sis_disk_reader *, int idate);

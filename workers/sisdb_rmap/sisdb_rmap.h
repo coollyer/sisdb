@@ -1,5 +1,5 @@
-﻿#ifndef _sisdb_rson_h
-#define _sisdb_rson_h
+﻿#ifndef _sisdb_rmap_h
+#define _sisdb_rmap_h
 
 #include "sis_method.h"
 #include "sis_disk.h"
@@ -15,6 +15,9 @@
 typedef struct s_sisdb_rmap_cxt
 {
     int                status;         // 工作状态
+    int                work_type; 
+    int                work_mode; 
+
     s_sis_sds_save    *work_path;      // 数据文件路径，可配置 也可传入
     s_sis_sds_save    *work_name;      // 工作者名称，可配置 也可传入
 
@@ -27,8 +30,6 @@ typedef struct s_sisdb_rmap_cxt
 	s_sis_sds          rmap_keys;      // 实际读取的keys 
 	s_sis_sds          rmap_sdbs;      // 实际读取的sdbs
     
-    int                submode;
-
     s_sis_thread       work_thread;    // 读文件时间长 需要启动一个线程处理
 
     void              *cb_source;       // 要将行情发往的目的地，一般是目标工作者的对象指针

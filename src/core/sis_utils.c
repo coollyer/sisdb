@@ -742,6 +742,34 @@ s_sis_sds sis_match_key(s_sis_sds match_keys, s_sis_sds whole_keys)
 	}
 	return o;
 }
+
+s_sis_sds sis_match_key_and_len(s_sis_sds match_keys, int len, s_sis_sds whole_keys)
+{
+    s_sis_sds o = NULL;
+    s_sis_string_list *slist = sis_string_list_create();
+    sis_string_list_load(slist, whole_keys, sis_sdslen(whole_keys), ",");
+    for (int i = 0; i < sis_string_list_getsize(slist); i++)
+    {
+        const char *key = sis_string_list_get(slist, i);
+        if (sis_strlen(key) != 8)
+        {
+            continue;
+        }
+        if (!sis_strcasecmp(match_keys, "*") || sis_str_subcmp(key, match_keys, ',') >= 0)
+        {
+            if (o)
+            {
+                o = sis_sdscatfmt(o, ",%s", key);
+            }
+            else
+            {
+                o = sis_sdsnew(key);
+            }
+        }
+    }
+    sis_string_list_destroy(slist);
+	return o;
+}
 s_sis_sds sis_match_sdb(s_sis_sds match_sdbs, s_sis_sds whole_sdbs)
 {
 	s_sis_sds o = NULL;

@@ -64,7 +64,7 @@
 // #define SIS_MAP_MAX_KEYNUM         1024*64 // 支持65536个股票  
 // 按表分开存储 锁文件约有1M 默认建 .mlock 目录
 
-#define SIS_MAP_INCR_SIZE         (16*1024)  // 每次文件增长不少于500M
+#define SIS_MAP_INCR_BLKS         (16*1024)  // 每次文件增长不少于500M
 // 需要扩容时 最少按 1024 个块增加
 #define SIS_MAP_MAYUSE_LEN  (SIS_MAP_MIN_SIZE - sizeof(s_sis_map_block))
 // 
@@ -206,6 +206,9 @@ typedef struct s_sis_map_fctrl {
     int                 style;     // 数据是否有序列号信息 通常有序列号信息是用于当日实盘数据
                                    // 只读时 该值从头文件获取
     int                 rwmode;
+    msec_t              wmsec;     // 上次写入的时间
+    int                 wnums;     // 写入计数
+
     int                 status;   
     
     char               *mapmem;      // 映射内存
@@ -263,6 +266,9 @@ typedef struct s_sis_map_fctrl {
 
 #pragma pack(pop)
 
+// 计算数据需要的块数
+#define MAP_GET_BLKS(f, z) ({ int _v_ = (f)/(z); _v_ * z < f ? (_v_ + 1) : _v_; })
+
 ///////////////////////////////////////////////////////
 // s_sis_map_kdict s_sis_map_sdict
 ///////////////////////////////////////////////////////
@@ -285,7 +291,7 @@ void sis_map_ksctrl_destroy(void *);
 // 得到数据区的开始指针
 static inline void *sis_map_ksctrl_get_fbvar(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int blkno)
 {
-    return (fctrl->mapmem + blkno * SIS_MAP_MIN_SIZE + ksctrl->mindex_r.doffset);
+    return (fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + ksctrl->mindex_r.doffset);
 }
 // 此函数得到数据区的指定记录指针 只读 不需要加读锁 默认数据已经写好 不会再修改
 static inline void *sis_map_ksctrl_get_var(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
@@ -333,7 +339,7 @@ static inline int64 *sis_map_ksctrl_get_sno(s_sis_map_fctrl *fctrl, s_sis_map_ks
         // printf("%d %d %d | %d\n", vbidx, curno, blkno, ksctrl->varblks->count);
         if (blkno > 0)
         {
-            char *ptr = fctrl->mapmem + blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + curno * 8;
+            char *ptr = fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + curno * 8;
             // sis_out_binary("sno", ptr, 16);
             return (int64 *)ptr;
         }
@@ -434,13 +440,21 @@ int sis_disk_io_map_kdict_change(s_sis_map_fctrl *fctrl, s_sis_map_kdict *kdict)
 
 // 得到最后一块的数据头
 s_sis_map_block *sis_map_ksctrl_incr_bhead(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl);
-// 写入数据
-int sis_map_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
-// 写入数据
+// 写入数据 需要判断写入的时间是否为最新 不是就插入 会影响速度
+int sis_mdb_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
+// 写入数据 不判断顺序 按写入顺序直接写 msn文件不能插入 只能追加
 int sis_msn_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
 
 // 写入数据
 int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, void *in_, size_t ilen_);
+
+int sis_disk_io_map_sync_data(s_sis_map_fctrl *fctrl);
+// 删除指定数据 指定时间段的数据
+int sis_disk_io_map_del_data(s_sis_map_fctrl *fctrl, const char *keys_, const char *sdbs_, int idate_);
+// 删除某个key的所有数据
+int sis_disk_io_map_del_keys(s_sis_map_fctrl *fctrl, const char *keys_);
+// 删除某个sdb的所有数据
+int sis_disk_io_map_del_sdbs(s_sis_map_fctrl *fctrl, const char *sdbs_);
 
 ////////////////////
 // read 
@@ -465,7 +479,7 @@ void sis_disk_io_map_r_unsub(s_sis_map_fctrl *fctrl);
 //            先找到相关数据最小的时间 然后轮询所有数据 误差在1秒内的全部发出 然后增加 1秒 再继续轮询 直到数据读完 或超过时间
 int sis_disk_io_map_r_sub(s_sis_map_fctrl *fctrl, const char *keys_, const char *sdbs_, s_sis_msec_pair *smsec_, void *cb_);
 // 得到单key单sdb的指定区间数据
-s_sis_object *sis_disk_io_map_r_get_obj(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_);
+s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_);
 
 // 找到第一条大于开始时间的记录 无论如何都会返回 >= 0的数据
 // 返回的记录号 可能没有数据

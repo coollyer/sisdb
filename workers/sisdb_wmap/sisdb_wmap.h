@@ -16,15 +16,19 @@
 typedef struct s_sisdb_wmap_cxt
 {
     int                status;
+
+    int                work_type;     // 文件类型
     s_sis_sds_save    *work_path;     // 可配置 也可传入
     s_sis_sds_save    *work_name;     // 可配置 也可传入
     s_sis_disk_writer *writer;        // 写盘类
 	
-	int                style;         // 0 msn 1 map
-	int                wmode;         // 0 append 1 rewrite
+	int                overwrite;     // 0 append 1 rewrite
+	int                covermode;     // 0 append 1 清除对应日期数据后再写入
 
-	int                stop_time;     // 停止时间
-	int                work_date;     // 工作日期  
+	int                stop_date;     // 停止时间
+	int                open_date;     // 工作日期  
+    int                curr_date;     // 工作日期 
+
 	s_sis_sds          work_keys;     // 筛选后的 
 	s_sis_sds          work_sdbs;     // 筛选后的
 

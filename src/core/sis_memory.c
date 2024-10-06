@@ -143,9 +143,112 @@ size_t sis_memory_cat(s_sis_memory *m_, char *in_, size_t ilen_)
 	}
 	return ilen_;
 }
+size_t sis_memory_netcat(s_sis_memory *m_, char *in_, size_t ilen_)
+{
+    int isize = sis_strlen(in_);
+    if (ilen_ > 0)
+	{
+		sis_memory_grow(m_, ilen_ + m_->size);
+        if (ilen_ <= isize)
+        {
+		    memmove(m_->buffer + m_->size, in_, ilen_);
+        }
+        else
+        {
+            memmove(m_->buffer + m_->size, in_, isize);
+            memset(m_->buffer + m_->size + isize, 0, ilen_ - isize);
+        }
+		m_->size += ilen_;
+	}
+	return ilen_;
+}
+// void sis_big_endian_encode(uint32_t n, unsigned char *buffer) 
+// {
+//     buffer[0] = (n >> 24) & 0xff;
+//     buffer[1] = (n >> 16) & 0xff;
+//     buffer[2] = (n >> 8) & 0xff;
+//     buffer[3] = n & 0xff;
+// }
+size_t sis_memory_netcat_int16(s_sis_memory *m_, int16 in_)
+{
+	sis_memory_grow(m_, sizeof(int16) + m_->size);
+    uint32 ii = in_;
+    unsigned char *ptr = (unsigned char *)m_->buffer + m_->size;
+    *ptr++ = (ii >> 8) & 0xff;
+    *ptr++ =  ii & 0xff;
+	m_->size += sizeof(int16);
+	return sizeof(int16);
+}
+size_t sis_memory_netcat_int32(s_sis_memory *m_, int32 in_)
+{
+	sis_memory_grow(m_, sizeof(int32) + m_->size);
+    uint32 ii = in_;
+    unsigned char *ptr = (unsigned char *)m_->buffer + m_->size;
+    *ptr++ = (ii >> 24) & 0xff;
+    *ptr++ = (ii >> 16) & 0xff;
+    *ptr++ = (ii >>  8) & 0xff;
+    *ptr++ =  ii & 0xff;
+	m_->size += sizeof(int32);
+	return sizeof(int32);
+}
+size_t sis_memory_netcat_int64(s_sis_memory *m_, int64 in_)
+{
+	sis_memory_grow(m_, sizeof(int64) + m_->size);
+    uint64 ii = in_;
+    unsigned char *ptr = (unsigned char *)m_->buffer + m_->size;
+    *ptr++ = (ii >> 56) & 0xff;
+    *ptr++ = (ii >> 48) & 0xff;
+    *ptr++ = (ii >> 40) & 0xff;
+    *ptr++ = (ii >> 32) & 0xff;
+    *ptr++ = (ii >> 24) & 0xff;
+    *ptr++ = (ii >> 16) & 0xff;
+    *ptr++ = (ii >>  8) & 0xff;
+    *ptr++ =  ii & 0xff;
+	m_->size += sizeof(int64);
+	return sizeof(int64);
+}
+int16 sis_memory_get_net_int16(s_sis_memory *m_)
+{
+    int16 ii = *((int16 *)sis_memory(m_));
+    int16 oo = 0;
+    unsigned char *ptr = (unsigned char *)&oo;
+    *ptr++ = (ii >> 8) & 0xff;
+    *ptr++ =  ii & 0xff;
+	sis_memory_move(m_, sizeof(int16));
+	return oo;
+}
+int32 sis_memory_get_net_int32(s_sis_memory *m_)
+{
+    int32 ii = *((int32 *)sis_memory(m_));
+    int32 oo = 0;
+    unsigned char *ptr = (unsigned char *)&oo;
+    *ptr++ = (ii >> 24) & 0xff;
+    *ptr++ = (ii >> 16) & 0xff;
+    *ptr++ = (ii >> 8) & 0xff;
+    *ptr++ =  ii & 0xff;
+	sis_memory_move(m_, sizeof(int32));
+	return oo;
+}
+int64 sis_memory_get_net_int64(s_sis_memory *m_)
+{
+    int64 ii = *((int64 *)sis_memory(m_));
+    int64 oo = 0;
+    unsigned char *ptr = (unsigned char *)&oo;
+	*ptr++ = (ii >> 56) & 0xff;
+    *ptr++ = (ii >> 48) & 0xff;
+    *ptr++ = (ii >> 40) & 0xff;
+    *ptr++ = (ii >> 32) & 0xff;
+    *ptr++ = (ii >> 24) & 0xff;
+    *ptr++ = (ii >> 16) & 0xff;
+    *ptr++ = (ii >> 8) & 0xff;
+    *ptr++ =  ii & 0xff;
+	sis_memory_move(m_, sizeof(int64));
+	return oo;
+}
+
 size_t sis_memory_cat_int(s_sis_memory *m_, int in_)
 {
-	sis_memory_grow(m_, sizeof(int) + m_->size);
+    sis_memory_grow(m_, sizeof(int) + m_->size);
 	memmove(m_->buffer + m_->size, &in_, sizeof(int));
 	m_->size += sizeof(int);
 	return sizeof(int);

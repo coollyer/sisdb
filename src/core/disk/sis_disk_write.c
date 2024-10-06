@@ -383,6 +383,26 @@ int sis_disk_writer_data(s_sis_disk_writer *writer_, const char *kname_, const c
     return o;
 }
 
+int sis_disk_writer_delete(s_sis_disk_writer *writer_, const char *keys_, const char *sdbs_, int idate_)
+{
+    int o = 0;
+    if (writer_->style == SIS_DISK_TYPE_MDB)
+    {
+        o = sis_disk_io_map_del_data(writer_->map_fctrl,  keys_, sdbs_, idate_);
+    }
+    return o;
+}
+
+int sis_disk_writer_sync(s_sis_disk_writer *writer_)
+{
+    int o = 0;
+    if (writer_->style == SIS_DISK_TYPE_MDB)
+    {
+        o = sis_disk_io_map_sync_data(writer_->map_fctrl);
+    }
+    return o;
+}
+
 //////////////////////////////////////////
 //   sdb 
 //////////////////////////////////////////

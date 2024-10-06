@@ -7,6 +7,7 @@ static size_t sis_map_rwlock_get_fsize(int nums)
 }
 s_sis_map_rwlock *sis_map_rwlock_create(const char *rwname)
 {
+#ifndef SEM_DEBUG
     char name[255];
     sis_sprintf(name, 255, ".%s.sem", rwname);
     s_sis_sem *slock = sis_sem_open(name);
@@ -28,18 +29,24 @@ s_sis_map_rwlock *sis_map_rwlock_create(const char *rwname)
     // rwlock->mmapm = mmapm;
     rwlock->reads = (SEM_MAP_TYPE *)(mmapm);
     rwlock->write = (SEM_MAP_TYPE *)(mmapm + sizeof(SEM_MAP_TYPE));
+#else
+    s_sis_map_rwlock *rwlock = SIS_MALLOC(s_sis_map_rwlock, rwlock);
+#endif
     return rwlock;
 }
 
 void sis_map_rwlock_destroy(s_sis_map_rwlock *rwlock)
 {
+#ifndef SEM_DEBUG
     sis_sem_close(rwlock->slock);
     sis_unmmap((char *)rwlock->reads, sis_map_rwlock_get_fsize(1));
+#endif
     sis_free(rwlock);
 }
 
 void sis_map_rwlock_r_incr(s_sis_map_rwlock *rwlock)
 {
+#ifndef SEM_DEBUG
     int success = 0;
     while(!success)
     {
@@ -58,10 +65,12 @@ void sis_map_rwlock_r_incr(s_sis_map_rwlock *rwlock)
             sis_usleep(100);
         }
     }
+#endif
 }
 
 void sis_map_rwlock_r_decr(s_sis_map_rwlock *rwlock)
 {
+#ifndef SEM_DEBUG
     sis_sem_lock(rwlock->slock);
     if ((*(rwlock->reads)) > 0)
     {
@@ -70,9 +79,11 @@ void sis_map_rwlock_r_decr(s_sis_map_rwlock *rwlock)
         // printf("--%d %d\n", *(rwlock->reads), *(rwlock->write));
     }
     sis_sem_unlock(rwlock->slock);  
+#endif
 }
 void sis_map_rwlock_w_incr(s_sis_map_rwlock *rwlock)
 {
+#ifndef SEM_DEBUG
     int success = 0;
     while(!success)
     {
@@ -90,15 +101,18 @@ void sis_map_rwlock_w_incr(s_sis_map_rwlock *rwlock)
             sis_usleep(100);
         }
     }
+#endif
 }
 void sis_map_rwlock_w_decr(s_sis_map_rwlock *rwlock)
 {
+#ifndef SEM_DEBUG
     sis_sem_lock(rwlock->slock);
     if ((*(rwlock->write)) > 0)
     {
         (*(rwlock->write))--;
     }
     sis_sem_unlock(rwlock->slock);  
+#endif
 }
 
 

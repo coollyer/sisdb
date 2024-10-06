@@ -78,7 +78,7 @@ s_sis_hmem *sis_hmem_create(int64 msize)
         return NULL;
     }
 #ifdef HMEM_SUMMARY
-    memmove(&_hmemsum, 0, sizeof(s_hmem_summary));
+    memset(&_hmemsum, 0, sizeof(s_hmem_summary));
     _hmemsum.start_usec = sis_time_get_now_usec();
     _hmemsum.ago_usec = sis_time_get_now_usec();
 #endif

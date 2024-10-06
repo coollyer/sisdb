@@ -121,12 +121,12 @@ s_sis_map_index *sis_map_fctrl_get_mindex(s_sis_map_fctrl *fctrl, s_sis_map_sdic
     int index = recno / fctrl->ksirecs;
     int blkno = sis_int_list_get(sdict->ksiblks, index); 
     int curno = recno % fctrl->ksirecs;
-    return (s_sis_map_index *)(fctrl->mapmem + blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + curno * sizeof(s_sis_map_index));
+    return (s_sis_map_index *)(fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + (int64)curno * sizeof(s_sis_map_index));
 }
 
 s_sis_map_block *sis_map_block_head(s_sis_map_fctrl *fctrl, int blkno)
 {
-    return (s_sis_map_block *)(fctrl->mapmem + blkno * SIS_MAP_MIN_SIZE);
+    return (s_sis_map_block *)(fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE);
 }
 
 int64 sis_disk_io_map_get_ksidx(int32 kidx, int64 sidx)
@@ -200,6 +200,7 @@ int sis_disk_io_map_set_sdict(s_sis_map_fctrl *fctrl, const char *in_, size_t il
                 {
                     sdict = sis_map_sdict_create(sis_map_list_getsize(fctrl->map_sdbs), newdb);
                     sis_map_list_set(fctrl->map_sdbs, newdb->name, sdict);
+                    news++;
                 }
                 else
                 {

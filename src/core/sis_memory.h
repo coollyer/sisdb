@@ -37,6 +37,15 @@ void sis_memory_clear(s_sis_memory *m_);
 
 size_t sis_memory_cat(s_sis_memory *, char *, size_t);  // memory tail cat, and repack buffer
 
+size_t sis_memory_netcat(s_sis_memory *, char *, size_t);  // memory tail cat, and repack buffer
+size_t sis_memory_netcat_int16(s_sis_memory *, int16);  // memory tail cat, and repack buffer
+size_t sis_memory_netcat_int32(s_sis_memory *, int32);  // memory tail cat, and repack buffer
+size_t sis_memory_netcat_int64(s_sis_memory *, int64);  // memory tail cat, and repack buffer
+
+int16 sis_memory_get_net_int16(s_sis_memory *);
+int32 sis_memory_get_net_int32(s_sis_memory *);
+int64 sis_memory_get_net_int64(s_sis_memory *);
+
 size_t sis_memory_cat_int(s_sis_memory *, int);  // memory tail cat, and repack buffer
 int sis_memory_get_int(s_sis_memory *);
 

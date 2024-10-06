@@ -7,6 +7,7 @@
 #include <sis_obj.h>
 #include "sis_utils.h"
 #include "sis_db.h"
+#include "sis_disk.io.map.h"
 
 // 从行情流文件中获取数据源
 static s_sis_method _sisdb_rmap_methods[] = {
@@ -52,7 +53,17 @@ bool sisdb_rmap_init(void *worker_, void *node_)
     }
     {
         context->work_path = sis_sds_save_create(sis_json_get_str(node, "work-path"), "data");   
-        context->work_name = sis_sds_save_create(sis_json_get_str(node, "work-name"), "snodb");    
+        context->work_name = sis_sds_save_create(sis_json_get_str(node, "work-name"), "mapdb"); 
+        context->work_type = sis_json_get_int(node, "work-type", 0) == 0 ? SIS_DISK_TYPE_MDB : SIS_DISK_TYPE_MSN;  
+        context->work_mode = sis_json_get_int(node, "work-mode", 0);
+        if (context->work_type == SIS_DISK_TYPE_MDB)
+        {
+            context->work_mode = SIS_MAP_SUB_DATA;
+        }
+        else
+        {
+            context->work_mode = context->work_mode == 0 ? SIS_MAP_SUB_TSNO : SIS_MAP_SUB_DATA;   
+        }   
     }
     {
         const char *str = sis_json_get_str(node, "sub-sdbs");
@@ -239,14 +250,14 @@ static void *_thread_maps_read_sub(void *argv_)
     context->work_reader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MDB, rmap_cb);
+        context->work_type, rmap_cb);
 
     s_sis_msec_pair pair; 
     pair.start = (msec_t)sis_time_make_time(context->work_date.start, 0) * 1000;
     pair.stop = (msec_t)sis_time_make_time(context->work_date.stop, 235959) * 1000 + 999;
 
     LOG(5)("sub map open. [%d] %d %d\n", context->work_date.start, context->work_date.stop, context->status);
-    sis_disk_reader_sub_map(context->work_reader, context->submode, context->work_keys, context->work_sdbs, &pair);
+    sis_disk_reader_sub_map(context->work_reader, context->work_mode, context->work_keys, context->work_sdbs, &pair);
     LOG(5)("sub map stop. [%d] %d %d\n", context->work_date.start, context->work_date.stop, context->status);
 
     sis_disk_reader_destroy(context->work_reader);
@@ -322,7 +333,10 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
             context->work_sdbs = sis_sdsdup(str);
         }
     }
-    context->submode = sis_message_get_int(msg, "work-mode");
+    if (sis_message_exist(msg, "work-mode"))
+    {
+        context->work_mode = sis_message_get_int(msg, "work-mode");
+    }
     context->work_date.move = 0;
     if (sis_message_exist(msg, "start-date"))
     {
@@ -330,7 +344,10 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
     }
     else
     {
-        context->work_date.start = sis_time_get_idate(0);
+        if (sis_message_exist(msg, "sub-date"))
+        {
+            context->work_date.start = sis_message_get_int(msg, "sub-date");
+        }
     }
     if (sis_message_exist(msg, "stop-date"))
     {
@@ -338,7 +355,10 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
     }
     else
     {
-        context->work_date.stop = sis_time_get_idate(0);
+        if (sis_message_exist(msg, "sub-date"))
+        {
+            context->work_date.stop = sis_message_get_int(msg, "sub-date");
+        }
     }
     context->cb_source      = sis_message_get(msg, "cb_source");
     context->cb_sub_open    = sis_message_get_method(msg, "cb_sub_open"   );
@@ -360,36 +380,39 @@ int cmd_sisdb_rmap_get(void *worker_, void *argv_)
     s_sis_disk_reader *wreader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MDB, NULL);
+        context->work_type, NULL);
     
     s_sis_msec_pair pair; 
-    int startdate = sis_message_get_int(msg, "start-date");
+    int startdate = sis_message_get_int(msg, "sub-date");
+    if (sis_message_exist(msg, "start-date"))
+    {
+        startdate = sis_message_get_int(msg, "start-date");
+    }
     pair.start = (msec_t)sis_time_make_time(startdate, 0) * 1000;
-    int stopdate = sis_message_get_int(msg, "stop-date");
+    int stopdate = sis_message_get_int(msg, "sub-date");
+    if (sis_message_exist(msg, "stop-date"))
+    {
+        stopdate = sis_message_get_int(msg, "stop-date");
+    }
     pair.stop = (msec_t)sis_time_make_time(stopdate, 235959) * 1000 + 999;
     const char *subkeys = sis_message_get_str(msg, "sub-keys");
     const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
-    LOG(5)("get sno open. %d-%d %d-%d %s %s\n", context->work_date.start, context->work_date.stop, startdate, stopdate, subkeys, subsdbs);
-    s_sis_object *obj = sis_disk_reader_get_obj(wreader, subkeys, subsdbs, &pair);
+    LOG(5)("get map open. %d-%d %d-%d %s %s\n", context->work_date.start, context->work_date.stop, startdate, stopdate, subkeys, subsdbs);
 
-    s_sis_dynamic_db *db = sis_disk_reader_getdb(wreader, subsdbs);
-    LOG(5)("get sno stop. %d-%d %p %p %p\n", context->work_date, context->work_date.stop, wreader, obj, db);
-    if (db)
+    s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
+    if (var.memory)
     {
-        sis_dynamic_db_incr(db);
-        sis_message_set(msg, "dbinfo", db, sis_dynamic_db_destroy);
+        // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
+        sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+        sis_dynamic_db_incr(var.dbinfo);
+        sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
     }
     sis_disk_reader_destroy(wreader);
 
-    LOG(5)("get sno stop. ok [%d-%d] %d %d\n", context->work_date, startdate, stopdate, context->status);
-    if (!obj)
+    LOG(5)("get map stop. ok [%d-%d] %d %d\n", context->work_date, startdate, stopdate, context->status);
+    if (!var.memory)
     {
         return SIS_METHOD_NIL;
-    }
-    else
-    {
-        // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
-        sis_message_set(msg, "object", obj, sis_object_destroy);
     }
     return SIS_METHOD_OK;
 }
@@ -404,7 +427,7 @@ int cmd_sisdb_rmap_getdb(void *worker_, void *argv_)
     s_sis_disk_reader *reader = sis_disk_reader_create(
         sis_sds_save_get(context->work_path), 
         sis_sds_save_get(context->work_name), 
-        SIS_DISK_TYPE_MDB, NULL);
+        context->work_type, NULL);
     if (!reader)
     {
         return SIS_METHOD_NIL;

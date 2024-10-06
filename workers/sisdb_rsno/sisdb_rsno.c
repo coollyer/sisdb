@@ -436,26 +436,21 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     const char *subkeys = sis_message_get_str(msg, "sub-keys");
     const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
     LOG(5)("get sno open. [%d] %d %s %s\n", context->work_date, subdate, subkeys, subsdbs);
-    s_sis_object *obj = sis_disk_reader_get_obj(wreader, subkeys, subsdbs, &pair);
-
-    s_sis_dynamic_db *db = sis_disk_reader_getdb(wreader, subsdbs);
-    LOG(5)("get sno stop. [%d] %p %p %p\n", context->work_date, wreader, obj, db);
-    if (db)
+    
+    s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
+    if (var.memory)
     {
-        sis_dynamic_db_incr(db);
-        sis_message_set(msg, "dbinfo", db, sis_dynamic_db_destroy);
+        // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
+        sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+        sis_dynamic_db_incr(var.dbinfo);
+        sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
     }
     sis_disk_reader_destroy(wreader);
 
     LOG(5)("get sno stop. ok [%d] %d %d\n", context->work_date, subdate, context->status);
-    if (!obj)
+    if (!var.memory)
     {
         return SIS_METHOD_NIL;
-    }
-    else
-    {
-        // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
-        sis_message_set(msg, "object", obj, sis_object_destroy);
     }
     return SIS_METHOD_OK;
 }
