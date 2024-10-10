@@ -189,10 +189,12 @@ bool _server_open(const char *cmdinfo, const char *dayinfo)
 	if (lognode)
 	{
 		// printf("%s || %s\n",conf_path, config);
-		sis_cat_fixed_path(conf_path, sis_json_get_str(lognode, "path"),
-						   _server.log_path, SIS_PATH_LEN);
+		// sis_cat_fixed_path(conf_path, sis_json_get_str(lognode, "path"),
+		// 				   _server.log_path, SIS_PATH_LEN);
 		// printf("%s == %s\n",conf_path, _server.log_path);
-		_server.log_level = sis_json_get_int(lognode, "level", 5);
+        sis_sprintf(_server.log_path, SIS_PATH_LEN, "./%s/", sis_json_get_str(lognode, "path"));
+        sis_check_path(_server.log_path);
+        _server.log_level = sis_json_get_int(lognode, "level", 5);
 		_server.log_size = sis_json_get_int(lognode, "maxsize", 10) * 1024 * 1024;
 	}
 	else
