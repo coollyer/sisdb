@@ -262,36 +262,74 @@ s_sis_map_kints *sis_map_kints_create(void *vfree_)
 {
 	s_sis_map_kints *o = SIS_MALLOC(s_sis_map_kints, o);
 	o->map = sis_map_kvint_create();
-	o->list = sis_pointer_list_create();
-	o->list->vfree = vfree_;
+	o->list = sis_struct_list_create(sizeof(s_sis_map_kints_v));
+    o->dels = sis_struct_list_create(sizeof(int));
+	o->vfree = vfree_;
 	return o;
+}
+void _map_kints_clear(s_sis_map_kints *mlist_)
+{
+    for (int i = 0; i < mlist_->list->count; i++)
+    {
+        s_sis_map_kints_v *r = sis_struct_list_get(mlist_->list, i);
+        if (mlist_->vfree && r->data)
+        {
+            mlist_->vfree(r->data);
+            r->data = NULL;
+        }
+    }
 }
 void sis_map_kints_destroy(void *mlist_)
 {
 	s_sis_map_kints *mlist = (s_sis_map_kints *)mlist_;
 	sis_map_kvint_destroy(mlist->map);
-	sis_pointer_list_destroy(mlist->list);
+	_map_kints_clear(mlist);
+    sis_struct_list_destroy(mlist->list);
+    sis_struct_list_destroy(mlist->dels);
 	sis_free(mlist);
 }
 void sis_map_kints_clear(s_sis_map_kints *mlist_)
 {
+    mlist_->cursor = -1;
 	sis_map_kvint_clear(mlist_->map);
-	sis_pointer_list_clear(mlist_->list);
+    _map_kints_clear(mlist_);
+	sis_struct_list_clear(mlist_->list);
+    sis_struct_list_clear(mlist_->dels);
 }
 
-int64 sis_map_kints_get_index(s_sis_map_kints *mlist_, int64 key_)
+void sis_map_kints_del(s_sis_map_kints *mlist_, int64 key_)
 {
-	if (!mlist_ || key_ < 0)
+    int64 index = sis_map_kvint_get(mlist_->map, key_);
+    if (index >= 0 && index < mlist_->list->count)
 	{
-		return -1;
+		s_sis_map_kints_v *r = sis_struct_list_get(mlist_->list, index);
+        if (mlist_->vfree && r->data)
+        {
+            mlist_->vfree(r->data);
+            r->data = NULL;
+        }
+        sis_map_kvint_del(mlist_->map, key_);
+        sis_struct_list_push(mlist_->dels, &r->index);
 	}
-	return sis_map_kvint_get(mlist_->map, key_);
-}
-void *sis_map_kints_geti(s_sis_map_kints *mlist_, int index_)
+}	
+void sis_map_kints_first(s_sis_map_kints *mlist_)
 {
-	void *r = sis_pointer_list_get(mlist_->list, index_);
-	return r;
+    mlist_->cursor = -1;
 }
+void *sis_map_kints_next(s_sis_map_kints *mlist_)
+{
+    for (int i = mlist_->cursor + 1; i < mlist_->list->count; i++)
+    {
+        s_sis_map_kints_v *r = sis_struct_list_get(mlist_->list, i);
+        if (r->data)
+        {
+            mlist_->cursor = i;
+            return r->data;
+        }
+    }
+    return NULL;
+}
+
 // key_不能为负
 void *sis_map_kints_get(s_sis_map_kints *mlist_, int64 key_)
 {
@@ -299,13 +337,13 @@ void *sis_map_kints_get(s_sis_map_kints *mlist_, int64 key_)
 	{
 		return NULL;
 	}
-	void *o = NULL;
+	s_sis_map_kints_v *r = NULL;
 	int64 index = sis_map_kvint_get(mlist_->map, key_);
 	if (index >= 0 && index < mlist_->list->count)
 	{
-		o = sis_pointer_list_get(mlist_->list, index);
+		r = sis_struct_list_get(mlist_->list, index);
 	}
-	return o;
+	return (r && r->data) ? r->data : NULL;
 }
 
 // map有变化必须全部重索引
@@ -319,20 +357,37 @@ int sis_map_kints_set(s_sis_map_kints *mlist_, int64 key_, void *value_)
 	// printf(" %s index = %d\n",key_, index);
 	if (index >= 0)
 	{
-		// sis_map_int_set(mlist_->map, key_, index);
-		sis_pointer_list_update(mlist_->list, index, value_);
+        s_sis_map_kints_v *r = sis_struct_list_get(mlist_->list, index);
+        if (mlist_->vfree && r->data)
+        {
+            mlist_->vfree(r->data);
+        }
+        r->data = value_;
 	}
 	else
 	{
-		sis_map_kvint_set(mlist_->map, key_, mlist_->list->count);
-		sis_pointer_list_push(mlist_->list, value_);
-		index = mlist_->list->count - 1;
+
+        if (mlist_->dels->count > 0)
+        {
+            index = *((int *)sis_struct_list_last(mlist_->dels));
+            s_sis_map_kints_v *v = sis_struct_list_get(mlist_->list, index);
+            v->data  = value_;
+            sis_struct_list_delete(mlist_->dels, mlist_->dels->count - 1, 1);
+        }
+        else
+        {
+            index = mlist_->list->count;
+            s_sis_map_kints_v *v = sis_struct_list_empty(mlist_->list);
+            v->index = index;
+            v->data  = value_;
+        }
+		sis_map_kvint_set(mlist_->map, key_, index);
 	}
 	return index;
 }
 int sis_map_kints_getsize(s_sis_map_kints *mlist_)
 {	
-	return mlist_->list->count;
+	return mlist_->list->count - mlist_->dels->count;
 }
 //////////////////////////////////////////
 //  s_sis_map_sort 基础定义

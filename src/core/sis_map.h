@@ -35,9 +35,17 @@ typedef struct s_sis_map_list{
 	s_sis_pointer_list *list;   // 实际数据存在这里
 }s_sis_map_list;
 
+typedef struct s_sis_map_kints_v {
+	int		     index;   // 索引 
+	void        *data;    // 数据指针 删除后为 NULL
+} s_sis_map_kints_v;
+
 typedef struct s_sis_map_kints{
+    int                  cursor; 
 	s_sis_map_kvint     *map;    // 存入的整数就是list的索引
-	s_sis_pointer_list  *list;   // 实际数据存在这里
+	s_sis_struct_list   *list;   // 实际数据存在这里 s_sis_map_kints_v
+    s_sis_struct_list   *dels;   // 删除的节点索引 index 
+    void    (*vfree)(void *);
 }s_sis_map_kints;
 
 // 键值为数值的排序表
@@ -45,14 +53,6 @@ typedef struct s_sis_map_sort{
 	s_sis_map_kint      *map;   // 存入的整数就是list的索引
 	s_sis_pint_slist    *list;  // 实际数据存在这里
 }s_sis_map_sort;
-
-// typedef struct s_sis_pointer_list {
-// 	int		     maxcount; // 总数
-// 	int		     count;    // 当前个数
-// 	int          len;      // 每条记录的长度
-// 	void        *buffer;   // 必须是mallco申请的char*类型
-// 	void(*free)(void *);   // == NULL 不释放对应内存
-// } s_sis_pointer_list;
 
 #pragma pack(pop)
 
@@ -83,9 +83,12 @@ s_sis_map_kints *sis_map_kints_create(void *vfree_);
 void sis_map_kints_destroy(void *);
 void sis_map_kints_clear(s_sis_map_kints *);
 
+void sis_map_kints_del(s_sis_map_kints *, int64 key_);
 void *sis_map_kints_get(s_sis_map_kints *, int64 key_);
-void *sis_map_kints_geti(s_sis_map_kints *, int );
-int64 sis_map_kints_get_index(s_sis_map_kints *mlist_, int64 key_);
+
+void  sis_map_kints_first(s_sis_map_kints *);
+void *sis_map_kints_next(s_sis_map_kints *);
+
 int sis_map_kints_set(s_sis_map_kints *, int64 key_, void *value_); 
 int sis_map_kints_getsize(s_sis_map_kints *);
 

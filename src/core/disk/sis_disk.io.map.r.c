@@ -435,12 +435,15 @@ void sis_map_subinfo_set_fd(s_sis_map_subinfo *subinfo, s_sis_map_fctrl *fctrl)
 int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
 {
     sis_pointer_list_clear(subctrl->subvars);
+    
     int count = sis_map_kints_getsize(fctrl->map_kscs);
     printf("== init == : %d %d %d\n", count, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
-    for (int i = 0; i < count; i++)
+
+    s_sis_map_ksctrl *ksctrl;
+    sis_map_kints_first(fctrl->map_kscs);
+    while( (ksctrl = sis_map_kints_next(fctrl->map_kscs)) != NULL)
     {
-        s_sis_map_ksctrl *ksctrl = sis_map_kints_geti(fctrl->map_kscs, i);
-        printf("== init : %d %d %d\n", i, count, ksctrl->mindex_r.sumrecs);
+       printf("== init : %d %d\n", count, ksctrl->mindex_r.sumrecs);
         if (subctrl->mpair.stop > 0 && ksctrl->mindex_r.sumrecs < 1)
         {
             // 如果是限定时间 并且没有数据就不往下面写了
@@ -467,7 +470,6 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
             sis_map_subinfo_set_fd(subinfo, fctrl);
             printf("== adda : %d %d %lld %s %s\n",subinfo->cursor, ksctrl->mindex_r.sumrecs, subinfo->sortfd ? *subinfo->sortfd: -1, ksctrl->kdict->kname, ksctrl->sdict->table->name);
         }     
-
     } 
     return 0;
 }

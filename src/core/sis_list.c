@@ -371,9 +371,11 @@ int sis_struct_list_delete(s_sis_struct_list *list_, int start_, int count_)
 		memmove((char *)list_->buffer, (char *)list_->buffer + (list_->start * list_->len), list_->count * list_->len);
 		list_->start = 0;
 	}
-	memmove((char *)list_->buffer + (start_ * list_->len), (char *)list_->buffer + ((start_ + count_) * list_->len),
-			(list_->count - count_ - start_) * list_->len);
-
+    if (list_->count > start_ + count_)
+    {
+        memmove((char *)list_->buffer + (start_ * list_->len), (char *)list_->buffer + ((start_ + count_) * list_->len),
+                (list_->count - count_ - start_) * list_->len);
+    }
 	list_->count = list_->count - count_;
 	return count_;
 }
