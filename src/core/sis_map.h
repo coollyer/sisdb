@@ -41,6 +41,11 @@ typedef struct s_sis_map_kints_v {
 } s_sis_map_kints_v;
 
 typedef struct s_sis_map_kints{
+    // int                  sort_mod; // 0 不排序 1 升序 -1 降序
+    // int                  sort_off;
+    // int                  sort_len;
+    // s_sis_struct_list   *sorts;  // 排序的节点索引 list 的索引
+    /////////////////////////////
     int                  cursor; 
 	s_sis_map_kvint     *map;    // 存入的整数就是list的索引
 	s_sis_struct_list   *list;   // 实际数据存在这里 s_sis_map_kints_v
@@ -82,6 +87,8 @@ int sis_map_list_getsize(s_sis_map_list *);
 s_sis_map_kints *sis_map_kints_create(void *vfree_);
 void sis_map_kints_destroy(void *);
 void sis_map_kints_clear(s_sis_map_kints *);
+// 设置排序的变量 从小到大 按数据偏移计算
+// int sis_map_kints_set_sort(s_sis_map_kints *, int style, int offset, int size); 
 
 void sis_map_kints_del(s_sis_map_kints *, int64 key_);
 void *sis_map_kints_get(s_sis_map_kints *, int64 key_);
@@ -90,6 +97,7 @@ void  sis_map_kints_first(s_sis_map_kints *);
 void *sis_map_kints_next(s_sis_map_kints *);
 
 int sis_map_kints_set(s_sis_map_kints *, int64 key_, void *value_); 
+
 int sis_map_kints_getsize(s_sis_map_kints *);
 
 // 可删除 插入的数据根据 key 进行排序 
