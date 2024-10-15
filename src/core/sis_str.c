@@ -441,14 +441,9 @@ void sis_str_substr(char *out_, size_t olen_, const char *in_, char c, int idx_)
 		sis_strcpy(out_, olen_, in_);
 	}
 }
-/*从字符串中找出指定字符的出现次数，最后部分的count++逻辑看不懂
-参数列表：
-    s，字符串
-    ilen，字符串长度
-    c,目标字符
-返回值：
-    目标字符的出现次数，当字符串非空时，返回值不小于1
-*/
+
+// 从字符串中找出ch分割的子串的个数
+
 int sis_str_substr_nums(const char *s, size_t ilen_, char c)
 {
 	if (!s)

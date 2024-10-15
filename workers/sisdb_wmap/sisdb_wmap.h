@@ -8,8 +8,9 @@
 #define  SIS_WMAP_INIT     1 // 是否初始化
 #define  SIS_WMAP_OPEN     2 // 是否打开
 #define  SIS_WMAP_HEAD     3 // 是否写了头
-#define  SIS_WMAP_EXIT     4 // 退出
-#define  SIS_WMAP_FAIL     5 // 打开失败
+#define  SIS_WMAP_MOVE     4 // 是否清理了旧的数据
+#define  SIS_WMAP_EXIT     5 // 退出
+#define  SIS_WMAP_FAIL     6 // 打开失败
 
 // 支持 chars 非压缩写入
 
@@ -24,6 +25,7 @@ typedef struct s_sisdb_wmap_cxt
 	
 	int                overwrite;     // 0 append 1 rewrite
 	int                covermode;     // 0 append 1 清除对应日期数据后再写入
+    int                cover_status;  // 0 未清理 1 已经清理
 
 	int                stop_date;     // 停止时间
 	int                open_date;     // 工作日期  

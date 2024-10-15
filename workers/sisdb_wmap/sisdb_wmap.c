@@ -156,14 +156,6 @@ static int cb_sub_start(void *worker_, void *argv_)
 	s_sis_worker *worker = (s_sis_worker *)worker_; 
     s_sisdb_wmap_cxt *context = (s_sisdb_wmap_cxt *)worker->context; 
     context->curr_date = sis_atoll((char *)argv_);
-    
-    if (context->covermode)
-    {
-        sis_disk_writer_delete(context->writer, 
-            context->wmap_keys,
-            context->wmap_sdbs,
-            context->curr_date);
-    }
     return SIS_METHOD_OK;
 }
 static int cb_sub_stop(void *worker_, void *argv_)
@@ -214,7 +206,18 @@ static int cb_sub_chars(void *worker_, void *argv_)
             context->wmap_sdbs, sis_sdslen(context->wmap_sdbs));
         context->status = SIS_WMAP_HEAD;
     }
-
+    if (context->status == SIS_WMAP_HEAD)
+    {
+        if (context->covermode)
+        {
+            // 是否清理旧的数据
+            sis_disk_writer_delete(context->writer, "*", "*",
+                // context->wmap_keys,
+                // context->wsdbs,  // 只有表名 不需要结构
+                context->curr_date);
+            context->status = SIS_WMAP_MOVE;
+        }
+    }
     s_sis_db_chars *pchars = (s_sis_db_chars *)argv_;
     // printf("--1-- %s %s \n",pchars->kname, pchars->sname);
     sis_disk_writer_data(context->writer, pchars->kname, pchars->sname, pchars->data, pchars->size);

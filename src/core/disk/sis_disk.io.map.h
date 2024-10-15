@@ -450,6 +450,9 @@ int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const cha
 
 int sis_disk_io_map_sync_data(s_sis_map_fctrl *fctrl);
 // 删除指定数据 指定时间段的数据
+// 对于无时序的表 直接删除其所有数据 覆盖写入
+// 传入的必须有确定的值 不做匹配 
+// idate_ == -1 代表删除所有
 int sis_disk_io_map_del_data(s_sis_map_fctrl *fctrl, const char *keys_, const char *sdbs_, int idate_);
 // 删除某个key的所有数据
 int sis_disk_io_map_del_keys(s_sis_map_fctrl *fctrl, const char *keys_);
