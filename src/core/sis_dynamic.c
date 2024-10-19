@@ -116,7 +116,7 @@ s_sis_dynamic_db *sis_dynamic_db_create(s_sis_json_node *node_)
 	s_sis_json_node *fields = sis_json_cmp_child_node(node_, "fields");
 	if (!fields)
 	{
-		LOG(8)("no fields.\n");
+		LOG(8)("no fields. %s\n", node_->key);
 		return NULL;	
 	}
 	

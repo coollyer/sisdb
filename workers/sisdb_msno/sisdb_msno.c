@@ -51,7 +51,7 @@ bool sisdb_msno_init(void *worker_, void *node_)
             context->work_path = sis_sdsnew("./");
         }
     }
-    s_sis_json_node *innode = sis_json_cmp_child_node(node, "work-snos");  
+    s_sis_json_node *innode = sis_json_cmp_child_node(node, "work-sdbs");  
     if (innode)
     {         
         int nums = 0;
