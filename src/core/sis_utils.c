@@ -700,6 +700,7 @@ int sis_json_merge_rpath(s_sis_json_node *node_, const char *rkey, const char *r
 		s_sis_sds rpath = sis_sdsnew(rpath_);
 		rpath = sis_sdscatfmt(rpath, "/%s", str);
 		sis_json_object_set_string(node_, rkey, rpath, sis_sdslen(rpath));
+        sis_sdsfree(rpath);
 		return 1;
 	}
 	// else
