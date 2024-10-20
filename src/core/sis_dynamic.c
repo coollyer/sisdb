@@ -282,13 +282,13 @@ s_sis_dynamic_field *sis_dynamic_db_get_field(s_sis_dynamic_db *db_, int *index_
 	return field;
 }
 
-bool sis_dynamic_dbinfo_same(s_sis_dynamic_db *db1_, s_sis_dynamic_db *db2_)
+int sis_dynamic_dbinfo_same(s_sis_dynamic_db *db1_, s_sis_dynamic_db *db2_)
 {
 	int fnums = sis_map_list_getsize(db1_->fields);
 	// printf("%s %s : %d %d\n", db1_->name, db2_->name, fnums, sis_map_list_getsize(db2_->fields));
 	if(fnums != sis_map_list_getsize(db2_->fields))	
 	{
-		return false;
+		return -1;
 	}
 	for (int i = 0; i < fnums; i++)
 	{
@@ -296,16 +296,16 @@ bool sis_dynamic_dbinfo_same(s_sis_dynamic_db *db1_, s_sis_dynamic_db *db2_)
 		s_sis_dynamic_field *unit2 = (s_sis_dynamic_field *)sis_map_list_geti(db2_->fields, i);
 		if(!unit1||!unit2) 
 		{
-			return false;
+			return -2;
 		}
 		// sis_out_binary("1", unit1, sizeof(s_sis_dynamic_field));
 		// sis_out_binary("2", unit2, sizeof(s_sis_dynamic_field));
 		if (memcmp(unit1, unit2, sizeof(s_sis_dynamic_field)))
 		{
-			return false;
+			return i + 1;
 		}
 	}
-	return true;
+	return 0;
 }
 
 msec_t sis_dynamic_db_get_time(s_sis_dynamic_db *db_, int index_, void *in_, size_t ilen_)

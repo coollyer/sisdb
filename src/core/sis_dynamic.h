@@ -644,7 +644,7 @@ void sis_dynamic_db_decr(s_sis_dynamic_db *db_);
 s_sis_dynamic_field *sis_dynamic_db_get_field(s_sis_dynamic_db *db_, int *index_, const char *field_);
 
 // 比较两个表的结构 一样返回 true
-bool sis_dynamic_dbinfo_same(s_sis_dynamic_db *db1_, s_sis_dynamic_db *db2_);
+int sis_dynamic_dbinfo_same(s_sis_dynamic_db *db1_, s_sis_dynamic_db *db2_);
 
 // 获得当前缓存的时间
 msec_t sis_dynamic_db_get_time(s_sis_dynamic_db *db_, int index_, void *in_, size_t ilen_);
