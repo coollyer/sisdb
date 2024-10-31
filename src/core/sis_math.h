@@ -93,6 +93,8 @@
 #define SIS_FTOI(f, z) ((long long)((f)*(z) + 0.5))
 #define SIS_ITOF(f, z) ((double)(f)/(double)(z))
 
+#define SIS_BLKS(f, z) ({ int _v_ = (double)(f)/(double)(z); _v_ * z < f ? (_v_ + 1) : _v_; })
+
 #define SIS_ZOOM_UP(f, z) ({ int _v_ = (double)(f)/(double)(z); _v_ * z < f ? (_v_ + 1) * z : _v_ * z; })
 #define SIS_ZOOM_DN(f, z) ({ int _v_ = (double)(f)/(double)(z); _v_ == 0 ? ((f > 0) ? z : 0) : _v_ * z; })
 

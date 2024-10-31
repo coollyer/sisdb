@@ -1267,8 +1267,10 @@ double sis_ai_fibonacci_avg(int n, double ins[])
         double factor = _get_calc_fibonacci(i, n);
         denominator += factor;
         avg += ins[i] * factor;
+        // printf("== %d %f | %f %f %f\n", i, factor, ins[i], avg, denominator);
     }
     avg /= denominator; 
+    // printf("==== %f %f \n", avg, denominator);
     return avg;
 }
 double sis_ai_get_avg(int n, double ins[])

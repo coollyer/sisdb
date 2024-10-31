@@ -772,6 +772,7 @@ int sis_disk_io_map_del_all(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl)
         sis_disk_io_map_recy_blk(fctrl, curblk);
         ksctrl->mindex_p->varfbno = -1; 
     }
+    return 0;
 }
 // 得到记录区间 区间的记录数 = 0 表示没有这个区间的数据 
 int sis_map_ksctrl_get_recs(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, msec_t head_msec, msec_t tail_msec, int *headr)
