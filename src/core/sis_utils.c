@@ -517,30 +517,41 @@ s_sis_sds sis_sdb_fields_to_array_sds(s_sis_dynamic_db *db_, void *in_, size_t i
 
 s_sis_sds sis_sdb_fields_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_, const char *key_, s_sis_string_list *fields_, bool isfields_, bool iszip_)
 {
-	int fnums = sis_string_list_getsize(fields_);
+	int fnums = fields_ ? sis_string_list_getsize(fields_) : sis_map_list_getsize(db_->fields);
 
 	s_sis_json_node *jone = sis_json_create_object();
 	
 	if (isfields_)
 	{
 		s_sis_json_node *jfields = sis_json_create_object();
-		for (int i = 0; i < fnums; i++)
+		for (int i = 0, ki = 0; i < fnums; i++)
 		{
-			s_sis_dynamic_field *inunit = (s_sis_dynamic_field *)sis_map_list_get(db_->fields, sis_string_list_get(fields_, i));
+            s_sis_dynamic_field *inunit = NULL;
+            if (fields_)
+            {
+			    inunit = (s_sis_dynamic_field *)sis_map_list_get(db_->fields, sis_string_list_get(fields_, i));
+            }
+            else
+            {
+                inunit = sis_map_list_geti(db_->fields, i);
+            }
+            if (!inunit)
+            {
+                continue;
+            }
 			if (inunit->count > 1)
 			{
 				for (int k = 0; k < inunit->count; k++)
 				{
 					char fname[64];
 					sis_sprintf(fname, 64, "%s%d", inunit->fname, k);
-					sis_json_object_add_uint(jfields, fname, i);
+					sis_json_object_add_uint(jfields, fname, ki++);
 				}
 			}
 			else
 			{
-				sis_json_object_add_uint(jfields, inunit->fname, i);
-			}
-			
+				sis_json_object_add_uint(jfields, inunit->fname, ki++);
+			}	
 		}
 		sis_json_object_add_node(jone, "fields", jfields);
 	}
@@ -553,7 +564,19 @@ s_sis_sds sis_sdb_fields_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t il
 		s_sis_json_node *jval = sis_json_create_array();
 		for (int i = 0; i < fnums; i++)
 		{
-			s_sis_dynamic_field *inunit = (s_sis_dynamic_field *)sis_map_list_get(db_->fields, sis_string_list_get(fields_, i));
+			s_sis_dynamic_field *inunit = NULL;
+            if (fields_)
+            {
+			    inunit = (s_sis_dynamic_field *)sis_map_list_get(db_->fields, sis_string_list_get(fields_, i));
+            }
+            else
+            {
+                inunit = sis_map_list_geti(db_->fields, i);
+            }
+            if (!inunit)
+            {
+                continue;
+            }
 			sis_dynamic_field_to_array(jval, inunit, val);
 		}
 		sis_json_array_add_node(jtwo, jval);
@@ -752,7 +775,7 @@ s_sis_sds sis_match_key_and_len(s_sis_sds match_keys, int len, s_sis_sds whole_k
     for (int i = 0; i < sis_string_list_getsize(slist); i++)
     {
         const char *key = sis_string_list_get(slist, i);
-        if (sis_strlen(key) != 8)
+        if (sis_strlen(key) != len)
         {
             continue;
         }

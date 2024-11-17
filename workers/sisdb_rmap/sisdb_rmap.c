@@ -397,19 +397,19 @@ int cmd_sisdb_rmap_get(void *worker_, void *argv_)
     pair.stop = (msec_t)sis_time_make_time(stopdate, 235959) * 1000 + 999;
     const char *subkeys = sis_message_get_str(msg, "sub-keys");
     const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
-    LOG(5)("get map open. %d-%d %d-%d %s %s\n", context->work_date.start, context->work_date.stop, startdate, stopdate, subkeys, subsdbs);
+    LOG(5)("get map open. %d-%d %d-%d %s %s\n", pair.start, pair.stop, startdate, stopdate, subkeys, subsdbs);
 
     s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
     if (var.memory)
     {
-        // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
+        // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
         sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
         sis_dynamic_db_incr(var.dbinfo);
         sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
     }
     sis_disk_reader_destroy(wreader);
 
-    LOG(5)("get map stop. ok [%d-%d] %d %d\n", context->work_date, startdate, stopdate, context->status);
+    LOG(5)("get map stop. ok  [%d-%d] %d %p\n", startdate, stopdate, context->status, var.memory);
     if (!var.memory)
     {
         return SIS_METHOD_NIL;

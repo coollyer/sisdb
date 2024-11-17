@@ -164,6 +164,8 @@ void sis_net_message_set_notag(s_sis_net_message *netmsg_);
 
 void sis_net_message_set_info(s_sis_net_message *netmsg_, void *val_, size_t vlen_);
 
+void sis_net_message_set_pinfo(s_sis_net_message *netmsg_, s_sis_sds sin_);
+
 void sis_net_message_set_info_i(s_sis_net_message *netmsg_, int64 val_);
 
 void sis_net_message_init_chars(s_sis_net_message *netmsg_);

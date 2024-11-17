@@ -447,8 +447,8 @@ char *sis_path_get_files(const char *path_, int mode_)
 					continue;
 				}
 				// printf("%s :: %x\n",filename, (int)statbuf.st_mode);
-				if (((mode_ == SIS_FINDPATH) && S_ISDIR(statbuf.st_mode)) ||
-					((mode_ == SIS_FINDFILE) && S_ISREG(statbuf.st_mode)) ||
+				if (((mode_ & SIS_FINDPATH) && S_ISDIR(statbuf.st_mode)) ||
+					((mode_ & SIS_FINDFILE) && S_ISREG(statbuf.st_mode)) ||
 					(mode_ == SIS_FINDALL))
 				{
 					if (o)
@@ -457,7 +457,10 @@ char *sis_path_get_files(const char *path_, int mode_)
 					}
 					o = sis_strcat(o, &size, direntp->d_name);
 				}
-
+                if (mode_ & SIS_FINDONE)
+                {
+                    break;
+                }
 			}
 		}
 	}

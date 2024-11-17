@@ -359,6 +359,13 @@ void sis_net_message_set_info(s_sis_net_message *netmsg_, void *val_, size_t vle
 {
     SIS_NET_SET_BUF(netmsg_->switchs.sw_info, netmsg_->info, (char *)val_, vlen_);
 }
+void sis_net_message_set_pinfo(s_sis_net_message *netmsg_, s_sis_sds sin_)
+{
+    
+    netmsg_->switchs.sw_info = sin_ ? 1 : 0;
+    sis_sdsfree(netmsg_->info);
+    netmsg_->info = sin_ ? sin_ : NULL;
+}
 
 void sis_net_message_set_info_i(s_sis_net_message *netmsg_, int64 i64_)
 {

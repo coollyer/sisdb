@@ -748,5 +748,19 @@ void sis_disk_sno_rctrl_init(s_sis_disk_sno_rctrl *);
 // 弹出一条记录 只是移动 cursor 指针 
 s_sis_db_chars *sis_disk_sno_rctrl_rpop(s_sis_disk_sno_rctrl *);
 
+///////////////////////////
+//  sis_disk.io.utils.c
+///////////////////////////
+
+#define SIS_DTYPE_NONE  0
+#define SIS_DTYPE_SNO   1
+#define SIS_DTYPE_MAP   2
+#define SIS_DTYPE_CSV   3
+#define SIS_DTYPE_JSON  4
+
+// 检查根目录下的文件类型
+int sis_disk_check_dtype(const char *);
+
+
 #endif
 

@@ -296,7 +296,7 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
     }
     
     s_sis_memory *memory = sis_memory_create();
-
+    // printf("===1=== %d %lld %lld\n", ksctrl->varblks->count, smsec_->start, smsec_->stop );
     for (int i = 0; i < ksctrl->varblks->count; i++)
     {
         int blkno = sis_int_list_get(ksctrl->varblks, i);
@@ -317,19 +317,39 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
             (!sdict->table->field_time || sdict->table->field_time->len != 8))
         {
             sis_memory_cat(memory, var, msize);
-            sis_memory_move(memory, msize);
+            // sis_memory_move(memory, msize);
         }
         else
         {
             // 这是最简单的方法 效率不高 以后有需要再优化
+            if (smsec_->start > 0)
+            {
+                msec_t *curmsec = (msec_t *)(var + (recs - 1) * ksctrl->mindex_r.recsize + sdict->table->field_time->offset);
+                if (*curmsec < smsec_->start)
+                {
+                    continue;
+                }
+            }
+            if (smsec_->stop > 0)
+            {
+                msec_t *curmsec = (msec_t *)(var + sdict->table->field_time->offset);
+                if (*curmsec > smsec_->stop)
+                {
+                    break;
+                }
+            }
             for (int i = 0; i < recs; i++)
             {
                 msec_t *curmsec = (msec_t *)(var + sdict->table->field_time->offset);
-                if ((*curmsec >= smsec_->start || smsec_->start == 0) &&
-                    (*curmsec <= smsec_->stop || smsec_->stop == 0)) 
+                // printf("===2=== %d %lld | %lld %lld\n", sis_memory_get_size(memory), *curmsec, smsec_->start, smsec_->stop);
+                // printf("===3=== %d %d\n", ((*curmsec <= smsec_->stop || smsec_->stop == 0)), 
+                    (*curmsec >= smsec_->start && smsec_->start > 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0)));
+                if ((smsec_->start == 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0)) || 
+                    (*curmsec >= smsec_->start && smsec_->start > 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0))) 
                 {
                     sis_memory_cat(memory, var, sdict->table->size);
-                    sis_memory_move(memory, sdict->table->size);
+                    // sis_memory_move(memory, sdict->table->size);
+                    // printf("===4===  %d \n", sis_memory_get_size(memory));
                 }
                 var += ksctrl->mindex_r.recsize;
             }

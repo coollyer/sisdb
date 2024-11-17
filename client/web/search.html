@@ -23,6 +23,7 @@
       <button onclick="connect()">connect</button>
       <button onclick="auth()">auth-admin</button>
       <button onclick="send_string()">submit</button>
+      <button onclick="send_mstring()">msubmit</button>
     </div>
   </div>
   <div id='recv-msg'></div>
@@ -86,6 +87,15 @@
       { cmd : JSON.stringify(doc) },
       function reply(data) {
         output.innerHTML = data;
+      });
+  }
+  function send_mstring() {
+    send_multiple_command(
+      [{ cmd : JSON.stringify({"cmd":"get","subject":"SH600745.stk_info","service":"snodb","info":"{\"sub-date\":20240301}"}) },
+       { cmd : JSON.stringify({"cmd":"get","subject":"SH600600.stk_info","service":"snodb","info":"{\"sub-date\":20240301}"}) }
+      ],
+      function reply(data) {
+        output.innerHTML = JSON.stringify(data);
       });
   }
 

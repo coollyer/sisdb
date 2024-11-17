@@ -9,9 +9,9 @@ function connect_server() {
   // client.ws = new WebSocket('ws://192.168.1.202:7329');
   // client.ws = new WebSocket('ws://d17.sci-inv.cn:30010');
   // client.ws = new WebSocket('ws://d31.sci-inv.cn:30010');
-  client.ws = new WebSocket('ws://127.0.0.1:30010');
+//   client.ws = new WebSocket('ws://127.0.0.1:30010');
   
-  // client.ws = new WebSocket('ws://127.0.0.1:7329');
+  client.ws = new WebSocket('ws://127.0.0.1:7329');
   // client.ws = new WebSocket('ws://192.168.3.118:10810');
   console.log('connection ...');
   // client.ws = new WebSocket('ws://localhost:8888');
@@ -130,22 +130,23 @@ client.ws.onmessage = function (message) {
     let start = message.data.indexOf(':');
     let sign = message.data.substr(0, start);
   
-    if (client.wait.commands[sign] !== undefined) {
+    if (client.wait.commands[sign] !== undefined) 
+    {
       let msg = JSON.parse(message.data.substr(start + 1, message.data.length));
       if (msg.tag !== undefined)
       {
         if (msg.info)
         {
-          client.wait.replys = msg.tag + ":" + msg.info;
+          client.wait.replys[sign] = msg.tag + ":" + msg.info;
         }
         else
         {
-          client.wait.replys = msg.tag;
+          client.wait.replys[sign] = msg.tag;
         }
       }
       else
       {
-        client.wait.replys = 'ERROR';
+        client.wait.replys[sign] = 'ERROR';
       }
     }
     if (client.wait.multiple)
@@ -153,7 +154,7 @@ client.ws.onmessage = function (message) {
       let whole = true;
       for (const item in client.wait.commands) 
       {
-        // console.log('--- ss --- ', client.wait.commands[item]);
+        console.log('--- ss --- ', item, client.wait.commands[item]);
         if (client.wait.replys[client.wait.commands[item]] === undefined) {
           whole = false;
           break;
@@ -166,7 +167,7 @@ client.ws.onmessage = function (message) {
     }
     else
     {
-      client.wait.callback(client.wait.replys);
+      client.wait.callback(client.wait.replys[sign]);
     }
   }
 }
@@ -201,9 +202,10 @@ function send_multiple_command(commands, callback) {
   }
   for (let index = 0; index < commands.length; index++) {
     let sign = _makeid();
-    client.wait.commands[sign] = commands[index].key;
+    client.wait.commands[sign] = sign;
 
-    let sendstr = make_command_packed(sign, commands[index].cmd);
+    let sendstr = sign + ':' + commands[index].cmd;
+    // let sendstr = make_command_packed(sign, commands[index].cmd);
 
     console.log('m<===', sendstr);
 
