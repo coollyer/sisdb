@@ -360,6 +360,10 @@ int sis_file_csv_read_sub(const char *name_, char c_, void *cb_source, sis_metho
 			offset = sis_memory_get_line_sign(memory);
 		}
 	}
+    if (cb_)
+    {
+        cb_(cb_source, NULL);
+    }	
 	if (unit.argv)
 	{
 		sis_free(unit.argv);

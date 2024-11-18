@@ -1,5 +1,5 @@
-﻿#ifndef _sisdb_csv2sno_h
-#define _sisdb_csv2sno_h
+﻿#ifndef _csv2db_h
+#define _csv2db_h
 
 #include "sis_method.h"
 #include "worker.h"
@@ -33,7 +33,7 @@ typedef struct s_csvdb_field
     void   *data;     // 保存数据  s_sis_string_list 
 } s_csvdb_field;
 
-typedef struct s_sisdb_csv2sno_cxt
+typedef struct s_csv2db_cxt
 {
     int                status;                  // 工作状态
          
@@ -54,11 +54,8 @@ typedef struct s_sisdb_csv2sno_cxt
     
     s_sis_pointer_list             *flist;      // s_csvdb_field
 
-    sis_method_define              *cb_wdb_sub_start;
-    sis_method_define              *cb_wdb_sub_stop ;
-    sis_method_define              *cb_wdb_dict_sdbs;
-    sis_method_define              *cb_wdb_dict_keys;
-    sis_method_define              *cb_wdb_sub_chars;
+    // 
+    
 
     void              *cb_source;      // 要将行情发往的目的地，一般是目标工作者的对象指针
     sis_method_define *cb_sub_start;    // 一日行情订阅开始时执行的回调函数，日期必须是字符格式的日期
@@ -67,15 +64,8 @@ typedef struct s_sisdb_csv2sno_cxt
     sis_method_define *cb_dict_keys;    // 需要发送行情的股票列表，代码串 字符串
     sis_method_define *cb_sub_chars;    // s_sis_db_chars
 
-}s_sisdb_csv2sno_cxt;
+} s_csv2db_cxt;
 
-bool sisdb_csv2sno_init(void *, void *);
-void sisdb_csv2sno_uninit(void *);
-void sisdb_csv2sno_working(void *);
-
-int cmd_sisdb_csv2sno_setcb(void *worker_, void *argv_);
-
-void sisdb_csv2sno_sub_start(s_sisdb_csv2sno_cxt *context);
-void sisdb_csv2sno_sub_stop(s_sisdb_csv2sno_cxt *context);
+s_sis_memory *sis_csv2db_as_memory(const char *rpath, const char *rname, int idate);
 
 #endif

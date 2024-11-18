@@ -343,7 +343,7 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
                 msec_t *curmsec = (msec_t *)(var + sdict->table->field_time->offset);
                 // printf("===2=== %d %lld | %lld %lld\n", sis_memory_get_size(memory), *curmsec, smsec_->start, smsec_->stop);
                 // printf("===3=== %d %d\n", ((*curmsec <= smsec_->stop || smsec_->stop == 0)), 
-                    (*curmsec >= smsec_->start && smsec_->start > 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0)));
+                    // (*curmsec >= smsec_->start && smsec_->start > 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0)));
                 if ((smsec_->start == 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0)) || 
                     (*curmsec >= smsec_->start && smsec_->start > 0 && (*curmsec <= smsec_->stop || smsec_->stop == 0))) 
                 {
