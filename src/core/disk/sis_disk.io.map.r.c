@@ -338,7 +338,7 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
                     break;
                 }
             }
-            for (int i = 0; i < recs; i++)
+            for (int k = 0; k < recs; k++)
             {
                 msec_t *curmsec = (msec_t *)(var + sdict->table->field_time->offset);
                 // printf("===2=== %d %lld | %lld %lld\n", sis_memory_get_size(memory), *curmsec, smsec_->start, smsec_->stop);
@@ -362,7 +362,108 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
     sis_memory_destroy(memory);
     return NULL;
 }
+void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_sis_map_ksctrl *ksctrl, int wkname, int offset, int count)
+{
+    int startindex = (ksctrl->mindex_r.sumrecs + offset) / ksctrl->mindex_r.perrecs;
+    for (int i = startindex; i < ksctrl->varblks->count; i++)
+    {
+        int blkno = sis_int_list_get(ksctrl->varblks, i);
+        char *var = (char *)sis_map_ksctrl_get_fbvar(fctrl, ksctrl, blkno);
 
+        int recs = i == ksctrl->varblks->count - 1 ? ksctrl->mindex_r.currecs : ksctrl->mindex_r.perrecs;
+        int startreci = 0;
+        if (i == startindex)
+        {   
+            startreci = (ksctrl->mindex_r.sumrecs + offset) % ksctrl->mindex_r.perrecs;
+        }
+        if (startreci > 0)
+        {
+            var += ksctrl->mindex_r.recsize * startreci;
+        }
+        for (int k = startreci; k < recs; k++)
+        {
+            sis_memory_cat(memory, var, ksctrl->sdict->table->size);
+            if (wkname > 0)
+            {
+                sis_memory_cat(memory, ksctrl->kdict->kname, wkname);
+            }
+            var += ksctrl->mindex_r.recsize;
+        }
+    }
+}
+// 仅仅支持获取最后的记录数
+s_sis_memory *sis_disk_io_map_r_get_range_mem(s_sis_map_fctrl *fctrl, const char *kname, const char *sname_, int offset, int count)
+{
+    s_sis_map_sdict *sdict = sis_map_list_get(fctrl->map_sdbs, sname_);
+    if (!sdict)
+    {
+        return NULL;
+    }
+    if (offset > 0)
+    {
+        offset = -1;
+    }
+    s_sis_map_kdict *kdict = sis_map_list_get(fctrl->map_keys, kname);
+    if (!kdict)
+    {
+        return NULL;
+    }
+    s_sis_map_ksctrl *ksctrl = sis_map_kints_get(fctrl->map_kscs, sis_disk_io_map_get_ksidx(kdict->index, sdict->index));
+    if (!ksctrl || ksctrl->mindex_r.sumrecs < 1)
+    {
+        return NULL;
+    }
+    s_sis_memory *memory = sis_memory_create();
+
+    _disk_io_map_r_get_range(fctrl, memory, ksctrl, 0, offset, count);
+    // printf("===1=== %d %lld %lld\n", ksctrl->varblks->count, smsec_->start, smsec_->stop );
+    
+    if (sis_memory_get_size(memory) > 0)
+    {
+        return memory;
+    }
+    sis_memory_destroy(memory);
+    
+    return NULL;
+}
+// 仅仅支持获取最后的记录数
+s_sis_memory *sis_disk_io_map_r_mget_range_mem(s_sis_map_fctrl *fctrl, const char *kname, int klen, const char *sname_, int offset, int count)
+{
+    s_sis_map_sdict *sdict = sis_map_list_get(fctrl->map_sdbs, sname_);
+    if (!sdict)
+    {
+        return NULL;
+    }
+    if (offset > 0)
+    {
+        offset = -1;
+    }
+    s_sis_memory *memory = sis_memory_create();
+    if (sis_is_multiple_sub(kname, sis_strlen(kname)))
+    {
+        int count = sis_map_list_getsize(fctrl->map_keys);
+        for (int i = 0; i < count; i++)
+        {
+            s_sis_map_kdict *kdict = sis_map_list_geti(fctrl->map_keys, i);
+            if ((!sis_strcasecmp(kname, "*") || sis_str_subcmp(kdict->kname, kname, ',') >= 0))
+            {
+                s_sis_map_ksctrl *ksctrl = sis_map_kints_get(fctrl->map_kscs, sis_disk_io_map_get_ksidx(kdict->index, sdict->index));
+                if (!ksctrl || ksctrl->mindex_r.sumrecs < 1)
+                {
+                    continue;
+                }
+                _disk_io_map_r_get_range(fctrl, memory, ksctrl, klen, offset, count);
+            }
+        }
+    }
+    if (sis_memory_get_size(memory) > 0)
+    {
+        return memory;
+    }
+    sis_memory_destroy(memory);
+    
+    return NULL;
+}
 int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_msec_pair *msec)
 {
     int agos = 0;
@@ -394,13 +495,13 @@ int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *k
                     recs = ksctrl->mindex_r.perrecs;
                 }
                 // 这是最简单的方法 效率不高 以后有需要再优化
-                for (int i = 0; i < recs; i++)
+                for (int k = 0; k < recs; k++)
                 {
                     msec_t *curmsec = (msec_t *)(var + ksctrl->sdict->table->field_time->offset);
                     printf("%lld,%d %d %d \n", *curmsec, sis_msec_get_idate(*curmsec), i, recs);
                     if (*curmsec >= msec->start) 
                     {
-                        return i + agos;
+                        return k + agos;
                     }
                     var += ksctrl->mindex_r.recsize;
                 }

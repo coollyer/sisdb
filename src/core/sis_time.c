@@ -153,6 +153,7 @@ int sis_time_get_iminute_minnum(int source, int minnum) //minnumÎª·ÖÖÓÊý
 time_t sis_time_make_time(int tdate, int ttime)
 {
 	struct tm stime;
+    tdate = tdate < 19900101 ? 19900101 : tdate;
 	stime.tm_year = tdate / 10000 - 1900;
 	stime.tm_mon = (tdate % 10000) / 100 - 1;
 	stime.tm_mday = tdate % 100;
@@ -167,6 +168,7 @@ time_t sis_time_make_time(int tdate, int ttime)
 msec_t sis_time_make_msec(int tdate, int ttime, int msec)
 {
 	struct tm stime;
+    tdate = tdate < 19900101 ? 19900101 : tdate;
 	stime.tm_year = tdate / 10000 - 1900;
 	stime.tm_mon = (tdate % 10000) / 100 - 1;
 	stime.tm_mday = tdate % 100;

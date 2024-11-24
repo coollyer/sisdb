@@ -90,7 +90,13 @@ s_sis_sds sis_sdbinfo_to_conf(s_sis_dynamic_db *db_, s_sis_sds in_)
 	in_ = sis_sdscat(in_, "}}");
 	return in_;
 }
-
+s_sis_dynamic_db *sis_dynamic_db_clone(s_sis_dynamic_db *db_)
+{
+    s_sis_sds cstr = sis_sdbinfo_to_conf(db_, NULL);
+    s_sis_dynamic_db *db = sis_sdbinfo_load(NULL, cstr);
+    sis_sdsfree(cstr);
+    return db;
+}
 s_sis_json_node *sis_sdbinfo_to_json(s_sis_dynamic_db *db_)
 {
 	s_sis_json_node *jone = sis_json_create_object();

@@ -1002,6 +1002,67 @@ s_sis_disk_var sis_disk_reader_get_var(s_sis_disk_reader *reader_, const char *k
     }
     return var; 
 }
+
+s_sis_disk_var _disk_reader_get_map_var_range(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, int offset, int count)
+{
+    s_sis_disk_var var = {0};
+    // 支持多键值仅仅支持 增加 kname 字段
+    if (sis_is_multiple_sub(sname_, sis_strlen(sname_)))
+    {
+        LOG(5)("no mul sdb: %s\n", sname_);
+        return var;
+    }
+    if (reader_->status_sub == 1 || !kname_ || !sname_)
+    {
+        return var;
+    }   
+
+    int o = sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
+    if (o)
+    {
+        LOG(5)("no open %s. %d\n", reader_->map_fctrl->fname, o);
+        return var;
+    }
+    if (sis_is_multiple_sub(kname_, sis_strlen(kname_)))
+    {
+        s_sis_memory *memory = sis_disk_io_map_r_mget_range_mem(reader_->map_fctrl, kname_, 16, sname_, offset, count);
+        if (memory)
+        {
+            var.memory = memory;
+            s_sis_dynamic_db *curdb = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+            s_sis_dynamic_db *newdb = sis_dynamic_db_clone(curdb);
+            sis_dynamic_db_add_field(newdb, "kname", SIS_DYNAMIC_TYPE_CHAR, 16, 1, 0);
+            var.dbinfo = newdb;
+        }
+    }
+    else
+    {
+        s_sis_memory *memory = sis_disk_io_map_r_get_range_mem(reader_->map_fctrl, kname_, sname_, offset, count);
+        if (memory)
+        {
+            var.memory = memory;
+            var.dbinfo = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+            sis_dynamic_db_incr(var.dbinfo);
+        }
+    }
+
+    sis_disk_io_map_close(reader_->map_fctrl);
+
+    return var;
+}
+s_sis_disk_var sis_disk_reader_get_var_range(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, int offset, int count)
+{   
+    s_sis_disk_var var = {0};
+    if (reader_->style == SIS_DISK_TYPE_MDB || reader_->style == SIS_DISK_TYPE_MSN)
+    {
+        var = _disk_reader_get_map_var_range(reader_, kname_, sname_, offset, count);
+    }
+    else if (reader_->style == SIS_DISK_TYPE_SDB)
+    {
+        // var = _disk_reader_get_sdb_var(reader_, kname_, sname_, smsec_);
+    }
+    return var; 
+}
 // 从对应文件中获取数据 拼成完整的数据返回 只支持 SNO SDB 单键单表 
 s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
 {

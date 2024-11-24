@@ -483,6 +483,9 @@ void sis_disk_io_map_r_unsub(s_sis_map_fctrl *fctrl);
 int sis_disk_io_map_r_sub(s_sis_map_fctrl *fctrl, const char *keys_, const char *sdbs_, s_sis_msec_pair *smsec_, void *cb_);
 // 得到单key单sdb的指定区间数据
 s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_);
+// 按记录位置获取数据 支持多键值获取 增加 kname 字段
+s_sis_memory *sis_disk_io_map_r_get_range_mem(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, int offset, int count);
+s_sis_memory *sis_disk_io_map_r_mget_range_mem(s_sis_map_fctrl *fctrl, const char *kname_, int klen, const char *sname_, int offset, int count);
 
 // 找到第一条大于开始时间的记录 无论如何都会返回 >= 0的数据
 // 返回的记录号 可能没有数据

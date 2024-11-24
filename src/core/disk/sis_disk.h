@@ -276,6 +276,8 @@ s_sis_object *sis_disk_reader_get_obj(s_sis_disk_reader *, const char *kname_, c
 
 s_sis_disk_var sis_disk_reader_get_var(s_sis_disk_reader *, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_);
 
+s_sis_disk_var sis_disk_reader_get_var_range(s_sis_disk_reader *, const char *kname_, const char *sname_, int offset, int count);
+
 // 获取sno键值
 s_sis_object *sis_disk_reader_get_keys(s_sis_disk_reader *, int idate);
 // 获取sno数据库

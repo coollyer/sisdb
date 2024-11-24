@@ -338,28 +338,17 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
         context->work_mode = sis_message_get_int(msg, "work-mode");
     }
     context->work_date.move = 0;
-    if (sis_message_exist(msg, "start-date"))
+    if (sis_message_exist(msg, "sub-date"))
+    {
+        context->work_date.start = sis_message_get_int(msg, "sub-date");
+        context->work_date.stop = context->work_date.start;
+    }
+    else
     {
         context->work_date.start = sis_message_get_int(msg, "start-date");
-    }
-    else
-    {
-        if (sis_message_exist(msg, "sub-date"))
-        {
-            context->work_date.start = sis_message_get_int(msg, "sub-date");
-        }
-    }
-    if (sis_message_exist(msg, "stop-date"))
-    {
         context->work_date.stop = sis_message_get_int(msg, "stop-date");
     }
-    else
-    {
-        if (sis_message_exist(msg, "sub-date"))
-        {
-            context->work_date.stop = sis_message_get_int(msg, "sub-date");
-        }
-    }
+    
     context->cb_source      = sis_message_get(msg, "cb_source");
     context->cb_sub_open    = sis_message_get_method(msg, "cb_sub_open"   );
     context->cb_sub_close   = sis_message_get_method(msg, "cb_sub_close"  );
@@ -382,35 +371,57 @@ int cmd_sisdb_rmap_get(void *worker_, void *argv_)
         sis_sds_save_get(context->work_name), 
         context->work_type, NULL);
     
-    s_sis_msec_pair pair; 
-    int startdate = sis_message_get_int(msg, "sub-date");
-    if (sis_message_exist(msg, "start-date"))
-    {
-        startdate = sis_message_get_int(msg, "start-date");
-    }
-    pair.start = (msec_t)sis_time_make_time(startdate, 0) * 1000;
-    int stopdate = sis_message_get_int(msg, "sub-date");
-    if (sis_message_exist(msg, "stop-date"))
-    {
-        stopdate = sis_message_get_int(msg, "stop-date");
-    }
-    pair.stop = (msec_t)sis_time_make_time(stopdate, 235959) * 1000 + 999;
+    sis_message_del(msg, "object");
     const char *subkeys = sis_message_get_str(msg, "sub-keys");
     const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
-    LOG(5)("get map open. %d-%d %d-%d %s %s\n", pair.start, pair.stop, startdate, stopdate, subkeys, subsdbs);
-
-    s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
-    if (var.memory)
+    if (sis_message_exist(msg, "offset"))
     {
-        // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
-        sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
-        sis_dynamic_db_incr(var.dbinfo);
-        sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+        int offset = sis_message_get_int(msg, "offset");
+        int count = sis_message_get_int(msg, "count");
+        LOG(5)("get map open. %d-%d %s %s\n", offset, count, subkeys, subsdbs);
+
+        s_sis_disk_var var = sis_disk_reader_get_var_range(wreader, subkeys, subsdbs, offset, count);
+        if (var.memory)
+        {
+            // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
+            sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+            sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+        }
+        LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
+    }
+    else
+    {
+        s_sis_msec_pair pair; 
+        if (sis_message_exist(msg, "sub-date"))
+        {
+            int subdate = sis_message_get_int(msg, "sub-date");
+            pair.start = sis_time_make_msec(subdate, 0, 0);
+            pair.stop = sis_time_make_msec(subdate, 235959, 999);
+        }
+        else
+        {
+            int startdate = sis_message_get_int(msg, "start-date");
+            pair.start = sis_time_make_msec(startdate, 0, 0);
+            int stopdate = sis_message_get_int(msg, "stop-date");
+            stopdate = stopdate > 0 ? stopdate : sis_time_get_idate(0);
+            pair.stop = sis_time_make_msec(stopdate, 235959, 999);
+        }
+        LOG(5)("get map open. %lld-%lld %d-%d %s %s\n", pair.start, pair.stop, 
+            sis_msec_get_idate(pair.start), sis_msec_get_idate(pair.stop), subkeys, subsdbs);
+
+        s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
+        if (var.memory)
+        {
+            // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
+            sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+            sis_dynamic_db_incr(var.dbinfo);
+            sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+        }
+        LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
     }
     sis_disk_reader_destroy(wreader);
 
-    LOG(5)("get map stop. ok  [%d-%d] %d %p\n", startdate, stopdate, context->status, var.memory);
-    if (!var.memory)
+    if (!sis_message_exist(msg, "object"))
     {
         return SIS_METHOD_NIL;
     }
