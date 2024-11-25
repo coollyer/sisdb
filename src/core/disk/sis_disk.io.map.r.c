@@ -364,7 +364,8 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
 }
 void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_sis_map_ksctrl *ksctrl, int wkname, int offset, int count)
 {
-    int startindex = (ksctrl->mindex_r.sumrecs + offset) / ksctrl->mindex_r.perrecs;
+    int start = offset == 0 ? 0 : offset < 0 ? (ksctrl->mindex_r.sumrecs + offset) : sis_min(ksctrl->mindex_r.sumrecs, offset);
+    int startindex = start / ksctrl->mindex_r.perrecs;
     for (int i = startindex; i < ksctrl->varblks->count; i++)
     {
         int blkno = sis_int_list_get(ksctrl->varblks, i);
@@ -374,7 +375,7 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
         int startreci = 0;
         if (i == startindex)
         {   
-            startreci = (ksctrl->mindex_r.sumrecs + offset) % ksctrl->mindex_r.perrecs;
+            startreci = start % ksctrl->mindex_r.perrecs;
         }
         if (startreci > 0)
         {
