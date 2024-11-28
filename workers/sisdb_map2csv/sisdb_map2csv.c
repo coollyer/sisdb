@@ -203,6 +203,7 @@ int sis_sisdb_map2csv_dbinfo_open(s_sisdb_map2csv_dbinfo *dinfo, int wdate)
     {
         return dinfo->status;
     }
+    
     _sisdb_map2csv_dbinfo_close(dinfo);
     sis_check_path(dinfo->csvname);
     dinfo->csvfp = sis_file_open(dinfo->csvname, SIS_FILE_IO_READ | SIS_FILE_IO_WRITE | SIS_FILE_IO_CREATE|SIS_FILE_IO_APPEND, 0);
@@ -213,7 +214,11 @@ int sis_sisdb_map2csv_dbinfo_open(s_sisdb_map2csv_dbinfo *dinfo, int wdate)
     else
     {
         sis_file_seek(dinfo->csvfp, 0, SEEK_SET);
-        _sisdb_map2csv_dbinfo_write(dinfo, dinfo->dbhead, sis_sdslen(dinfo->dbhead));
+        if (!dinfo->wheaded)
+        {
+            _sisdb_map2csv_dbinfo_write(dinfo, dinfo->dbhead, sis_sdslen(dinfo->dbhead));
+            dinfo->wheaded = 1;
+        }
         dinfo->status = SIS_DBINFO_WORK;
     }   
     return dinfo->status;
@@ -325,6 +330,7 @@ static int cb_dict_sdbs(void *worker_, void *argv_)
             if (db)
             {
                 s_sisdb_map2csv_dbinfo *dinfo = sis_sisdb_map2csv_dbinfo_create(db, context->catch_size);
+                // dinfo->csvname = sisdb_sno2csv_get_fname(context->wpath, context->wname, db->name, "csv", context->curr_date);
                 dinfo->csvname = sisdb_map2csv_get_fname(context->wpath, context->wname, db->name, "csv");
                 sis_map_list_set(context->map_sdbs, db->name, dinfo);
             }

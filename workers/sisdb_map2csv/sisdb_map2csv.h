@@ -18,6 +18,7 @@
 typedef struct s_sisdb_map2csv_dbinfo
 {
     s_sis_dynamic_db    *db;
+    int                  wheaded;
     s_sis_sds            dbhead;       // csv 格式 避免重复拼接
     size_t               csize;
     s_sis_memory        *wcatch;       // 写盘缓存

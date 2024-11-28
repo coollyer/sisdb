@@ -249,7 +249,7 @@ static int cb_csv2db_read(void *source, void *argv)
     if (unit->index == 0)
     {
         // 处理标题
-        sis_memory_cat(omemory, "{\"field\":{", 10);
+        sis_memory_cat(omemory, "{\"fields\":{", 11);
         char str[128];
         char fstr[128];
         for (int i = 0; i < unit->cols; i++)

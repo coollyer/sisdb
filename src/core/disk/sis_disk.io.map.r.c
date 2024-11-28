@@ -45,10 +45,12 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
 
 void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
 {
+    msec_t startmsec = sis_time_get_now_msec();
     // 先映射到文件
     for (int si = 0; si < fctrl->mhead_r.sdbnums; si++)
     {
         s_sis_map_sdict *sdict = sis_map_list_geti(fctrl->map_sdbs, si);
+        printf("%d : %d\n", si, (int)(sis_time_get_now_msec() - startmsec));
         for (int ki = 0; ki < fctrl->mhead_r.keynums; ki++)
         {
             int64 ksidx = sis_disk_io_map_get_ksidx(ki, si);
@@ -70,6 +72,7 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             // }
             memmove(&ksctrl->mindex_r, ksctrl->mindex_p, sizeof(s_sis_map_index));   
             sis_int_list_clear(ksctrl->varblks);
+            // 20241127 当文件过大时 一次加载所有数据会很慢
             if (ksctrl->mindex_r.varfbno >= 0)
             {
                 s_sis_map_block *curblk = sis_map_block_head(fctrl, ksctrl->mindex_r.varfbno);
@@ -87,7 +90,7 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             }             
         }
     } 
-    printf("read ksctrl: %d %d %d\n", sis_map_kints_getsize(fctrl->map_kscs), fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
+    printf("read ksctrl: %d %d %d cost = %d\n", sis_map_kints_getsize(fctrl->map_kscs), fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums, (int)(sis_time_get_now_msec() - startmsec));
 }
 
 void sis_disk_io_map_read_kdict(s_sis_map_fctrl *fctrl)
@@ -565,7 +568,7 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
     sis_map_kints_first(fctrl->map_kscs);
     while( (ksctrl = sis_map_kints_next(fctrl->map_kscs)) != NULL)
     {
-       printf("== init : %d %d\n", count, ksctrl->mindex_r.sumrecs);
+    //    printf("== init : %d %d\n", count, ksctrl->mindex_r.sumrecs);
         if (subctrl->mpair.stop > 0 && ksctrl->mindex_r.sumrecs < 1)
         {
             // 如果是限定时间 并且没有数据就不往下面写了
