@@ -43,6 +43,25 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
 
 }
 
+int sis_disk_io_map_read_varblks(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl)
+{
+    // 默认已经加载到列表的都是正确的
+    int newblks = MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs);
+    if (ksctrl->varblks->count == 0)
+    {
+        sis_int_list_push(ksctrl->varblks, ksctrl->mindex_p->varfbno);
+    }
+    while (newblks > ksctrl->varblks->count)
+    {
+        int blkno = sis_int_list_get(ksctrl->varblks, ksctrl->varblks->count - 1);
+        s_sis_map_block *curblk = sis_map_block_head(fctrl, blkno);
+        if (curblk->next == -1)
+        {
+            break;
+        }
+        sis_int_list_push(ksctrl->varblks, curblk->next);               
+    }
+}
 void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
 {
     msec_t startmsec = sis_time_get_now_msec();
@@ -50,7 +69,7 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
     for (int si = 0; si < fctrl->mhead_r.sdbnums; si++)
     {
         s_sis_map_sdict *sdict = sis_map_list_geti(fctrl->map_sdbs, si);
-        printf("%d : %d\n", si, (int)(sis_time_get_now_msec() - startmsec));
+        printf("speed = %d : %d\n", si, (int)(sis_time_get_now_msec() - startmsec));
         for (int ki = 0; ki < fctrl->mhead_r.keynums; ki++)
         {
             int64 ksidx = sis_disk_io_map_get_ksidx(ki, si);
@@ -72,21 +91,11 @@ void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
             // }
             memmove(&ksctrl->mindex_r, ksctrl->mindex_p, sizeof(s_sis_map_index));   
             sis_int_list_clear(ksctrl->varblks);
-            // 20241127 当文件过大时 一次加载所有数据会很慢
+            // 20241127 当文件过大时 一次加载所有数据会很慢 使用 索引字段中 varblks 数量来判定是否需要新加载
+            // 写入时实时增加列表 不另外增加加载开销
             if (ksctrl->mindex_r.varfbno >= 0)
             {
-                s_sis_map_block *curblk = sis_map_block_head(fctrl, ksctrl->mindex_r.varfbno);
-                sis_int_list_push(ksctrl->varblks, ksctrl->mindex_r.varfbno);
-                while (1)
-                {   
-                    // printf("%d  %d, %p\n", ksctrl->mindex_r.varfbno, curblk->next, curblk);
-                    if (curblk->next == -1)
-                    {
-                        break;
-                    }
-                    sis_int_list_push(ksctrl->varblks, curblk->next);
-                    curblk = sis_map_block_head(fctrl, curblk->next);
-                }
+                sis_int_list_push(ksctrl->varblks, ksctrl->mindex_r.varfbno);              
             }             
         }
     } 
@@ -297,7 +306,10 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
     {
         return NULL;
     }
-    
+    if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
+    {
+        sis_disk_io_map_read_varblks(fctrl, ksctrl);
+    }
     s_sis_memory *memory = sis_memory_create();
     // printf("===1=== %d %lld %lld\n", ksctrl->varblks->count, smsec_->start, smsec_->stop );
     for (int i = 0; i < ksctrl->varblks->count; i++)
@@ -369,6 +381,10 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
 {
     int start = offset == 0 ? 0 : offset < 0 ? (ksctrl->mindex_r.sumrecs + offset) : sis_min(ksctrl->mindex_r.sumrecs, offset);
     int startindex = start / ksctrl->mindex_r.perrecs;
+    if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
+    {
+        sis_disk_io_map_read_varblks(fctrl, ksctrl);
+    }
     for (int i = startindex; i < ksctrl->varblks->count; i++)
     {
         int blkno = sis_int_list_get(ksctrl->varblks, i);
@@ -485,6 +501,11 @@ int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *k
         }
         else
         {
+        
+            if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
+            {
+                sis_disk_io_map_read_varblks(fctrl, ksctrl);
+            }
             for (int i = 0; i < ksctrl->varblks->count; i++)
             {
                 int blkno = sis_int_list_get(ksctrl->varblks, i);
@@ -1067,23 +1088,10 @@ int sis_map_subctrl_check(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
         {
             continue;
         }
-        int newblks = MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs);
-        if (newblks > ksctrl->varblks->count)
+        if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
         {
-            if (ksctrl->varblks->count == 0)
-            {
-                sis_int_list_push(ksctrl->varblks, ksctrl->mindex_p->varfbno);
-            }
-            while (newblks > ksctrl->varblks->count)
-            {
-                int blkno = sis_int_list_get(ksctrl->varblks, ksctrl->varblks->count - 1);
-                s_sis_map_block *curblk = sis_map_block_head(fctrl, blkno);
-                if (curblk->next == -1)
-                {
-                    break;
-                }
-                sis_int_list_push(ksctrl->varblks, curblk->next);               
-            }
+            sis_disk_io_map_read_varblks(fctrl, ksctrl);
+            
         }
         memmove(&ksctrl->mindex_r, ksctrl->mindex_p, sizeof(s_sis_map_index));                
     }

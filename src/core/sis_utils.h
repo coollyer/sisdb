@@ -70,6 +70,10 @@ s_sis_sds sis_json_to_sds(s_sis_json_node *node_, bool iszip_);
 // 合并根目录到当前节点
 int sis_json_merge_rpath(s_sis_json_node *node_, const char *rkey, const char *rpath);
 
+int sis_json_replace_int(s_sis_json_node *node_, const char *rkey, int rval);
+int sis_json_replace_string(s_sis_json_node *node_, const char *rkey, const char *rval);
+
+
 // match_keys : * --> whole_keys
 // match_keys : k,m1 | whole_keys : k1,k2,m1,m2 --> k1,k2,m1
 s_sis_sds sis_match_key(s_sis_sds match_keys, s_sis_sds whole_keys);

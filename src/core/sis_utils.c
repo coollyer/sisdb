@@ -738,7 +738,34 @@ int sis_json_merge_rpath(s_sis_json_node *node_, const char *rkey, const char *r
 	}
 	return 0;
 }
-
+int sis_json_replace_int(s_sis_json_node *node_, const char *rkey, int rval)
+{
+	const char *str = sis_json_get_str(node_, rkey);
+	if (str)
+	{
+		sis_json_object_set_int(node_, rkey, rval);
+		return 1;
+	}
+	// else
+	{
+		sis_json_object_add_int(node_, rkey, rval);
+	}
+	return 0;
+}
+int sis_json_replace_string(s_sis_json_node *node_, const char *rkey, const char *rval)
+{
+	const char *str = sis_json_get_str(node_, rkey);
+	if (str)
+	{
+		sis_json_object_set_string(node_, rkey, rval, sis_strlen(rval));
+		return 1;
+	}
+	// else
+	{
+		sis_json_object_add_string(node_, rkey, rval, sis_strlen(rval));
+	}
+	return 0;
+}
 // match_keys : * --> whole_keys
 // match_keys : k,m1 | whole_keys : k1,k2,m1,m2 --> k1,k2,m1
 s_sis_sds sis_match_key(s_sis_sds match_keys, s_sis_sds whole_keys)

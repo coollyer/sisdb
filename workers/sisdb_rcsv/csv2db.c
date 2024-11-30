@@ -264,7 +264,7 @@ static int cb_csv2db_read(void *source, void *argv)
             {
                 sis_sprintf(fstr, 128, "\"%s\":%d,", str, i);
             }
-            int len = sis_memory_cat(omemory, fstr, sis_strlen(fstr));
+            // int len = sis_memory_cat(omemory, fstr, sis_strlen(fstr));
             // printf("-1-%s | %d\n", sis_memory(omemory), len);
         }
         sis_memory_cat(omemory, "},\"datas\":[", 11);

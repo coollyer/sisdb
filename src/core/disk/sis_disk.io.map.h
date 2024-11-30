@@ -127,7 +127,8 @@ typedef struct s_sis_map_index {
     int32           doffset;     // 数据开始位置 soffset + perrecs * 8
     // int64        noffset;     // 最新一条数据偏移位置 doffset + （currecs - 1） * dsize
     int32           varfbno;     // 起始数据块信息
-    // int32           varblks;     // 数据块数量
+    // int32           idxfbno;     // 起始索引块信息 增加索引块
+    // int32           varblks;     // 数据块数量 可以通过 sumrecs / perrecs 计算得到
 } s_sis_map_index;
 
 // 数据块信息 SIS_DISK_HID_MAP_DATA
@@ -288,65 +289,6 @@ void sis_map_sdict_destroy(void *);
 s_sis_map_ksctrl *sis_map_ksctrl_create(s_sis_map_kdict *kdict, s_sis_map_sdict *sdict);
 void sis_map_ksctrl_destroy(void *);
 
-// 得到数据区的开始指针
-static inline void *sis_map_ksctrl_get_fbvar(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int blkno)
-{
-    return (fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + ksctrl->mindex_r.doffset);
-}
-// 此函数得到数据区的指定记录指针 只读 不需要加读锁 默认数据已经写好 不会再修改
-static inline void *sis_map_ksctrl_get_var(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
-{
-    if (recno < ksctrl->mindex_r.sumrecs)
-    {
-        int vbidx = recno / ksctrl->mindex_r.perrecs;
-        // if (blkno > ksctrl->mindex_r.sumblks)
-        // {
-        //     return NULL;
-        // }
-        int curno = recno % ksctrl->mindex_r.perrecs;
-        // if (curno > ksctrl->mindex_r.currecs)
-        // {
-        //     return NULL;
-        // }
-        int blkno = sis_int_list_get(ksctrl->varblks, vbidx);
-        if (blkno > 0)
-        {
-            char *ptr = sis_map_ksctrl_get_fbvar(fctrl, ksctrl, blkno) + curno * ksctrl->mindex_r.recsize;;
-            return ptr;
-        }
-    }
-    return NULL;
-}
-// 此函数只读 不需要加读锁 默认数据已经写好 不会再修改
-static inline int64 *sis_map_ksctrl_get_timefd(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
-{
-    if (ksctrl->sdict->table->field_time && recno < ksctrl->mindex_r.sumrecs)
-    {
-        char *ptr = (char *)sis_map_ksctrl_get_var(fctrl, ksctrl, recno);
-        return (int64 *)(ptr + ksctrl->sdict->table->field_time->offset);
-    }
-    return NULL;
-}
-
-// 此函数只读 不需要加读锁 默认数据已经写好 不会再修改
-static inline int64 *sis_map_ksctrl_get_sno(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
-{
-    if (fctrl->style == SIS_DISK_TYPE_MSN && recno < ksctrl->mindex_r.sumrecs)
-    {
-        int vbidx = recno / ksctrl->mindex_r.perrecs;
-        int curno = recno % ksctrl->mindex_r.perrecs;
-        int blkno = sis_int_list_get(ksctrl->varblks, vbidx);
-        // printf("%d %d %d | %d\n", vbidx, curno, blkno, ksctrl->varblks->count);
-        if (blkno > 0)
-        {
-            char *ptr = fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + curno * 8;
-            // sis_out_binary("sno", ptr, 16);
-            return (int64 *)ptr;
-        }
-    }
-    return NULL;
-}
-
 ///////////////////////////////////////////////////////
 // s_sis_map_fctrl
 ///////////////////////////////////////////////////////
@@ -464,6 +406,8 @@ int sis_disk_io_map_del_sdbs(s_sis_map_fctrl *fctrl, const char *sdbs_);
 ////////////////////
 // 这里都是牵涉到加锁数据的函数
 
+int sis_disk_io_map_read_varblks(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl);
+
 void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl);
 void sis_disk_io_map_read_kdict(s_sis_map_fctrl *fctrl);
 void sis_disk_io_map_read_sdict(s_sis_map_fctrl *fctrl);
@@ -508,4 +452,71 @@ int sis_map_subctrl_check(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl);
 
 // 订阅方法 
 
+
+// 得到数据区的开始指针
+static inline void *sis_map_ksctrl_get_fbvar(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int blkno)
+{
+    return (fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + ksctrl->mindex_r.doffset);
+}
+// 此函数得到数据区的指定记录指针 只读 不需要加读锁 默认数据已经写好 不会再修改
+static inline void *sis_map_ksctrl_get_var(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
+{
+    if (recno < ksctrl->mindex_r.sumrecs)
+    {
+        int vbidx = recno / ksctrl->mindex_r.perrecs;
+        // if (blkno > ksctrl->mindex_r.sumblks)
+        // {
+        //     return NULL;
+        // }
+        int curno = recno % ksctrl->mindex_r.perrecs;
+        // if (curno > ksctrl->mindex_r.currecs)
+        // {
+        //     return NULL;
+        // }
+        if (vbidx > ksctrl->varblks->count - 1)
+        {
+            sis_disk_io_map_read_varblks(fctrl, ksctrl);
+        }
+        int blkno = sis_int_list_get(ksctrl->varblks, vbidx);
+        if (blkno > 0)
+        {
+            char *ptr = sis_map_ksctrl_get_fbvar(fctrl, ksctrl, blkno) + curno * ksctrl->mindex_r.recsize;;
+            return ptr;
+        }
+    }
+    return NULL;
+}
+// 此函数只读 不需要加读锁 默认数据已经写好 不会再修改
+static inline int64 *sis_map_ksctrl_get_timefd(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
+{
+    if (ksctrl->sdict->table->field_time && recno < ksctrl->mindex_r.sumrecs)
+    {
+        char *ptr = (char *)sis_map_ksctrl_get_var(fctrl, ksctrl, recno);
+        return (int64 *)(ptr + ksctrl->sdict->table->field_time->offset);
+    }
+    return NULL;
+}
+
+// 此函数只读 不需要加读锁 默认数据已经写好 不会再修改
+static inline int64 *sis_map_ksctrl_get_sno(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, int recno)
+{
+    if (fctrl->style == SIS_DISK_TYPE_MSN && recno < ksctrl->mindex_r.sumrecs)
+    {
+        int vbidx = recno / ksctrl->mindex_r.perrecs;
+        int curno = recno % ksctrl->mindex_r.perrecs;
+        if (vbidx > ksctrl->varblks->count - 1)
+        {
+            sis_disk_io_map_read_varblks(fctrl, ksctrl);
+        }
+        int blkno = sis_int_list_get(ksctrl->varblks, vbidx);
+        // printf("%d %d %d | %d\n", vbidx, curno, blkno, ksctrl->varblks->count);
+        if (blkno > 0)
+        {
+            char *ptr = fctrl->mapmem + (int64)blkno * SIS_MAP_MIN_SIZE + sizeof(s_sis_map_block) + curno * 8;
+            // sis_out_binary("sno", ptr, 16);
+            return (int64 *)ptr;
+        }
+    }
+    return NULL;
+}
 #endif

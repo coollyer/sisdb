@@ -627,6 +627,10 @@ int sis_disk_io_map_kdict_change(s_sis_map_fctrl *fctrl, s_sis_map_kdict *kdict)
 // 得到最后一块的数据头
 s_sis_map_block *sis_map_ksctrl_incr_bhead(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl)
 {
+    // if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
+    // {
+    //     sis_disk_io_map_read_varblks(fctrl, ksctrl);
+    // }
     if (ksctrl->varblks->count > 0 && ksctrl->mindex_p->currecs < ksctrl->mindex_p->perrecs)
     {
         int blkno = sis_int_list_get(ksctrl->varblks, ksctrl->varblks->count - 1);
