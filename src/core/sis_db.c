@@ -393,7 +393,10 @@ void sis_subdb_cxt_push_sdbs(s_sis_subdb_cxt *cxt_, const char *key_, void *in_,
 // 初始化数据名 和数据记录大小
 void sis_subdb_cxt_init_data(s_sis_subdb_cxt *cxt_, const char *sname_, size_t size_)
 {
-	s_sis_dynamic_db *sdb = sis_dynamic_db_create_none(sname_, size_);
+	s_sis_dynamic_db *sdb = SIS_MALLOC(s_sis_dynamic_db, sdb);
+	sdb->name = sis_sdsnew(sname_);
+	sdb->size = size_; 
+	sdb->refs = 1;
 	sis_map_list_set(cxt_->work_sdbs, sdb->name, sdb);
 	cxt_->cur_scale = SIS_DYNAMIC_TYPE_WSEC;
 }
