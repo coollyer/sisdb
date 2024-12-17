@@ -25,8 +25,8 @@ typedef struct zint64 {
 
 #pragma pack(pop)
 
-#define SIS_MAXZ(a, b) ((sis_zint32_to_double(a) > sis_zint32_to_double(b)) ? (a) : (b))
-#define SIS_MINZ(a, b) ((sis_zint32_i(a) != 0 ) && (sis_zint32_i(b) != 0) ? ((sis_zint32_to_double(a) < sis_zint32_to_double(b)) ? (a) : (b)) : ((sis_zint32_i(a) != 0) ? (a) : (b)))
+#define SIS_MAXZ(a, b) ((sis_zint32_i(a) > sis_zint32_i(b)) ? (a) : (b))
+#define SIS_MINZ(a, b) ((sis_zint32_i(a) != 0 ) && (sis_zint32_i(b) != 0) ? ((sis_zint32_i(a) < sis_zint32_i(b)) ? (a) : (b)) : ((sis_zint32_i(a) != 0) ? (a) : (b)))
 
 static inline zint32 sis_double_to_zint32(double in_, int dot_, bool valid_)
 {

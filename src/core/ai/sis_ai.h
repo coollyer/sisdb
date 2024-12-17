@@ -29,6 +29,8 @@ int sis_ai_normalization_series_array(int nums_, double ins_[], double outs_[], 
 double sis_ai_normalization_split(double value_, double min_, double max_, double mid_);
 int sis_ai_normalization_split_array(int nums_, double ins_[], double outs_[], double min_, double max_, double mid_);
 
+// 根据权重求平均值
+double sis_ai_mavg_drift(int n, double ins[]);
 // 求最后一点的斜率 正值为越来越大 负值为越来越小
 double sis_ai_series_drift(int nums_, double ins_[]);
 // 求最后一点的加速度 正值为跌的越来越慢涨的越来越快 负值为跌的越来越快 涨的越来越慢

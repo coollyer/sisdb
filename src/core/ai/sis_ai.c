@@ -224,6 +224,24 @@ int sis_ai_normalization_split_array(int nums_, double ins_[], double outs_[], d
     }
     return nums_;    
 }
+double sis_ai_mavg_drift(int n, double ins[])
+{
+    if ( n < 2 )
+    {
+        return 0.0;
+    }
+    int num = 0;
+    double sum = 0.0;
+    for (int i = 0, fk = 1; i < n; i++, fk++)
+    {
+        num += fk;
+        sum += ins[i] * fk;
+        // printf("== %d %f | %f %f %f\n", i, factor, ins[i], avg, denominator);
+    }
+    sum /= num; 
+    // printf("==== %f %f \n", avg, denominator);
+    return sum;
+}
 double sis_ai_series_drift(int nums_, double ins_[])
 {
     if (nums_ < 5)
