@@ -74,9 +74,11 @@ typedef struct s_memory_node {
 
 extern s_memory_node *__memory_first, *__memory_last;
 extern s_sis_mutex_t  __memory_mutex;
+size_t __memory_size;
 
 void safe_memory_start();
 void safe_memory_stop();
+size_t safe_memory_getsize();
 
 static inline void safe_memory_newnode(void *__p__,unsigned int size_, int line_,const char *func_)
 {
@@ -103,12 +105,14 @@ static inline void safe_memory_newnode(void *__p__,unsigned int size_, int line_
         __memory_last->next = __n; 
         __memory_last = __n; 
     } 
+    __memory_size += __n->size;
     sis_mutex_unlock(&__memory_mutex);    
 }   
 static inline void safe_memory_freenode(void *__p__)
 {   
     sis_mutex_lock(&__memory_mutex);
     s_memory_node *__n = (s_memory_node *)__p__; 
+    __memory_size -= __n->size;
     if(__n->prev) { 
         __n->prev->next = __n->next; 
     } 

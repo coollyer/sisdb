@@ -38,6 +38,7 @@ void safe_memory_stop()
 
 s_memory_node *__memory_first, *__memory_last;
 s_sis_mutex_t  __memory_mutex;
+size_t __memory_size = 0;
 
 void safe_memory_start()
 {
@@ -94,6 +95,11 @@ void safe_memory_stop()
     }
     sis_mutex_destroy(&__memory_mutex);
     printf("safe memory end. %zu\n", size);
+}
+
+size_t safe_memory_getsize()
+{
+    return __memory_size;
 }
 
 #endif

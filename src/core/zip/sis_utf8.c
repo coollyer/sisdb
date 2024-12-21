@@ -274,6 +274,7 @@ size_t sis_gbk_to_utf8(const char *in_, size_t ilen_, char *out_, size_t olen_)
         }
 	}
     *(out_ + osize) = 0x00;
+    sis_free(unibuff);
 	return osize;
 }
 // 是不是utf格式字符串
