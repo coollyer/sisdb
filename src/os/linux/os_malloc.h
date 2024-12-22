@@ -13,6 +13,7 @@
 
 static inline void safe_memory_start(){};
 static inline void safe_memory_stop(){};
+static inline unsigned long long safe_memory_getsize(){ return 0; };
 
 #define SIS_MALLOC(__type__,__val__) (__type__ *)sis_malloc(sizeof(__type__)); \
     memset(__val__, 0, sizeof(__type__));
@@ -74,7 +75,7 @@ typedef struct s_memory_node {
 
 extern s_memory_node *__memory_first, *__memory_last;
 extern s_sis_mutex_t  __memory_mutex;
-size_t __memory_size;
+extern size_t __memory_size;
 
 void safe_memory_start();
 void safe_memory_stop();

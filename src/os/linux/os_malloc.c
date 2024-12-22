@@ -45,6 +45,7 @@ void safe_memory_start()
     sis_mutex_create(&__memory_mutex);
     __memory_first = NULL;
     __memory_last = __memory_first;
+    __memory_size = 0;
     printf("safe memory begin.\n");
 }
 
