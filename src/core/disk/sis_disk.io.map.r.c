@@ -61,6 +61,7 @@ int sis_disk_io_map_read_varblks(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctr
         }
         sis_int_list_push(ksctrl->varblks, curblk->next);               
     }
+    return 0;
 }
 void sis_disk_io_map_read_ksctrl(s_sis_map_fctrl *fctrl)
 {
