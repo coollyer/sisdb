@@ -57,6 +57,7 @@ char *sis_strdup(const char *str_, size_t len_);  SIS_NEW
 
 const char *sis_str_split(const char *s, size_t *len_, char c);
 
+char *sis_str_laststr(char *in_, size_t ilen_, char c);
 // 链接字符串
 void sis_str_merge(char *in_, size_t ilen_, char ch_, const char *one_, const char *two_);
 // 切割字符串

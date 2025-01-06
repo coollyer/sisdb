@@ -726,10 +726,13 @@ int sis_json_merge_rpath(s_sis_json_node *node_, const char *rkey, const char *r
 	const char *str = sis_json_get_str(node_, rkey);
 	if (str)
 	{
-		s_sis_sds rpath = sis_sdsnew(rpath_);
-		rpath = sis_sdscatfmt(rpath, "/%s", str);
-		sis_json_object_set_string(node_, rkey, rpath, sis_sdslen(rpath));
-        sis_sdsfree(rpath);
+        if (sis_strlen(str) > 1 && str[0] == '.' && str[1] == '/')
+        {
+            s_sis_sds rpath = sis_sdsnew(rpath_);
+            rpath = sis_sdscatfmt(rpath, "/%s", str);
+            sis_json_object_set_string(node_, rkey, rpath, sis_sdslen(rpath));
+            sis_sdsfree(rpath);
+        }
 		return 1;
 	}
 	// else
@@ -763,6 +766,26 @@ int sis_json_replace_string(s_sis_json_node *node_, const char *rkey, const char
 	// else
 	{
 		sis_json_object_add_string(node_, rkey, rval, sis_strlen(rval));
+	}
+	return 0;
+}
+int sis_json_supply_int(s_sis_json_node *node_, const char *rkey, int rval)
+{
+	const char *str = sis_json_get_str(node_, rkey);
+	if (!str)
+	{
+		sis_json_object_add_int(node_, rkey, rval);
+		return 1;
+	}
+	return 0;
+}
+int sis_json_supply_string(s_sis_json_node *node_, const char *rkey, const char *rval)
+{
+	const char *str = sis_json_get_str(node_, rkey);
+	if (!str)
+	{
+		sis_json_object_add_string(node_, rkey, rval, sis_strlen(rval));
+		return 1;
 	}
 	return 0;
 }

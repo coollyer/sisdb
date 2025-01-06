@@ -13,7 +13,9 @@ static s_sis_method _sisdb_rsno_methods[] = {
   {"getdb",  cmd_sisdb_rsno_getdb, 0, NULL},
   {"sub",    cmd_sisdb_rsno_sub, 0, NULL},
   {"unsub",  cmd_sisdb_rsno_unsub, 0, NULL},
-  {"setcb",  cmd_sisdb_rsno_setcb, 0, NULL}
+  {"setcb",  cmd_sisdb_rsno_setcb, 0, NULL},
+  {"bsub",   cmd_sisdb_rsno_bsub, 0, NULL},
+  {"exist",  cmd_sisdb_rsno_exist, 0, NULL},
 };
 
 ///////////////////////////////////////////////////
@@ -506,6 +508,39 @@ int cmd_sisdb_rsno_sub(void *worker_, void *argv_)
 
     return SIS_METHOD_OK;
 }
+int cmd_sisdb_rsno_bsub(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rsno_cxt *context = (s_sisdb_rsno_cxt *)worker->context;
+
+    s_sis_message *msg = (s_sis_message *)argv_; 
+
+    _sisdb_rsno_init(context, msg);
+    
+    context->status = SIS_RSNO_WORK;
+    
+    sisdb_rsno_sub_start(context);
+
+    return SIS_METHOD_OK;
+}
+int cmd_sisdb_rsno_exist(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rsno_cxt *context = (s_sisdb_rsno_cxt *)worker->context;
+
+    s_sis_message *msg = (s_sis_message *)argv_; 
+    sis_sds_save_set(context->work_path, sis_message_get_str(msg, "work-path"));
+    sis_sds_save_set(context->work_name, sis_message_get_str(msg, "work-name"));
+
+    int subdate = sis_message_get_int(msg, "sub-date");
+    LOG(0)("read %d\n", subdate);
+    if (subdate == 0 || !sis_disk_sno_exist(sis_sds_save_get(context->work_path), sis_sds_save_get(context->work_name), subdate))
+    {
+        return SIS_METHOD_ERROR;
+    }
+    return SIS_METHOD_OK;
+}
+
 int cmd_sisdb_rsno_unsub(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 

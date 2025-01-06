@@ -917,6 +917,7 @@ int sis_disk_sno_exist(const char *path_, const char *name_, int idate_)
     int isok = 0;
     s_sis_disk_ctrl *munit = sis_disk_ctrl_create(SIS_DISK_TYPE_SNO, path_, name_, idate_);
     int o = sis_disk_ctrl_read_start(munit);
+    // printf("%s %s %d\n", path_, name_, o);
     if (o == SIS_DISK_CMD_OK)
     {
         isok = 1;

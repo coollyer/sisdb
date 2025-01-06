@@ -38,6 +38,15 @@ typedef struct s_sis_db_chars
 	void         *data;     
 } s_sis_db_chars;
 
+typedef struct s_sis_db_mchars
+{
+	const char   *kname; // 键值名
+	const char   *sname; // 数据表名
+    uint32        rsize; // 当一记录长度
+	uint32        count; // 数据个数
+	void         *datas; // 数据指针   
+} s_sis_db_mchars;
+
 typedef struct s_sis_db_bytes
 {
 	int        kidx;

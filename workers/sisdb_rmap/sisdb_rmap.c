@@ -14,6 +14,7 @@ static s_sis_method _sisdb_rmap_methods[] = {
   {"get",    cmd_sisdb_rmap_get, 0, NULL},
   {"getdb",  cmd_sisdb_rmap_getdb, 0, NULL},
   {"sub",    cmd_sisdb_rmap_sub, 0, NULL},
+  {"bsub",   cmd_sisdb_rmap_bsub, 0, NULL},
   {"unsub",  cmd_sisdb_rmap_unsub, 0, NULL},
   {"setcb",  cmd_sisdb_rmap_setcb, 0, NULL}
 };
@@ -473,6 +474,22 @@ int cmd_sisdb_rmap_sub(void *worker_, void *argv_)
     _sisdb_rmap_init(context, msg);
     
     context->status = SIS_RMAP_CALL;
+    
+    sisdb_rmap_sub_start(context);
+
+    return SIS_METHOD_OK;
+}
+
+int cmd_sisdb_rmap_bsub(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+
+    s_sis_message *msg = (s_sis_message *)argv_; 
+
+    _sisdb_rmap_init(context, msg);
+    
+    context->status = SIS_RMAP_WORK;
     
     sisdb_rmap_sub_start(context);
 

@@ -148,6 +148,17 @@ const char *sis_str_split(const char *s_, size_t *len_, char c_)
 	}
 	return ptr;
 }
+char *sis_str_laststr(char *in_, size_t ilen_, char c)
+{
+	for(size_t i = ilen_ - 2; i >= 0; i--)
+	{
+		if(in_[i] == c)
+		{
+			return &in_[i + 1];
+		}
+	}
+	return in_;	
+}
 void sis_str_merge(char *in_, size_t ilen_, char ch_, const char *one_, const char *two_)
 {
 	int off = 0;

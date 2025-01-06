@@ -30,7 +30,8 @@ int _sis_file_csv_parse(s_sis_file_csv *csv_)
 			// printf("offset=%d %d %d %d\n", (int)offset, (int)buffer->offset, (int)buffer->size, (int)buffer->maxsize);
 			s_sis_string_list *str = sis_string_list_create();
 			sis_string_list_load(str, sis_memory(buffer), offset, csv_->sign);
-			if (sis_string_list_getsize(str) > 0)
+			// printf("%d %d %s\n", csv_->list->count, sis_string_list_getsize(str), str);
+            if (sis_string_list_getsize(str) > 0)
 			{
 				if (sis_map_int_getsize(csv_->head) == 0)
 				{

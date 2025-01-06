@@ -73,6 +73,8 @@ int sis_json_merge_rpath(s_sis_json_node *node_, const char *rkey, const char *r
 int sis_json_replace_int(s_sis_json_node *node_, const char *rkey, int rval);
 int sis_json_replace_string(s_sis_json_node *node_, const char *rkey, const char *rval);
 
+int sis_json_supply_int(s_sis_json_node *node_, const char *rkey, int rval);
+int sis_json_supply_string(s_sis_json_node *node_, const char *rkey, const char *rval);
 
 // match_keys : * --> whole_keys
 // match_keys : k,m1 | whole_keys : k1,k2,m1,m2 --> k1,k2,m1
