@@ -148,7 +148,7 @@ const char *sis_str_split(const char *s_, size_t *len_, char c_)
 	}
 	return ptr;
 }
-char *sis_str_laststr(char *in_, size_t ilen_, char c)
+const char *sis_str_laststr(const char *in_, size_t ilen_, char c)
 {
 	for(size_t i = ilen_ - 2; i >= 0; i--)
 	{
