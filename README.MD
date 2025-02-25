@@ -35,6 +35,12 @@ It was initially designed to meet the needs of collecting high-traffic data of s
 
 #### 3.3 Run the client for sample data
 
+Simple access
+```shell
+    cd sisdb/client/web/search.html
+```
+
+Complex examples of accessing data
 ```shell
     cd sisdb/
     git clone  https://github.com/coollyer/wclient.git

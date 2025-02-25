@@ -36,6 +36,12 @@ sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回
 
 #### 3.3 运行范例数据的客户端
 
+简单的访问
+```shell
+    cd sisdb/client/web/search.html
+```
+
+访问数据的复杂例子
 ```shell
     cd sisdb/
     git clone  https://github.com/coollyer/wclient.git
