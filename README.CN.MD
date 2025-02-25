@@ -37,6 +37,9 @@ sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回
 #### 3.3 运行范例数据的客户端
 
 ```shell
+    cd sisdb/
+    git clone  https://github.com/coollyer/wclient.git
+    cd wclient
     npm run start
 ```
 
