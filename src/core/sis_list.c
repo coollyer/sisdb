@@ -293,7 +293,7 @@ void sis_struct_list_rect(s_sis_struct_list *list_, int rows_)
 	// 	memmove(list_->buffer, (char *)list_->buffer + (list_->start * list_->len), list_->count * list_->len);		
 	// 	list_->start = 0;
 	// }
-	if (list_->start > rows_)
+	if (list_->start > rows_ * 0.2)
 	{
 		memmove(list_->buffer, (char *)list_->buffer + (list_->start * list_->len), rows_ * list_->len);		
 		list_->start = 0;
