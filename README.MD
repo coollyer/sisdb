@@ -1,83 +1,79 @@
-### 一、什么是 sisdb ?
+### 一、What is sisdb?
 
 ---
 
-sisdb是一个完全开源的使用ANSI C语言编写、支持本地文件、网络、内存、数据可持久化的时序数据集；
+sisdb is a fully open-source time series data set written in ANSI C language, which supports local files, networks, memory, and data persistence.
+sisdb has the characteristics of simple deployment, low latency, rich data formats, and multi-table data streaming playback.
+It was initially designed to meet the needs of collecting high-traffic data of securities market quotations, storing and accessing factor data, and providing data support for artificial intelligence algorithms.
 
-sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回放等特点；
+### 二、Features of sisdb
 
-设计初衷是为了满足证券行情的大流量数据的采集、因子数据存取、人工智能算法的数据支持；
+1. It adopts the WebSocket protocol format and can conveniently provide data support for the Web front end.
+2. Due to the different requirements for data formats in the production environment and the development environment, for developers, the best situation is to use the JSON format for data interaction in the development stage; and use the compressed binary data stream in the production environment. This ensures the efficiency of development and enables a smooth transition to a safe and reliable production environment. It mainly supports data storage formats such as CSV format, SNO format, MAP format, and LOG format.
 
-### 二、sisdb 的特点
-
-1. 采用websocket协议格式，可以方便的为Web前端提供数据支持；
-2. 生产环境和开发环境对数据格式要求的不同，对于开发者来说最好的情况是开发阶段用json格式做数据交互；进入生产环境使用压缩的二进制数据流；这样即保证了开发的效率，同时可以平滑切换到安全可靠的生产环境, 主要支持csv格式、sno格式、map格式、log格式等数据存储格式；
-3. 越来越多的跨平台开发需求，使得目前跨系统的前端通常以WEB应用为主；sisdb直接提供了websocket标准通讯协议来提供数据支持，使得针对跨平台的客户端数据支持有先天的优势；
-4. sisdb 是专门为有价证券体系开发的一款高性能、安全、便捷的时序结构化数据库；sisdb针对有价证券的行情和交易数据进行优化存取，不仅支持二进制结构化数据流，而且还支持 json、csv 数据格式的输入和输出，便于用户分析数据；
-5. sisdb提供插件式功能扩展，便于二次开发，很方便的实现庞大的系统级程序；
-6. 支持单键单表数据获取，多键多表数据订阅；
+3. With the increasing demand for cross-platform development, the current cross-system front ends are usually mainly WEB applications. sisdb directly provides the standard WebSocket communication protocol to provide data support, giving it an inherent advantage in providing data support for cross-platform clients.
+4. sisdb is a high-performance, secure, and convenient time series structured database specifically developed for the securities system. It optimizes the storage and access of securities market quotations and trading data, and not only supports binary structured data streams but also supports the input and output of JSON and CSV data formats, facilitating users' data analysis.
+5. sisdb provides plug-in-based function expansion, which is convenient for secondary development and easily realizes large system-level programs.
+6. It supports single-key single-table data acquisition and multi-key multi-table data subscription.
 
 
-### 三、开始使用 sisdb
+### 三、Getting Started with sisdb
 
-#### 3.1 下载并安装sisdb
+#### 3.1 Download and Install sisdb
 
 ```shell
-    git clone  https://github.com/seerline/sisdb.git
+    git clone  https://github.com/coollyer/sisdb.git
     cd sisdb/bin
     make
 ```
 
-#### 3.2 运行sisdb
+#### 3.2 Run sisdb
 
 ```shell
     ./sisdb -f sisdb-server.conf 
 ```
 
-#### 3.3 运行范例数据的客户端
+#### 3.3 Run the client for sample data
 
 ```shell
     npm run start
 ```
 
-### 四、sisdb 说明
+### 四、Explanation of sisdb
 
-#### 4.1 目录说明
+#### 4.1 Directory Explanation
 
-   bin - 输出文件、配置文件等
+   bin - Output files, configuration files, etc.
 
-   client - 客户端访问数据库的例子
+   client - Examples of clients accessing the database
 
-   mock - 范例数据文件存放位置
+   mock - Location for storing sample data files
  
-   sdk - 第三方库
+   sdk - Third-party libraries
 
-   src - 源码
+   src - Source code
 
-   workers - 所有的插件目录
+   workers - Directory for plugins
 
-#### 4.2 主配置文件
+#### 4.2 Main Configuration File
 
-sisdb-rserver.conf  -- 作为独立服务时使用的配置文件
-主要配置文件
-详见配置文件中说明
+sisdb-server.conf -- The configuration file used when operating as an independent service.
+For details of the main configuration file, see the instructions in the configuration file.
 
-#### 4.3 数据结构字段说明
+#### 4.3 Explanation of Data Structure Fields
 
-   | 字段名     | 数据类型 | 长度 | 数量 | 小数点 | 字段约束 | 
-   | :---      | :----: | :----: | :----: | :----: | :----: |
-   | 字符串     | 参考数据类型定义 | 字段长度 | 默认为1 | 默认为0 | I 为索引 O 为唯一 | 
+   | Field Name | Data Type | Length | Quantity | Decimal Point | Field Constraints | 
+   | :---    | :----: | :----: | :----: | :----: | :----: |
+   | String  | Refer to the data type definition | Field length | Defaults to 1 | Defaults to 0 | I for index, O for unique | 
 
-#### 4.4 数据类型说明
-| 数据类型标志 | 类型说明 | 字节说明 | 备注 |
+#### 4.4 Explanation of Data Types
+| Data Type Indicator | Type Description | Byte Description | Remarks |
 | :---:     | :----: | :----: | :---- |
-|  T   |毫秒      | 8       | 1630906080840  |
-|  S   |秒        |4、8     | 1630906080|
-|  M   |分钟      |4        | 27181768 |
-|  D   |天        |4        | 20100101|
-|  I   |整数      |1、2、4、8| -1234|
-|  U   |无符号整数 |1、2、4、8| 1234|
-|  C   |字符型     |1..N     | SH600600 |
-|  F   |浮点数     |4、8     | 1234.56|
-|  P   |整数      |4、8     | 1234.56|
+|  T   |Milliseconds      | 8       | 1630906080840  |
+|  S   |Seconds        |4、8     | 1630906080|
+|  I   |Integer      |1、2、4、8| -1234|
+|  U   |Unsigned Integer |1、2、4、8| 1234|
+|  C   |Character Type     |1..N     | SH600600 |
+|  F   |Floating Point Number	     |4、8     | 1234.56|
+|  P   |Integer      |4、8     | 1234.56|
    
