@@ -433,6 +433,10 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     
     s_sis_msec_pair pair; 
     int subdate = sis_message_get_int(msg, "sub-date");
+    if (subdate == 0 && !sis_message_exist(msg, "sub-date"))
+    {
+        subdate = sis_message_get_int(msg, "start-date");
+    }
     pair.start = (msec_t)sis_time_make_time(subdate, 0) * 1000;
     pair.stop = (msec_t)sis_time_make_time(subdate, 235959) * 1000 + 999;
     const char *subkeys = sis_message_get_str(msg, "sub-keys");

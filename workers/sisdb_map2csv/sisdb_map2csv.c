@@ -199,6 +199,7 @@ void sis_sisdb_map2csv_dbinfo_destroy(void *info_)
 }
 int sis_sisdb_map2csv_dbinfo_open(s_sisdb_map2csv_dbinfo *dinfo, int wdate)
 {
+    // LOG(0)("write--- %s\n", dinfo->csvname);
     if (dinfo->status != SIS_DBINFO_INIT)
     {
         return dinfo->status;
@@ -318,6 +319,7 @@ static int cb_dict_sdbs(void *worker_, void *argv_)
     s_sisdb_map2csv_cxt *context = (s_sisdb_map2csv_cxt *)worker->context;
     if (argv_)
     {
+        
         s_sis_json_handle *injson = sis_json_load(argv_, sis_sdslen(argv_));
         if (!injson)
         {
@@ -371,6 +373,7 @@ static int cb_sub_chars(void *worker_, void *argv)
     s_sis_db_chars *pchars = (s_sis_db_chars *)argv;
 
     s_sisdb_map2csv_dbinfo *dinfo = sis_map_list_get(context->map_sdbs, pchars->sname);
+    // LOG(0)("%p %s\n", dinfo, pchars->sname);
     if (dinfo)
     {
         sis_sisdb_map2csv_dbinfo_open(dinfo, context->curr_date);
