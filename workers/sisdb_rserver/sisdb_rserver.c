@@ -439,6 +439,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
     s_sis_worker *curwork = rserver_worker_inited(context, rworker, netmsg);
     if (curwork)
     {
+        LOG(5)("init type : %d %s\n", rworker->stype, netmsg->subject);
         s_sis_message *msg = sis_message_create();
         if (rworker->stype == SIS_DTYPE_SNO)
         {
@@ -508,10 +509,16 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
             if (handle)
             {
-                int startdate = sis_json_get_int(handle->node, "start-date", 0);
-                sis_message_set_int(msg, "start-date", startdate);
-                int stopdate = sis_json_get_int(handle->node, "stop-date", 0);
-                sis_message_set_int(msg, "stop-date", stopdate);
+                if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                {
+                    int stopdate = sis_json_get_int(handle->node, "sub-date", 0);
+                    sis_message_set_int(msg, "sub-date", stopdate);
+                }
+                else
+                {
+                    int stopdate = sis_json_get_int(handle->node, "start-date", 0);
+                    sis_message_set_int(msg, "sub-date", stopdate);
+                }
                 sis_json_close(handle);
             }
         }
@@ -520,6 +527,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
         {
             // 得到数据并发送信息
             s_sis_sds o = NULL;
+            LOG(5)("read type : %d %s\n", rworker->stype, sis_message_get_str(msg, "sub-sdbs"));
             if (rworker->stype == SIS_DTYPE_CSV)
             {   
                 // csv 后期统一转为二进制数据返回
@@ -537,6 +545,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             }
             else
             {
+
                 s_sis_object *obj = sis_message_get(msg, "object");
                 s_sis_dynamic_db *rdb = sis_message_get(msg, "dbinfo");
                 o = sis_sdb_fields_to_json_sds(rdb, SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj), NULL, NULL, true, true);

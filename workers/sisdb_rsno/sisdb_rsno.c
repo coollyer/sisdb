@@ -432,8 +432,12 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
         SIS_DISK_TYPE_SNO, NULL);
     
     s_sis_msec_pair pair; 
-    int subdate = sis_message_get_int(msg, "sub-date");
-    if (subdate == 0 && !sis_message_exist(msg, "sub-date"))
+    int subdate = 0;
+    if (sis_message_exist(msg, "sub-date"))
+    {
+        subdate = sis_message_get_int(msg, "sub-date");
+    }
+    else 
     {
         subdate = sis_message_get_int(msg, "start-date");
     }
@@ -450,14 +454,16 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
         sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
         sis_dynamic_db_incr(var.dbinfo);
         sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+        LOG(5)("read sno info : %p %zu\n", var.dbinfo, sis_memory_get_size(var.memory));
     }
     sis_disk_reader_destroy(wreader);
 
     LOG(5)("get sno stop. ok [%d] %d %d\n", context->work_date, subdate, context->status);
-    if (!var.memory)
+    if (!var.memory || !var.dbinfo)
     {
         return SIS_METHOD_NIL;
     }
+    LOG(5)("read sno info : %p %zu\n", var.dbinfo, sis_memory_get_size(var.memory));
     return SIS_METHOD_OK;
 }
 int cmd_sisdb_rsno_getdb(void *worker_, void *argv_)
