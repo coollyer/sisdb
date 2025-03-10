@@ -21,6 +21,11 @@
 // 对于多级数据表 sname 以 . 分隔 因此数据表目录不能带.
 // 数据不压缩 全部以json + array 明文返回
 
+typedef struct s_rserver_task
+{
+    int                 stype;    // 每个任务可能类型都不同
+	s_sis_worker       *worker;   // s_sis_worker
+} s_rserver_task;
 
 // 每个用户的每次请求都建立一个工作者
 typedef struct s_rserver_worker
@@ -28,8 +33,7 @@ typedef struct s_rserver_worker
     int                 cid;       // 用户编号
 	int                 authed;    // 0  1 已经验证
     int                 access;    // 
-    int                 stype;
-	s_sis_pointer_list *workers;   // s_sis_worker
+	s_sis_pointer_list *workers;   // s_rserver_task
 } s_rserver_worker;
 
 typedef struct s_rserver_user
@@ -61,8 +65,8 @@ s_rserver_worker *rserver_worker_create(int sid);
 
 void rserver_worker_destroy(void *);
 
-s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *, s_rserver_worker *, s_sis_net_message *netmsg);
-void rserver_worker_closed(s_rserver_worker *rworker, s_sis_worker *curwork);
+s_rserver_task *rserver_worker_inited(s_sisdb_rserver_cxt *, s_rserver_worker *, s_sis_net_message *netmsg);
+void rserver_worker_closed(s_rserver_worker *rworker, s_rserver_task *curwork);
 
 //////////////////////////////////
 // s_sisdb_rserver

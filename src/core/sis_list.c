@@ -1863,7 +1863,9 @@ int sis_pointer_list_find_and_delete(s_sis_pointer_list *list_, void *finder_)
 			{
 				list_->vfree(ptr[i]);
 			}
-			memmove(&ptr[i], &ptr[i + 1], (list_->count - 1 - i) * list_->len);
+            if (list_->count > (1 + i)) {
+			    memmove(&ptr[i], &ptr[i + 1], (list_->count - 1 - i) * list_->len);
+            }
 			list_->count--;
 			return i;
 		}
@@ -1915,6 +1917,7 @@ int   sis_int_list_insert(s_sis_int_list *list_, int index_, int64 in_)
 		return -1;
 	}
 	_pointer_list_grow(list_, list_->count + 1);
+
 	memmove((char *)list_->buffer + ((index_ + 1) * list_->len), (char *)list_->buffer + (index_ * list_->len),
 			(list_->count - index_) * list_->len);
 

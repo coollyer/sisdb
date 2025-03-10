@@ -41,12 +41,23 @@ s_sis_modules sis_modules_sisdb_rserver = {
 //////////////////////////////////
 // s_rserver_worker
 ///////////////////////////////////
+void rserver_task_destroy(void *task_)
+{
+    s_rserver_task *task = task_;
+    if (task->worker) 
+    {
+        sis_worker_destroy(task->worker);
+    }
+    sis_free(task);
+}
+
 s_rserver_worker *rserver_worker_create(int sid)
 {
     s_rserver_worker *rworker = SIS_MALLOC(s_rserver_worker, rworker);
     rworker->cid = sid;
     rworker->workers = sis_pointer_list_create();
-    rworker->workers->vfree = sis_worker_destroy;
+    rworker->workers->vfree = rserver_task_destroy;
+    LOG(0)("init : %p %p\n", rworker, rworker->workers);
     return rworker;
 }
 
@@ -82,8 +93,8 @@ static void _cb_connect_close(void *worker_, int sid)
         s_sis_message *msg = (s_sis_message *)sis_message_create();
         for (int i = 0; i < rworker->workers->count; i++)
         {
-            s_sis_worker *curwork = sis_pointer_list_get(rworker->workers, i);
-            sis_worker_command(curwork, "unsub", msg);
+            s_rserver_task *curtask = sis_pointer_list_get(rworker->workers, i);
+            sis_worker_command(curtask->worker, "unsub", msg);
         }
         sis_message_destroy(msg);
         sis_map_kint_del(context->user_work, sid);
@@ -387,11 +398,11 @@ int cmd_sisdb_rserver_sub(void *worker_, void *argv_)
         return SIS_METHOD_ERROR;
     }
     // 这里处理订阅服务
-    s_sis_worker *curwork = rserver_worker_inited(context, rworker, netmsg);
-    if (curwork)
+    s_rserver_task *curtask = rserver_worker_inited(context, rworker, netmsg);
+    if (curtask)
     {
         s_sis_message *msg = sis_message_create();
-        if (sis_worker_command(curwork, netmsg->cmd, msg) == SIS_METHOD_OK)
+        if (sis_worker_command(curtask->worker, netmsg->cmd, msg) == SIS_METHOD_OK)
         {
             // 得到数据并发送信息
         }
@@ -412,10 +423,10 @@ int cmd_sisdb_rserver_unsub(void *worker_, void *argv_)
         return SIS_METHOD_ERROR;
     }
     // 这里处理订阅服务
-    s_sis_worker *curwork = rserver_worker_inited(context, rworker, netmsg);
-    if (curwork)
+    s_rserver_task *curtask = rserver_worker_inited(context, rworker, netmsg);
+    if (curtask)
     {
-        if (sis_worker_command(curwork, netmsg->cmd, NULL) == SIS_METHOD_OK)
+        if (sis_worker_command(curtask->worker, netmsg->cmd, NULL) == SIS_METHOD_OK)
         {
             // 得到数据并发送信息
         }
@@ -436,12 +447,12 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
         return SIS_METHOD_ERROR;
     }
     // 这里处理订阅服务
-    s_sis_worker *curwork = rserver_worker_inited(context, rworker, netmsg);
-    if (curwork)
+    s_rserver_task *curtask = rserver_worker_inited(context, rworker, netmsg);
+    if (curtask)
     {
-        LOG(5)("init type : %d %s\n", rworker->stype, netmsg->subject);
+        // LOG(5)("init type : %p %d %s\n", rworker, curtask->stype, netmsg->subject);
         s_sis_message *msg = sis_message_create();
-        if (rworker->stype == SIS_DTYPE_SNO)
+        if (curtask->stype == SIS_DTYPE_SNO)
         {
             char kname[128];
             char sname[128];
@@ -464,7 +475,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
                 sis_json_close(handle);
             }
         }
-        else if (rworker->stype == SIS_DTYPE_MAP)
+        else if (curtask->stype == SIS_DTYPE_MAP)
         {
             char kname[128];
             char sname[128];
@@ -501,7 +512,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
                 sis_json_close(handle);
             }
         }
-        else // if (rworker->stype == SIS_DTYPE_CSV)
+        else // if (curtask->stype == SIS_DTYPE_CSV)
         {
             sis_message_set_int(msg, "sub-mode", 1);  // 获取原始数据
             sis_message_set_str(msg, "sub-keys", "*", 1);
@@ -522,13 +533,18 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
                 sis_json_close(handle);
             }
         }
-        
-        if (sis_worker_command(curwork, netmsg->cmd, msg) == SIS_METHOD_OK)
+        LOG(0)("closes : ==1.1== %p %p %p %p \n", rworker, rworker->workers, curtask, curtask->worker);
+        // s_sis_worker *www = curtask->worker;
+        int r = sis_worker_command(curtask->worker, netmsg->cmd, msg);
+        // int r = sis_worker_command(curtask->worker, netmsg->cmd, msg);
+        LOG(0)("closes : ==1.2== %p %p %p %p \n", rworker, rworker->workers, curtask, curtask->worker);
+        if (r == SIS_METHOD_OK)
         {
             // 得到数据并发送信息
             s_sis_sds o = NULL;
-            LOG(5)("read type : %d %s\n", rworker->stype, sis_message_get_str(msg, "sub-sdbs"));
-            if (rworker->stype == SIS_DTYPE_CSV)
+            LOG(0)("closes : ==1.1.1== %p %p %p %p \n", rworker, rworker->workers, curtask, curtask->worker);
+            // LOG(5)("read type : %p %d %s\n", rworker, curtask->stype, sis_message_get_str(msg, "sub-sdbs"));
+            if (curtask->stype == SIS_DTYPE_CSV)
             {   
                 // csv 后期统一转为二进制数据返回
                 s_sis_object *obj = sis_message_get(msg, "object");
@@ -539,7 +555,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
                 }
                 else
                 {
-                    sis_net_msg_tag_null(netmsg);
+                    sis_net_msg_tag_error(netmsg, "no data.", 9);
                     sis_net_class_send(context->socket, netmsg);
                 }
             }
@@ -556,7 +572,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
                 }
                 else
                 {
-                    sis_net_msg_tag_null(netmsg);
+                    sis_net_msg_tag_error(netmsg, "no data.", 9);
                     sis_net_class_send(context->socket, netmsg);
                 }
             }
@@ -568,16 +584,17 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
         }
         sis_message_destroy(msg);
         // 服务完毕 关闭服务
-        rserver_worker_closed(rworker, curwork);
+        rserver_worker_closed(rworker, curtask);
     }
     return SIS_METHOD_OK;
 }
 
-s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_worker *rworker, s_sis_net_message *netmsg)
+s_rserver_task *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_worker *rworker, s_sis_net_message *netmsg)
 {
+    s_rserver_task *curtask = SIS_MALLOC(s_rserver_task, curtask);
     char fpath[255];
     sis_sprintf(fpath, 255, "%s/%s", context->work_path, netmsg->service);
-    int stype = sis_disk_check_dtype(fpath);
+    curtask->stype = sis_disk_check_dtype(fpath);
     
     char rpath[255];
     sis_file_getpath(netmsg->service, rpath, 255);
@@ -592,10 +609,9 @@ s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_work
     {
         sis_sprintf(cpath, 255, "%s/", context->work_path);
     }
-    printf("===  %s | %s | %s : %d\n", fpath, rpath, rname, stype);
+    printf("===  %s | %s | %s : %d\n", fpath, rpath, rname, curtask->stype);
     
-    s_sis_worker *worker = NULL;
-    switch (stype)
+    switch (curtask->stype)
     {
     case SIS_DTYPE_SNO:
         {
@@ -607,7 +623,7 @@ s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_work
     
             char cname[255];
             sis_sprintf(cname, 255, "%s_%d", rname, rworker->cid);
-            worker = sis_worker_create_of_conf(NULL, cname, cpara);
+            curtask->worker = sis_worker_create_of_conf(NULL, cname, cpara);
         }
         break;
     case SIS_DTYPE_MAP:
@@ -620,7 +636,7 @@ s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_work
     
             char cname[255];
             sis_sprintf(cname, 255, "%s_%d", rname, rworker->cid);
-            worker = sis_worker_create_of_conf(NULL, cname, cpara);
+            curtask->worker = sis_worker_create_of_conf(NULL, cname, cpara);
         }
         break;
     case SIS_DTYPE_CSV:
@@ -633,7 +649,7 @@ s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_work
     
             char cname[255];
             sis_sprintf(cname, 255, "%s_%d", rname, rworker->cid);
-            worker = sis_worker_create_of_conf(NULL, cname, cpara);
+            curtask->worker = sis_worker_create_of_conf(NULL, cname, cpara);
         }
         break;
     // case SIS_DTYPE_JSON:
@@ -643,25 +659,27 @@ s_sis_worker *rserver_worker_inited(s_sisdb_rserver_cxt *context, s_rserver_work
         }
         break;
     }
-    if (worker)
+    if (curtask->worker)
     {
-        s_sis_method *method = sis_worker_get_method(worker, netmsg->cmd);
+        s_sis_method *method = sis_worker_get_method(curtask->worker, netmsg->cmd);
         if (!method)
         {
             sisdb_rserver_reply_no_method(context, netmsg, netmsg->cmd);
-            sis_worker_destroy(worker);
+            rserver_task_destroy(curtask);
             return NULL;
         }
-        sis_pointer_list_push(rworker->workers, worker);
-        rworker->stype = stype;
+        sis_pointer_list_push(rworker->workers, curtask);
+        return curtask;
     }
-    return worker;
+    rserver_task_destroy(curtask);
+    return NULL;
 }
 
-void rserver_worker_closed(s_rserver_worker *rworker, s_sis_worker *curwork)
+void rserver_worker_closed(s_rserver_worker *rworker, s_rserver_task *curtask)
 {
     if (rworker->workers)
     {
-        sis_pointer_list_find_and_delete(rworker->workers, curwork);
+        LOG(0)("closes : %p %p %p\n", rworker, rworker->workers, curtask);
+        sis_pointer_list_find_and_delete(rworker->workers, curtask);
     }
 }
