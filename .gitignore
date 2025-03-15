@@ -30,3 +30,9 @@ x64/
 !bin/sisdb
 modules.c
 src/modules.c
+
+package-lock.json
+node_modules/
+.parcel-cache/
+.cache/
+dist/

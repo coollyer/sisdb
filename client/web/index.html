@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vortex</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="./debounce.js"></script>
+    <link rel="stylesheet" href="./style.css" type="text/css" media="screen" />
+</head>
+
+<body>
+    <div>
+    <ul id="menu">
+        <li><a href="#" class="drop">行情</a>
+            <div class="dropdown_1columns">
+                <div class="col_1">
+                    <h3>实时行情</h3>
+                    <ul>
+                        <!-- <li><a href="#" id='xxx' onclick="changeChart('minute')" >分时走势</a></li> -->
+                        <li><a href="#" id='btMarket' >行情列表</a></li>
+                        <li><a href="#" id='btMinute' >分时走势</a></li>
+                        <li><a href="#" id='btKbar' >日线</a></li>
+                    </ul>
+                </div>
+                <div class="col_1">
+                    <h3>盘后行情</h3>
+                    <ul>
+                        <li><a href="#" id='btKbar'>日线</a></li>
+                        <li><a href="#" id='btFbar'>分钟线</a></li>
+                    </ul>
+                </div>
+                <div class="col_1">
+                    <h3>主图指标</h3>
+                    <ul>
+                        <li><a href="#"  id='btEmv'>能量线</a></li>
+                    </ul>
+                </div>
+                <div class="col_1">
+                    <h3>副图指标</h3>
+                    <ul>
+                        <li><a href="#">预测线</a></li>
+                        <li><a href="#">能量线</a></li>
+                    </ul>
+                </div>
+            </div>
+        </li>
+        <input class="dropdown_input" id="inputBox"></input>
+        <li class="menu_right"><a href="#" class="drop">设置</a>
+            <div class="dropdown_2columns align_right">
+                <div class="col_2">
+                    <ul class="simple">
+                        <li><a href="#">换肤</a></li>
+                        <li><a href="#">关于</a></li>
+                    </ul>
+                </div>
+            </div>
+        </li>
+    </ul>
+    </div>
+    <div class="chart-container">
+        <canvas class="chart-canvas" id="mainChart"></canvas>
+        <canvas class="chart-canvas" id="moveChart"></canvas>
+    </div>
+    <script type="module" src="./init.js"></script>
+</body>
+
+</html>
