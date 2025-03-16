@@ -44,9 +44,8 @@ sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回
 访问数据的复杂例子
 ```shell
     cd sisdb/
-    git clone  https://github.com/coollyer/wclient.git
-    cd wclient
-    npm run start
+    cd client
+    sh start.sh
 ```
 
 ### 四、sisdb 说明

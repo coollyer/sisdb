@@ -1,6 +1,5 @@
 {
     "name": "my-project",
-    "main": "init.js",
     "type": "module",
     "scripts": {
         "start": "open http://localhost:7328/web/ && parcel web/index.html --port 7328",

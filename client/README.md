@@ -1,5 +1,6 @@
 1.安装 parcel
 npm install parcel-bundler --save-dev
+
  ---> 可能遇到的问题
 
 2.运行web服务器

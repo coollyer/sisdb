@@ -43,9 +43,8 @@ Simple access
 Complex examples of accessing data
 ```shell
     cd sisdb/
-    git clone  https://github.com/coollyer/wclient.git
-    cd wclient
-    npm run start
+    cd client
+    sh start.sh
 ```
 
 ### 四、Explanation of sisdb

@@ -457,6 +457,7 @@ export function formatInfo(value, format, stkinfo) {
     if (format === 'rate') {
         out = formatRate(value, stkinfo.agoprc)
     } else {
+        console.log(format, value);
         if (format === 'price') {
             out = formatPrice(value, stkinfo.coindot, 7)
         } else if (format === 'float') {
