@@ -47,9 +47,9 @@ examples
     sh start.sh
 ```
 
-![minute chart](client/web/res/minute.jpg)
-![kbar chart](client/web/res/kbar.jpg)
-![market chart](client/web/res/market.jpg)
+![minute chart](client/web/res/minute.mini.jpg)
+![kbar chart](client/web/res/kbar.mini.jpg)
+![market chart](client/web/res/market.mini.jpg)
 
 ### 四、Explanation of sisdb
 

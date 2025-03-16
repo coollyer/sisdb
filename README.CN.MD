@@ -48,9 +48,9 @@ sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回
     sh start.sh
 ```
 
-![分时图](client/web/res/minute.jpg)
-![K线图](client/web/res/kbar.jpg)
-![行情列表](client/web/res/market.jpg)
+![分时图](client/web/res/minute.mini.jpg)
+![K线图](client/web/res/kbar.mini.jpg)
+![行情列表](client/web/res/market.mini.jpg)
 
 ### 四、sisdb 说明
 
