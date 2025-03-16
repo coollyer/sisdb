@@ -40,12 +40,16 @@ Simple access
     cd sisdb/client/web/search.html
 ```
 
-Complex examples of accessing data
+examples
 ```shell
     cd sisdb/
     cd client
     sh start.sh
 ```
+
+![minute chart](client/web/res/minute.jpg)
+![kbar chart](client/web/res/kbar.jpg)
+![market chart](client/web/res/market.jpg)
 
 ### 四、Explanation of sisdb
 

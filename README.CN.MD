@@ -41,12 +41,16 @@ sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回
     cd sisdb/client/web/search.html
 ```
 
-访问数据的复杂例子
+访问例子
 ```shell
     cd sisdb/
     cd client
     sh start.sh
 ```
+
+![分时图](client/web/res/minute.jpg)
+![K线图](client/web/res/kbar.jpg)
+![行情列表](client/web/res/market.jpg)
 
 ### 四、sisdb 说明
 

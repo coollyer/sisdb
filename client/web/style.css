@@ -150,8 +150,8 @@ body, ul, li {
 
 .dropdown_1columns {width: 500px;}
 .dropdown_2columns {width: 120px;}
-.dropdown_3columns {width: 420px;}
-.dropdown_4columns {width: 500px;}
+.dropdown_3columns {width: 380px;}
+.dropdown_4columns {width: 480px;}
 .dropdown_5columns {width: 700px;}
 
 #menu li:hover .dropdown_1columns, 
