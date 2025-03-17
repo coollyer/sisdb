@@ -66,6 +66,25 @@ typedef struct s_csv2db_cxt
 
 } s_csv2db_cxt;
 
+
 s_sis_memory *sis_csv2db_as_memory(const char *rpath, const char *rname, int idate);
+
+typedef struct s_csvdb_reader
+{
+    const char     *fields; // 字段名
+    int             offset; 
+    int             count;
+    s_sis_memory   *memory;
+    s_sis_map_int  *mapfields;
+    //
+    s_sis_int_list *fds;
+    int             currec;  // 当前读取的记录数
+    int             curcol;  // 当前读取的记录数
+    // 存储一个位置信息 可以支持按记录获取数据
+    // 具体操作是记录每条记录的开始位置 数据读取完成后 移动 memory 中的数据并修改长度 就可以了
+} s_csvdb_reader;
+// 带参数
+s_sis_memory *sis_csv2db_read_as_memory(const char *rpath, const char *rname, int idate, 
+    const char *fields, int offset, int count);
 
 #endif

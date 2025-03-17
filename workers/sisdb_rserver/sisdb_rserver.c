@@ -433,7 +433,28 @@ int cmd_sisdb_rserver_unsub(void *worker_, void *argv_)
     }
     return SIS_METHOD_OK;
 }
-
+void _sisdb_rserver_read_pubinfo(s_sis_json_handle *handle, s_sis_message *msg)
+{
+    if (sis_json_cmp_child_node(handle->node, "fields")) 
+    {
+        const char *str = sis_json_get_str(handle->node, "fields");
+        sis_message_set_str(msg, "fields", (char *)str, sis_strlen(str));
+    }
+    if (sis_json_cmp_child_node(handle->node, "offset")) 
+    {
+        int offset = sis_json_get_int(handle->node, "offset", 0);
+        sis_message_set_int(msg, "offset", offset);
+        // offset = -1 count = 1 取最后一条记录 
+        // offset = 0 count = 1 取符合条件的第一条记录 
+        int count = sis_json_get_int(handle->node, "count", 0);
+        if (offset < 0)
+        {
+            count = count > sis_abs(offset) ? sis_abs(offset) : count; 
+        }
+        sis_message_set_int(msg, "count", count);
+        // count = 1 取一条记录 和 offset 配合使用
+    }
+}
 int cmd_sisdb_rserver_get(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
@@ -464,14 +485,20 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             {
                 if (sis_json_cmp_child_node(handle->node, "sub-date")) 
                 {
-                    int stopdate = sis_json_get_int(handle->node, "sub-date", 0);
-                    sis_message_set_int(msg, "sub-date", stopdate);
+                    int subdate = sis_json_get_int(handle->node, "sub-date", 0);
+                    sis_message_set_int(msg, "sub-date", subdate);
                 }
-                else
+                else if (sis_json_cmp_child_node(handle->node, "start-date")) 
                 {
-                    int stopdate = sis_json_get_int(handle->node, "stop-date", 0);
-                    sis_message_set_int(msg, "sub-date", stopdate);
+                    int subdate = sis_json_get_int(handle->node, "start-date", 0);
+                    sis_message_set_int(msg, "sub-date", subdate);
+                } 
+                else if (sis_json_cmp_child_node(handle->node, "stop-date")) 
+                {
+                    int subdate = sis_json_get_int(handle->node, "stop-date", 0);
+                    sis_message_set_int(msg, "sub-date", subdate);
                 }
+                _sisdb_rserver_read_pubinfo(handle, msg);
                 sis_json_close(handle);
             }
         }
@@ -495,20 +522,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
                 sis_message_set_int(msg, "start-date", startdate);
                 sis_message_set_int(msg, "stop-date", stopdate);
 
-                if (sis_json_cmp_child_node(handle->node, "offset")) 
-                {
-                    int offset = sis_json_get_int(handle->node, "offset", 0);
-                    sis_message_set_int(msg, "offset", offset);
-                    // offset = -1 count = 1 取最后一条记录 
-                    // offset = 0 count = 1 取符合条件的第一条记录 
-                    int count = sis_json_get_int(handle->node, "count", 0);
-                    if (offset < 0)
-                    {
-                        count = count > sis_abs(offset) ? sis_abs(offset) : count; 
-                    }
-                    sis_message_set_int(msg, "count", count);
-                    // count = 1 取一条记录 和 offset 配合使用
-                }
+                _sisdb_rserver_read_pubinfo(handle, msg);
                 sis_json_close(handle);
             }
         }
@@ -522,14 +536,20 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             {
                 if (sis_json_cmp_child_node(handle->node, "sub-date")) 
                 {
-                    int stopdate = sis_json_get_int(handle->node, "sub-date", 0);
-                    sis_message_set_int(msg, "sub-date", stopdate);
+                    int subdate = sis_json_get_int(handle->node, "sub-date", 0);
+                    sis_message_set_int(msg, "sub-date", subdate);
                 }
-                else
+                else if (sis_json_cmp_child_node(handle->node, "start-date")) 
                 {
-                    int stopdate = sis_json_get_int(handle->node, "start-date", 0);
-                    sis_message_set_int(msg, "sub-date", stopdate);
+                    int subdate = sis_json_get_int(handle->node, "start-date", 0);
+                    sis_message_set_int(msg, "sub-date", subdate);
+                } 
+                else if (sis_json_cmp_child_node(handle->node, "stop-date")) 
+                {
+                    int subdate = sis_json_get_int(handle->node, "stop-date", 0);
+                    sis_message_set_int(msg, "sub-date", subdate);
                 }
+                _sisdb_rserver_read_pubinfo(handle, msg);
                 sis_json_close(handle);
             }
         }
@@ -542,7 +562,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
         {
             // 得到数据并发送信息
             s_sis_sds o = NULL;
-            LOG(0)("closes : ==1.1.1== %p %p %p %p \n", rworker, rworker->workers, curtask, curtask->worker);
+            // LOG(0)("closes : ==1.1.1== %p %p %p %p \n", rworker, rworker->workers, curtask, curtask->worker);
             // LOG(5)("read type : %p %d %s\n", rworker, curtask->stype, sis_message_get_str(msg, "sub-sdbs"));
             if (curtask->stype == SIS_DTYPE_CSV)
             {   
@@ -564,7 +584,17 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
 
                 s_sis_object *obj = sis_message_get(msg, "object");
                 s_sis_dynamic_db *rdb = sis_message_get(msg, "dbinfo");
-                o = sis_sdb_fields_to_json_sds(rdb, SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj), NULL, NULL, true, true);
+                if (sis_message_exist(msg, "fields") || sis_message_exist(msg, "offset"))
+                {
+                    int offset = sis_message_get_int(msg, "offset");
+                    int count = sis_message_get_int(msg, "count");
+                    const char *fields = sis_message_get_str(msg, "fields");
+                    o = sis_sdb_fields_offset_json_sds(rdb, SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj), fields, offset, count);
+                }
+                else 
+                {
+                    o = sis_sdb_fields_to_json_sds(rdb, SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj), NULL, NULL, true, true);
+                }
                 if (o)
                 {
                     sis_net_message_set_pinfo(netmsg, o);

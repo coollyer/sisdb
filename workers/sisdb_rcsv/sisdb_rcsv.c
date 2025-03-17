@@ -339,10 +339,18 @@ int cmd_sisdb_rcsv_get(void *worker_, void *argv_)
     {
         // 先检查csv文件是否存在
         int subdate = sis_message_get_int(msg, "sub-date");
-        s_sis_memory *memory = sis_csv2db_as_memory(
+        s_sis_memory *memory = sis_csv2db_read_as_memory(
             sis_sds_save_get(context->work_path),
             sis_sds_save_get(context->work_name),
-            subdate);
+            subdate,
+            sis_message_get_str(msg, "fields"),
+            sis_message_get_int(msg, "offset"),
+            sis_message_get_int(msg, "count"));
+        
+        // s_sis_memory *memory = sis_csv2db_as_memory(
+        //     sis_sds_save_get(context->work_path),
+        //     sis_sds_save_get(context->work_name),
+        //     subdate);
         if (memory)
         {
             sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, memory), sis_object_destroy);

@@ -57,6 +57,8 @@ s_sis_sds sis_sdb_fields_to_csv_sds(s_sis_dynamic_db *db_, void *in_, size_t ile
 s_sis_sds sis_sdb_fields_to_array_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_, s_sis_string_list *fields_, bool iszip_);
 // 数据按字段转换为 json
 s_sis_sds sis_sdb_fields_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_, const char *key_, s_sis_string_list *fields_, bool isfields_, bool iszip_);
+// 
+s_sis_sds sis_sdb_fields_offset_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_, const char* fields, int offset_, int count_);
 
 // [[x,y,z],....]字符串转二进制数据
 s_sis_sds sis_array_to_struct_sds(s_sis_dynamic_db *db_, s_sis_sds in_);

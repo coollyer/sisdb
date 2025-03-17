@@ -596,6 +596,103 @@ s_sis_sds sis_sdb_fields_to_json_sds(s_sis_dynamic_db *db_, void *in_, size_t il
 	return o;	
 }
 
+s_sis_sds sis_sdb_fields_offset_json_sds(s_sis_dynamic_db *db_, void *in_, size_t ilen_, const char* fields_, int offset_, int nums_)
+{
+    s_sis_string_list *fields = sis_string_list_create();
+    sis_string_list_load(fields, fields_, sis_strlen(fields_), ",");
+    if (sis_string_list_getsize(fields) < 1) 
+    {
+        sis_string_list_destroy(fields);
+        fields = NULL;
+    }
+    int fnums = fields ? sis_string_list_getsize(fields) : sis_map_list_getsize(db_->fields);
+    
+    s_sis_json_node *jone = sis_json_create_object();
+    {
+		s_sis_json_node *jfields = sis_json_create_object();
+		for (int i = 0, ki = 0; i < fnums; i++)
+		{
+            s_sis_dynamic_field *inunit = NULL;
+            if (fields)
+            {
+			    inunit = (s_sis_dynamic_field *)sis_map_list_get(db_->fields, sis_string_list_get(fields, i));
+            }
+            else
+            {
+                inunit = sis_map_list_geti(db_->fields, i);
+            }
+            if (!inunit)
+            {
+                continue;
+            }
+			if (inunit->count > 1)
+			{
+				for (int k = 0; k < inunit->count; k++)
+				{
+					char fname[64];
+					sis_sprintf(fname, 64, "%s%d", inunit->fname, k);
+					sis_json_object_add_uint(jfields, fname, ki++);
+				}
+			}
+			else
+			{
+				sis_json_object_add_uint(jfields, inunit->fname, ki++);
+			}	
+		}
+		sis_json_object_add_node(jone, "fields", jfields);
+	}
+    s_sis_json_node *jtwo = sis_json_create_array();
+	int count = (int)(ilen_ / db_->size);
+    int start = 0;
+    if (offset_ < 0) 
+    {
+        start = count + offset_;
+    } 
+    else if (offset_ > 0)
+    {
+        start += offset_;
+    }
+    int nums = count - start;
+    if (nums_ > 0) 
+    {
+        nums = (nums_ > nums) ? nums : nums_;
+    }
+	const char *val = in_ + start * db_->size;
+	for (int k = start; k < nums + start; k++)
+	{
+        
+		s_sis_json_node *jval = sis_json_create_array();
+		for (int i = 0; i < fnums; i++)
+		{
+			s_sis_dynamic_field *inunit = NULL;
+            if (fields)
+            {
+			    inunit = (s_sis_dynamic_field *)sis_map_list_get(db_->fields, sis_string_list_get(fields, i));
+            }
+            else
+            {
+                inunit = sis_map_list_geti(db_->fields, i);
+            }
+            if (!inunit)
+            {
+                continue;
+            }
+			sis_dynamic_field_to_array(jval, inunit, val);
+		}
+		sis_json_array_add_node(jtwo, jval);
+		val += db_->size;
+	}
+	sis_json_object_add_node(jone, "datas", jtwo);
+
+	s_sis_sds o = sis_json_to_sds(jone, true);
+
+	sis_json_delete_node(jone);
+    if (fields)
+    {
+        sis_string_list_destroy(fields);
+    }
+    return o;	
+}
 
 s_sis_sds sis_array_to_struct_sds(s_sis_dynamic_db *db_, s_sis_sds in_)
 {

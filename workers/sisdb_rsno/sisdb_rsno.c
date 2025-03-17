@@ -433,6 +433,7 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     
     s_sis_msec_pair pair; 
     int subdate = 0;
+    
     if (sis_message_exist(msg, "sub-date"))
     {
         subdate = sis_message_get_int(msg, "sub-date");
