@@ -652,10 +652,12 @@ s_sis_sds sis_sdb_fields_offset_json_sds(s_sis_dynamic_db *db_, void *in_, size_
     {
         start += offset_;
     }
+    start = sis_between(start, 0, count);
     int nums = count - start;
     if (nums_ > 0) 
     {
         nums = (nums_ > nums) ? nums : nums_;
+        nums = sis_between(nums, 0, count);
     }
 	const char *val = in_ + start * db_->size;
 	for (int k = start; k < nums + start; k++)

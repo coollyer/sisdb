@@ -381,7 +381,16 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
 }
 void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_sis_map_ksctrl *ksctrl, int wkname, int offset, int count)
 {
-    int start = offset == 0 ? 0 : offset < 0 ? (ksctrl->mindex_r.sumrecs + offset) : sis_min(ksctrl->mindex_r.sumrecs, offset);
+    int start = offset == 0 ? 0 : offset < 0 ? (ksctrl->mindex_r.sumrecs + offset) : offset;
+    if (start < 0) 
+    {
+        start = 0;
+    } 
+    else if (start > ksctrl->mindex_r.sumrecs - 1) 
+    {
+        return ;
+    }
+    start = sis_between(start, 0, ksctrl->mindex_r.sumrecs - 1);
     int startindex = start / ksctrl->mindex_r.perrecs;
     if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
     {
