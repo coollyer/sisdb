@@ -37,7 +37,7 @@ It was initially designed to meet the needs of collecting high-traffic data of s
 
 Simple access
 ```shell
-    cd sisdb/client/web/search.html
+    cd sisdb/api/web/search.html
 ```
 
 examples

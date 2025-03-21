@@ -38,7 +38,7 @@ sisdb具备部署简单、低延迟、数据格式丰富、多数据表流式回
 
 简单的访问
 ```shell
-    cd sisdb/client/web/search.html
+    cd sisdb/api/web/search.html
 ```
 
 访问例子
