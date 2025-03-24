@@ -44,7 +44,8 @@ typedef struct s_sis_worker {
 	int                    status;        // 当前的工作状态
 	int                    style;         // 工作者的类型 0 - normal 1 - python
     s_sis_sds              classname;     // 归属类名
-    s_sis_sds              workername;
+    s_sis_sds              workername;    // 完整路径名
+    s_sis_sds              cname;           // 当前名
     void                  *context;        // 保存上下文数据指针
     void                  *father;         // 父指针 为 NULL 表示依赖于 server 存在
     s_sis_map_pointer     *workers;        // 该工作者 次一级 的工作线程

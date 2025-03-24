@@ -348,6 +348,7 @@ s_sis_worker *sis_worker_create_of_name(s_sis_worker *father_, const char *name_
     {
         worker->classname = sis_sdsnew(name_);
     }
+    worker->cname = sis_sdsnew(name_);
     // 需要遍历前导字符
     worker->workername = _sis_worker_get_workname(worker, name_);
 
@@ -486,6 +487,7 @@ void sis_worker_destroy(void *worker_)
     }
     sis_sdsfree(worker->workername);
     sis_sdsfree(worker->classname);
+    sis_sdsfree(worker->cname);
     sis_free(worker);
 }
 
