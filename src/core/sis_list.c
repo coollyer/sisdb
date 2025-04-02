@@ -1128,6 +1128,21 @@ int sis_double_list_push(s_sis_double_list *list_, double in_)
 
 	return sis_struct_list_push(list_->value, &in_);
 }
+int sis_double_list_incr(s_sis_double_list *list_, double in_)
+{
+    return sis_struct_list_push(list_->value, &in_);
+}
+int sis_double_list_set(s_sis_double_list *list_, int index_, double in_)
+{
+    double *o = (double *)sis_struct_list_get(list_->value, index_);
+	if (o)
+    {
+        *o = in_;
+        return index_;
+    }
+    return -1;
+}
+
 void sis_double_list_calc(s_sis_double_list *list_)
 {
 	list_->avgv = 0.0;

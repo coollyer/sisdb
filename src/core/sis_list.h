@@ -186,6 +186,9 @@ void sis_double_list_sort(s_sis_double_list *src_);
 int sis_double_list_push_limit(s_sis_double_list *, int maxnums, double in_);
 
 int sis_double_list_push(s_sis_double_list *, double in_);
+// 仅仅增加数据
+int sis_double_list_incr(s_sis_double_list *, double in_);
+int sis_double_list_set(s_sis_double_list *, int , double in_);
 
 double sis_double_list_get(s_sis_double_list *, int index_);
 double *sis_double_list_gets(s_sis_double_list *, int index_);

@@ -393,7 +393,8 @@ static int cb_csv2db_read_fields(void *source, void *argv)
             // printf("-1-%s | %d\n", sis_memory(reader->memory), len);
         }
         sis_memory_cat(reader->memory, "},\"datas\":[", 11);
-        printf("-2-%zu, %zu\n", sis_map_int_getsize(reader->mapfields), sis_memory_get_size(reader->memory));
+    
+        // printf("-2-%zu, %zu\n", reader->mapfields ? sis_map_int_getsize(reader->mapfields) : 0, sis_memory_get_size(reader->memory));
     }
     else
     {
@@ -402,7 +403,7 @@ static int cb_csv2db_read_fields(void *source, void *argv)
         {
             sis_memory_cat(reader->memory, ",", 1);
         }
-        if (reader->fds->count > 0)
+        if (reader->fds && reader->fds->count > 0)
         {
             sis_memory_cat(reader->memory, "[", 1);
             char str[128];
