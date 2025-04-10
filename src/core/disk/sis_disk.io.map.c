@@ -254,6 +254,7 @@ int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int s
     if (sis_file_exists(fname))
     {
         sis_file_delete(fname);
+        sis_sdsfree(fname);
         return 1;
     }
     return 0;

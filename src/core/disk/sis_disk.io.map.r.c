@@ -683,11 +683,11 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
     int minsize = SIS_MAXI(SIS_MAP_SUB_SIZE * 32, msubctrl->subvars->count * 3);
     s_sis_map_subsno *vars = sis_malloc(minsize * sizeof(s_sis_map_subsno));
     int workdate = 0;
-    int sendnums = 0;
+    // int sendnums = 0;
     while (1)
     {
         memset((char *)vars, 0, minsize * sizeof(s_sis_map_subsno));
-        printf("============= %d || %d %d %lld\n", sendnums, msubctrl->subvars->count, workdate, minpub_snoi);
+        // printf("============= %d || %d %d %lld\n", sendnums, msubctrl->subvars->count, workdate, minpub_snoi);
         
         int   sends = 0;
         // int64 minvar_msec = 0;
@@ -804,7 +804,7 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
                 {
                     continue;
                 }
-                printf("========= sends = %d %d [%d] %s %s\n", i, sends, ++sendnums, vars[i].ksctrl->kdict->kname, vars[i].ksctrl->sdict->table->name);
+                // printf("========= sends = %d %d [%d] %s %s\n", i, sends, ++sendnums, vars[i].ksctrl->kdict->kname, vars[i].ksctrl->sdict->table->name);
                 {   // 这里处理开始结束回调
                     int currdate = vars[i].idate;
                     if (workdate == 0)
@@ -870,17 +870,17 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
         startdate = sis_msec_get_idate(minpub_msec);
     }
     msubctrl->curpub_msec = minpub_msec;
-    int sendnums = 0;
+    // int sendnums = 0;
     int workdate = 0;
     while (1)
     {
-        printf("============= %d || %d %d %lld\n", sendnums, msubctrl->subvars->count, workdate, msubctrl->curpub_msec);
+        // printf("============= %d || %d %d %lld\n", sendnums, msubctrl->subvars->count, workdate, msubctrl->curpub_msec);
         int   sends = 0;
         int64 mingap_msec = 0;  // 记录最小的差额 避免隔天时快速定位数据
         for (int i = 0; i < msubctrl->subvars->count; i++)
         {
             s_sis_map_subinfo *subinfo = sis_pointer_list_get(msubctrl->subvars, i);
-            printf("============= %s %d\n",  subinfo->ksctrl->sdict->table->name, subinfo->nottfd);
+            // printf("============= %s %d\n",  subinfo->ksctrl->sdict->table->name, subinfo->nottfd);
             if (fctrl->sub_stop == 1)
             {
                 // 通知订阅者文件读取已中断
@@ -932,7 +932,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
             while (1)
             {
                 msec_t curmsec = *(subinfo->timefd);
-                printf("===6.1===%d %lld %lld %lld\n", subinfo->cursor, subinfo->ksctrl->ksidx, curmsec, msubctrl->mpair.stop);
+                // printf("===6.1===%d %lld %lld %lld\n", subinfo->cursor, subinfo->ksctrl->ksidx, curmsec, msubctrl->mpair.stop);
                 if (msubctrl->mpair.stop > 0 && curmsec > msubctrl->mpair.stop)
                 {
                     // 时间超过 不再处理 除非不限制日期
@@ -941,7 +941,7 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
                     break;
                 }
                 int64 subv = curmsec - msubctrl->curpub_msec;
-                printf("===6.1=== %lld %lld \n", subinfo->ksctrl->ksidx, subv);
+                // printf("===6.1=== %lld %lld \n", subinfo->ksctrl->ksidx, subv);
                 if (subv > SIS_MAP_MIN_DIFF)
                 {
                     // 时间跨度大 不处理
@@ -955,8 +955,8 @@ int sis_map_subctrl_sub_data(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl
                     i--;
                     break;
                 }
-                printf("===6.2===%s.%s %d %lld  %lld | %lld %lld\n", subinfo->ksctrl->kdict->kname, subinfo->ksctrl->sdict->table->name,
-                    i, curmsec, subv, *subinfo->sortfd, subinfo->timefd ? *subinfo->timefd : 0);
+                // printf("===6.2===%s.%s %d %lld  %lld | %lld %lld\n", subinfo->ksctrl->kdict->kname, subinfo->ksctrl->sdict->table->name,
+                //     i, curmsec, subv, *subinfo->sortfd, subinfo->timefd ? *subinfo->timefd : 0);
 
                 {   // 这里处理开始结束回调
                     int currdate = sis_msec_get_idate(curmsec);
