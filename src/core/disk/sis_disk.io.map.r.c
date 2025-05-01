@@ -543,7 +543,7 @@ int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *k
                 for (int k = 0; k < recs; k++)
                 {
                     msec_t *curmsec = (msec_t *)(var + ksctrl->sdict->table->field_time->offset);
-                    printf("%lld,%d %d %d \n", *curmsec, sis_msec_get_idate(*curmsec), i, recs);
+                    // printf("%lld,%d %d %d \n", *curmsec, sis_msec_get_idate(*curmsec), i, recs);
                     if (*curmsec >= msec->start) 
                     {
                         return k + agos;
@@ -603,7 +603,7 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
     sis_pointer_list_clear(subctrl->subvars);
     
     int count = sis_map_kints_getsize(fctrl->map_kscs);
-    printf("== init == : %d %d %d\n", count, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
+    // printf("== init == : %d %d %d\n", count, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
 
     s_sis_map_ksctrl *ksctrl;
     sis_map_kints_first(fctrl->map_kscs);
@@ -634,7 +634,7 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
                 subinfo->timefd = NULL;
             }
             sis_map_subinfo_set_fd(subinfo, fctrl);
-            printf("== adda : %d %d %lld %s %s\n",subinfo->cursor, ksctrl->mindex_r.sumrecs, subinfo->sortfd ? *subinfo->sortfd: -1, ksctrl->kdict->kname, ksctrl->sdict->table->name);
+            // printf("== adda : %d %d %lld %s %s\n",subinfo->cursor, ksctrl->mindex_r.sumrecs, subinfo->sortfd ? *subinfo->sortfd: -1, ksctrl->kdict->kname, ksctrl->sdict->table->name);
         }     
     } 
     return 0;
@@ -756,7 +756,7 @@ int sis_map_subctrl_sub_sno(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
                     }
                     break;
                 }
-                printf("%lld %d %lld %lld\n", subv, minsize, cursno, minpub_snoi);
+                // printf("%lld %d %lld %lld\n", subv, minsize, cursno, minpub_snoi);
                 vars[subv].inmem = sis_map_ksctrl_get_var(fctrl, subinfo->ksctrl, subinfo->cursor);
                 vars[subv].idate = curmsec ? sis_msec_get_idate(curmsec) : startdate;
                 vars[subv].ksctrl = subinfo->ksctrl;
