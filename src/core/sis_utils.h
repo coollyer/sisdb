@@ -21,6 +21,8 @@ extern "C" {
 /////////////////////////////////////////////////
 // 从字符串加载结构
 s_sis_dynamic_db *sis_sdbinfo_load(const char *dbname, const char *fdbstr);
+// 从字符串加载指定表结构
+s_sis_dynamic_db *sis_sdbinfo_parse(const char *dbname, const char *fdbstr);
 // 表字段转 conf
 s_sis_sds sis_sdbinfo_to_conf(s_sis_dynamic_db *db_, s_sis_sds in_);
 // 克隆一个表

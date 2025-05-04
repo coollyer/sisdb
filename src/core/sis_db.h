@@ -76,6 +76,7 @@ s_sis_sds sis_db_format_sds(s_sis_dynamic_db *db_, const char *key_, int iformat
 // 生成多表的结构定义
 #define s_sis_dbinfos s_sis_map_list
 s_sis_dbinfos *sis_dbinfos_push(s_sis_dbinfos *, const char *name, const char *conf);
+s_sis_dbinfos *sis_dbinfos_incr(s_sis_dbinfos *, s_sis_dynamic_db *db_);
 #define sis_dbinfos_as_sds sis_map_as_sdbs
 #define sis_dbinfos_free sis_map_list_destroy
 

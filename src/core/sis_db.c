@@ -219,6 +219,19 @@ s_sis_dbinfos *sis_dbinfos_push(s_sis_dbinfos *mapdbs, const char *name, const c
 	}
 	return mapdbs;
 }
+s_sis_dbinfos *sis_dbinfos_incr(s_sis_dbinfos *mapdbs, s_sis_dynamic_db *db_)
+{
+    if (!mapdbs)
+	{
+		mapdbs = sis_map_list_create(sis_dynamic_db_destroy);
+	}
+	if (mapdbs)
+	{
+        sis_dynamic_db_incr(db_);
+        sis_map_list_set(mapdbs, db_->name, db_);
+	}
+	return mapdbs;
+}
 
 /////////////////////////////////////////////////////////
 // 多数据结构 统一排序输出的定义 

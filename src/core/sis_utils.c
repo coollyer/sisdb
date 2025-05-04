@@ -32,6 +32,29 @@ s_sis_dynamic_db *sis_sdbinfo_load(const char *dbname, const char *fdbstr)
 	}
 	return db;
 }
+
+s_sis_dynamic_db *sis_sdbinfo_parse(const char *dbname, const char *fdbstrs)
+{
+	s_sis_dynamic_db *db = NULL;
+	s_sis_json_handle *injson = sis_json_load(fdbstrs, sis_strlen(fdbstrs));
+	if (!injson)
+	{
+		LOG(5)("format fail. %s\n", fdbstrs);
+		return 0;
+	}
+	s_sis_json_node *innode = sis_json_first_node(injson->node);
+	while (innode)
+	{
+		if (!sis_strcasecmp(dbname, innode->key))
+		{
+			db = sis_dynamic_db_create(innode);
+			break;
+		}
+		innode = sis_json_next_node(innode);
+	}
+	sis_json_close(injson);
+	return db;
+}
 s_sis_sds sis_sdbinfo_to_conf(s_sis_dynamic_db *db_, s_sis_sds in_)
 {
 	if (!in_)
