@@ -11,6 +11,9 @@
 
 // 从行情流文件中获取数据源
 static s_sis_method _sisdb_rmap_methods[] = {
+  {"fopen",  cmd_sisdb_rmap_fopen, 0, NULL},
+  {"fget",   cmd_sisdb_rmap_fget , 0, NULL},
+  {"fstop",  cmd_sisdb_rmap_fstop, 0, NULL},
   {"get",    cmd_sisdb_rmap_get, 0, NULL},
   {"getdb",  cmd_sisdb_rmap_getdb, 0, NULL},
   {"sub",    cmd_sisdb_rmap_sub, 0, NULL},
@@ -359,6 +362,108 @@ void _sisdb_rmap_init(s_sisdb_rmap_cxt *context, s_sis_message *msg)
     context->cb_dict_keys   = sis_message_get_method(msg, "cb_dict_keys"  );
     context->cb_sub_chars   = sis_message_get_method(msg, "cb_sub_chars"  );
 }
+
+int cmd_sisdb_rmap_fopen(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+
+    // 设置表结构
+    // 设置数据对象
+    context->fget_reader = sis_disk_reader_create(
+        sis_sds_save_get(context->work_path), 
+        sis_sds_save_get(context->work_name), 
+        context->work_type, NULL);
+    
+    if (!context->fget_reader)
+    {
+        return SIS_METHOD_NIL;
+    }
+    if (sis_disk_reader_map_fget_open(context->fget_reader))
+    {
+        sis_disk_reader_destroy(context->fget_reader);
+        context->fget_reader = NULL;
+        return SIS_METHOD_NIL;
+    }
+    return SIS_METHOD_OK;
+}
+int cmd_sisdb_rmap_fget (void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    if (!context->fget_reader)
+    {
+        return SIS_METHOD_NIL;
+    }
+    s_sis_message *msg = (s_sis_message *)argv_; 
+    sis_message_del(msg, "object");
+    const char *subkeys = sis_message_get_str(msg, "sub-keys");
+    const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
+    if (sis_message_exist(msg, "offset"))
+    {
+        int offset = sis_message_get_int(msg, "offset");
+        int count = sis_message_get_int(msg, "count");
+        LOG(5)("get map open. %d-%d %s %s\n", offset, count, subkeys, subsdbs);
+
+        s_sis_disk_var var = sis_disk_reader_map_fget_var_range(context->fget_reader, subkeys, subsdbs, offset, count);
+        if (var.memory)
+        {
+            // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
+            sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+            sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+        }
+        LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
+    }
+    else
+    {
+        s_sis_msec_pair pair; 
+        if (sis_message_exist(msg, "sub-date"))
+        {
+            int subdate = sis_message_get_int(msg, "sub-date");
+            pair.start = sis_time_make_msec(subdate, 0, 0);
+            pair.stop = sis_time_make_msec(subdate, 235959, 999);
+        }
+        else
+        {
+            int startdate = sis_message_get_int(msg, "start-date");
+            pair.start = sis_time_make_msec(startdate, 0, 0);
+            int stopdate = sis_message_get_int(msg, "stop-date");
+            stopdate = stopdate > 0 ? stopdate : sis_time_get_idate(0);
+            pair.stop = sis_time_make_msec(stopdate, 235959, 999);
+        }
+        LOG(5)("get map open. %lld-%lld %d-%d %s %s\n", pair.start, pair.stop, 
+            sis_msec_get_idate(pair.start), sis_msec_get_idate(pair.stop), subkeys, subsdbs);
+
+        s_sis_disk_var var = sis_disk_reader_map_fget_var(context->fget_reader, subkeys, subsdbs, &pair);
+        if (var.memory)
+        {
+            // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
+            sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+            sis_dynamic_db_incr(var.dbinfo);
+            sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+        }
+        LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
+    }
+    if (!sis_message_exist(msg, "object"))
+    {
+        return SIS_METHOD_NIL;
+    }
+    return SIS_METHOD_OK;
+}
+int cmd_sisdb_rmap_fstop(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    
+    if (context->fget_reader)
+    {
+        sis_disk_reader_map_fget_close(context->fget_reader);
+        sis_disk_reader_destroy(context->fget_reader);
+        context->fget_reader = NULL;
+    }
+    return SIS_METHOD_OK;
+}
+
 int cmd_sisdb_rmap_get(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 

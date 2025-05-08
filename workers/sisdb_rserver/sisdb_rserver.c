@@ -477,7 +477,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
         {
             char kname[128];
             char sname[128];
-            sis_str_divide(netmsg->subject, '.', kname, sname);
+            sis_str_divide_last(netmsg->subject, '.', kname, sname);
             sis_message_set_str(msg, "sub-keys", kname, sis_strlen(kname));
             sis_message_set_str(msg, "sub-sdbs", sname, sis_strlen(sname));
             s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
@@ -506,7 +506,7 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
         {
             char kname[128];
             char sname[128];
-            sis_str_divide(netmsg->subject, '.', kname, sname);
+            sis_str_divide_last(netmsg->subject, '.', kname, sname);
             sis_message_set_str(msg, "sub-keys", kname, sis_strlen(kname));
             sis_message_set_str(msg, "sub-sdbs", sname, sis_strlen(sname));
             s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));

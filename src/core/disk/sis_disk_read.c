@@ -952,6 +952,75 @@ s_sis_disk_var _disk_reader_get_sno_var(s_sis_disk_reader *reader_, const char *
     }
     return var;
 }
+
+int sis_disk_reader_map_fget_open(s_sis_disk_reader *reader_)
+{
+    return sis_disk_io_map_r_open(reader_->map_fctrl, reader_->fpath, reader_->fname);
+}
+s_sis_disk_var sis_disk_reader_map_fget_var(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
+{
+    s_sis_disk_var var = {0};
+    if (sis_is_multiple_sub(kname_, sis_strlen(kname_)) || sis_is_multiple_sub(sname_, sis_strlen(sname_)))
+    {
+        LOG(5)("no mul key or sdb: %s\n", kname_, sname_);
+        return var;
+    }
+    if (reader_->status_sub == 1 || !kname_ || !sname_)
+    {
+        return var;
+    }   
+    s_sis_memory *memory = sis_disk_io_map_r_get_mem(reader_->map_fctrl, kname_, sname_, smsec_);
+    if (memory)
+    {
+        var.memory = memory;
+        var.dbinfo = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+    }
+
+    return var;
+}
+s_sis_disk_var sis_disk_reader_map_fget_var_range(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, int offset, int count)
+{
+    s_sis_disk_var var = {0};
+    // 支持多键值仅仅支持 增加 kname 字段
+    if (sis_is_multiple_sub(sname_, sis_strlen(sname_)))
+    {
+        LOG(5)("no mul sdb: %s\n", sname_);
+        return var;
+    }
+    if (reader_->status_sub == 1 || !kname_ || !sname_)
+    {
+        return var;
+    }   
+    if (sis_is_multiple_sub(kname_, sis_strlen(kname_)))
+    {
+        s_sis_memory *memory = sis_disk_io_map_r_mget_range_mem(reader_->map_fctrl, kname_, 16, sname_, offset, count);
+        if (memory)
+        {
+            var.memory = memory;
+            s_sis_dynamic_db *curdb = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+            s_sis_dynamic_db *newdb = sis_dynamic_db_clone(curdb);
+            sis_dynamic_db_add_field(newdb, "kname", SIS_DYNAMIC_TYPE_CHAR, 16, 1, 0);
+            var.dbinfo = newdb;
+        }
+    }
+    else
+    {
+        s_sis_memory *memory = sis_disk_io_map_r_get_range_mem(reader_->map_fctrl, kname_, sname_, offset, count);
+        if (memory)
+        {
+            var.memory = memory;
+            var.dbinfo = sis_disk_io_map_get_dbinfo(reader_->map_fctrl, sname_);
+            sis_dynamic_db_incr(var.dbinfo);
+        }
+    }
+
+    return var;
+}
+void sis_disk_reader_map_fget_close(s_sis_disk_reader *reader_)
+{
+    sis_disk_io_map_close(reader_->map_fctrl);
+}
+
 s_sis_disk_var _disk_reader_get_map_var(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
 {
     s_sis_disk_var var = {0};

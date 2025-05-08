@@ -27,6 +27,8 @@ typedef struct s_sisdb_rmap_cxt
     s_sis_sds          work_sdbs;       // 需要发送行情的格式数据，用JSON字符串表示
     s_sis_disk_reader *work_reader;
 
+    s_sis_disk_reader *fget_reader;    // 快速读取数据的
+
 	s_sis_sds          rmap_keys;      // 实际读取的keys 
 	s_sis_sds          rmap_sdbs;      // 实际读取的sdbs
     
@@ -56,7 +58,13 @@ int cmd_sisdb_rmap_bsub(void *worker_, void *argv_);
 int cmd_sisdb_rmap_unsub(void *worker_, void *argv_);
 int cmd_sisdb_rmap_setcb(void *worker_, void *argv_);
 
+int cmd_sisdb_rmap_fopen(void *worker_, void *argv_);
+int cmd_sisdb_rmap_fget (void *worker_, void *argv_);
+int cmd_sisdb_rmap_fstop(void *worker_, void *argv_);
+
 void sisdb_rmap_sub_start(s_sisdb_rmap_cxt *context);
 void sisdb_rmap_sub_stop(s_sisdb_rmap_cxt *context);
+
+
 
 #endif
