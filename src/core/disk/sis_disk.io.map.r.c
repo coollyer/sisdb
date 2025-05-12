@@ -456,7 +456,7 @@ s_sis_memory *sis_disk_io_map_r_get_range_mem(s_sis_map_fctrl *fctrl, const char
     s_sis_memory *memory = sis_memory_create();
 
     _disk_io_map_r_get_range(fctrl, memory, ksctrl, 0, offset, count);
-    printf("===1=== %d %d %d %zu\n", ksctrl->varblks->count, offset, count, sis_memory_get_size(memory));
+    // printf("===1=== %d %d %d %zu\n", ksctrl->varblks->count, offset, count, sis_memory_get_size(memory));
     
     if (sis_memory_get_size(memory) > 0)
     {

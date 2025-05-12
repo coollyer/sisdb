@@ -272,7 +272,13 @@ s_sis_thread_id_t sis_thread_self()
 #ifdef __APPLE__
 unsigned int sis_thread_handle(s_sis_thread_id_t id_) 
 {
-	return id_->__sig;
+    // 这里的原代码会报错
+	// return id_->__sig;
+    
+    uint64_t tid;
+    pthread_threadid_np(NULL, &tid);
+    unsigned int id = tid;
+    return id;
 }
 #else
 unsigned int sis_thread_handle(s_sis_thread_id_t id_) 
