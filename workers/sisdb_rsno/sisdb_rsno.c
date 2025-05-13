@@ -463,7 +463,7 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     //     LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
     // }
     // else
-    {
+    // {
         s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
         if (var.memory)
         {
@@ -473,7 +473,7 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
             sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
             LOG(5)("read sno info : %p %zu\n", var.dbinfo, sis_memory_get_size(var.memory));
         }
-    }
+    // }
     sis_disk_reader_destroy(wreader);
 
     LOG(5)("get sno stop. ok [%d] %d %d\n", context->work_date, subdate, context->status);
