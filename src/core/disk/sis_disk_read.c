@@ -1071,7 +1071,55 @@ s_sis_disk_var sis_disk_reader_get_var(s_sis_disk_reader *reader_, const char *k
     }
     return var; 
 }
+s_sis_disk_var _disk_reader_get_sno_var_range(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, int offset, int subdate)
+{
+    s_sis_disk_var var = {0};
+    // 支持多键值仅仅支持 增加 kname 字段
+    // if (sis_is_multiple_sub(sname_, sis_strlen(sname_)))
+    // {
+    //     LOG(5)("no mul sdb: %s\n", sname_);
+    //     return var;
+    // }
+    // if (reader_->status_sub == 1 || !kname_ || !sname_)
+    // {
+    //     return var;
+    // }   
+    // reader_->search_msec.start = = (msec_t)sis_time_make_time(subdate, 0) * 1000;
+    // reader_->search_msec.stop  =  (msec_t)sis_time_make_time(subdate, 235959) * 1000 + 999;
+    // s_sis_msec_pair smsec = {reader_->search_msec.start, reader_->search_msec.stop };
 
+    // reader_->isone = 1;
+    // sis_disk_reader_init(reader_, kname_, sname_, &smsec, 0);
+
+    // // 只读结构化数据
+    // sis_disk_reader_make_sno(reader_);
+    
+    // 打开文件
+
+    // s_sis_dynamic_db *curdb = sis_disk_reader_getdb(reader_, sname_);
+            
+    // if (sis_is_multiple_sub(kname_, sis_strlen(kname_)))
+    // {
+    //     s_sis_memory *memory = sis_disk_io_sno_r_mget_range_mem(reader_->map_fctrl, kname_, 16, sname_, offset, 1);
+    //     if (memory)
+    //     {
+    //         var.memory = memory;
+    //         s_sis_dynamic_db *newdb = sis_dynamic_db_clone(curdb);
+    //         sis_dynamic_db_add_field(newdb, "kname", SIS_DYNAMIC_TYPE_CHAR, 16, 1, 0);
+    //         var.dbinfo = newdb;
+    //     }
+    // }
+    // else
+    // {
+    //     s_sis_memory *memory = sis_disk_io_sno_r_get_range_mem(reader_->map_fctrl, kname_, sname_, offset, 1);
+    //     if (memory)
+    //     {
+    //         var.memory = memory;
+    //         sis_dynamic_db_incr(var.dbinfo);
+    //     }
+    // }
+    return var;
+}
 s_sis_disk_var _disk_reader_get_map_var_range(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, int offset, int count)
 {
     s_sis_disk_var var = {0};
@@ -1126,9 +1174,9 @@ s_sis_disk_var sis_disk_reader_get_var_range(s_sis_disk_reader *reader_, const c
     {
         var = _disk_reader_get_map_var_range(reader_, kname_, sname_, offset, count);
     }
-    else if (reader_->style == SIS_DISK_TYPE_SDB)
+    else if (reader_->style == SIS_DISK_TYPE_SNO)
     {
-        // var = _disk_reader_get_sdb_var(reader_, kname_, sname_, smsec_);
+        var = _disk_reader_get_sno_var_range(reader_, kname_, sname_, offset, count);
     }
     return var; 
 }

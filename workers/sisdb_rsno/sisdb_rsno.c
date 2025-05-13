@@ -448,14 +448,31 @@ int cmd_sisdb_rsno_get(void *worker_, void *argv_)
     const char *subsdbs = sis_message_get_str(msg, "sub-sdbs");
     LOG(5)("get sno open. [%d] %d %s %s\n", context->work_date, subdate, subkeys, subsdbs);
     
-    s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
-    if (var.memory)
+    // if (sis_message_exist(msg, "offset"))
+    // {
+    //     int offset = sis_message_get_int(msg, "offset");
+    //     LOG(5)("get map open. %d-%d %s %s\n", offset, count, subkeys, subsdbs);
+    //     // 仅仅支持获取最后一条记录
+    //     s_sis_disk_var var = sis_disk_reader_get_var_range(wreader, subkeys, subsdbs, offset, subdate);
+    //     if (var.memory)
+    //     {
+    //         // sis_out_binary("ooo", sis_memory(var.memory), sis_memory_get_size(var.memory));
+    //         sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+    //         sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+    //     }
+    //     LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
+    // }
+    // else
     {
-        // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
-        sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
-        sis_dynamic_db_incr(var.dbinfo);
-        sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
-        LOG(5)("read sno info : %p %zu\n", var.dbinfo, sis_memory_get_size(var.memory));
+        s_sis_disk_var var = sis_disk_reader_get_var(wreader, subkeys, subsdbs, &pair);
+        if (var.memory)
+        {
+            // sis_out_binary("ooo", SIS_OBJ_GET_CHAR(obj), SIS_OBJ_GET_SIZE(obj));
+            sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
+            sis_dynamic_db_incr(var.dbinfo);
+            sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
+            LOG(5)("read sno info : %p %zu\n", var.dbinfo, sis_memory_get_size(var.memory));
+        }
     }
     sis_disk_reader_destroy(wreader);
 
