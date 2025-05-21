@@ -308,6 +308,7 @@ double sis_fsort_list_getkey(s_sis_fsort_list *, int index_);
 int sis_fsort_list_find(s_sis_fsort_list *, void *value_);
 
 void sis_fsort_list_del(s_sis_fsort_list *list_, int index_);
+void sis_fsort_list_dels(s_sis_fsort_list *list_, int index_, int count_);
 int sis_fsort_list_getsize(s_sis_fsort_list *list_);
 #ifdef __cplusplus
 }

@@ -2059,6 +2059,11 @@ void sis_fsort_list_del(s_sis_fsort_list *list_, int index_)
 	sis_struct_list_delete(list_->key, index_, 1);
 	sis_pointer_list_delete(list_->value, index_, 1);
 }
+void sis_fsort_list_dels(s_sis_fsort_list *list_, int index_, int count_)
+{
+	sis_struct_list_delete(list_->key, index_, count_);
+	sis_pointer_list_delete(list_->value, index_, count_);
+}
 int sis_fsort_list_getsize(s_sis_fsort_list *list_)
 {
 	return sis_min(list_->key->count, list_->value->count);
