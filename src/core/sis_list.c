@@ -234,6 +234,10 @@ void sis_struct_list_set_count(s_sis_struct_list *list_, int count)
 	list_->start = 0;
 	list_->maxcount = count;
 }
+void sis_struct_list_set_zero(s_sis_struct_list *list_)
+{
+    memset(list_->buffer, 0, list_->count * list_->len);
+}
 
 // 仅仅设置尺寸，不初始化
 void sis_struct_list_set_size(s_sis_struct_list *list_, int len_)
@@ -270,7 +274,7 @@ int sis_struct_list_set(s_sis_struct_list *list_, void *in_, int inlen_)
 	return count;
 }
 
-int sis_struct_list_setone(s_sis_struct_list *list_, int index_, void *in_)
+int sis_struct_list_set_var(s_sis_struct_list *list_, int index_, void *in_)
 {
 	if (index_ < 0)
 	{

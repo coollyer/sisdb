@@ -46,12 +46,13 @@ void *sis_struct_list_empty(s_sis_struct_list *list_);
 void *sis_struct_list_offset(s_sis_struct_list *list_, void *, int offset_);
 
 void sis_struct_list_set_count(s_sis_struct_list *list_, int count);
+void sis_struct_list_set_zero(s_sis_struct_list *list_);
 
 void sis_struct_list_set_size(s_sis_struct_list *list_, int len_);
 void sis_struct_list_set_maxsize(s_sis_struct_list *list_, int maxlen_);
 int sis_struct_list_set(s_sis_struct_list *, void *in_, int inlen_);
 
-int sis_struct_list_setone(s_sis_struct_list *, int index_, void *in_);
+int sis_struct_list_set_var(s_sis_struct_list *, int index_, void *in_);
 
 void sis_struct_list_rect(s_sis_struct_list *list_, int rows_);
 void sis_struct_list_limit(s_sis_struct_list *, int limit_);

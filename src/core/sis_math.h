@@ -220,7 +220,7 @@ static inline int sis_bits_get_valid(uint64 in_)
 	}
 	return o;
 }
-static inline int sis_bits_check(uint64 in_, int index_)
+static inline int sis_bits_get(uint64 in_, int index_)
 {
 	if (index_ < 0 || index_ > 63) 
 	{
@@ -229,19 +229,14 @@ static inline int sis_bits_check(uint64 in_, int index_)
 	uint64 v = 1;
 	return ((v << index_) & in_) ? 1 : 0;
 }
-static inline uint64 sis_bits_set(int count_)
+static inline uint64 sis_bits_set(uint64 in_, int index_)
 {
-	if (count_ < 0 || count_ > 63) 
+	if (index_ < 0 || index_ > 63) 
 	{
-		return 0;
+		return in_;
 	}
-	uint64 o = 0;
 	uint64 v = 1;
-	for (int i = 0; i < count_; i++)
-	{
-		o |= (v << i);
-	}
-	return o;
+	return (in_ | (v << index_));
 }
 static inline uint64 sis_bits_dec(uint64 in_, int index_)
 {
@@ -251,6 +246,38 @@ static inline uint64 sis_bits_dec(uint64 in_, int index_)
 	}
 	uint64 v1 = (in_ >> (index_ + 1) << (index_ + 1));
 	uint64 v2 = (in_ << (64 - index_) >> (64 - index_));
+	if (index_ == 0)
+    {
+        return v1;
+    }
+	return v1 | v2;
+}
+static inline int sis_bit32_get(uint32 in_, int index_)
+{
+	if (index_ < 0 || index_ > 31) 
+	{
+		return 0;
+	}
+	uint32 v = 1;
+	return ((v << index_) & in_) ? 1 : 0;
+}
+static inline uint32 sis_bit32_set(uint32 in_, int index_)
+{
+	if (index_ < 0 || index_ > 31) 
+	{
+		return in_;
+	}
+	uint32 v = 1;
+	return (in_ | (v << index_));
+}
+static inline uint32 sis_bit32_dec(uint32 in_, int index_)
+{
+	if (index_ < 0 || index_ > 31) 
+	{
+		return in_;
+	}
+	uint32 v1 = (in_ >> (index_ + 1) << (index_ + 1));
+	uint32 v2 = (in_ << (32 - index_) >> (32 - index_));
 	if (index_ == 0)
     {
         return v1;
