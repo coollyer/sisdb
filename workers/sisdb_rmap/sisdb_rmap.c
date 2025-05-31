@@ -403,7 +403,7 @@ int cmd_sisdb_rmap_fget (void *worker_, void *argv_)
     {
         int offset = sis_message_get_int(msg, "offset");
         int count = sis_message_get_int(msg, "count");
-        LOG(5)("get map open. %d-%d %s %s\n", offset, count, subkeys, subsdbs);
+        LOG(8)("get map open. %d-%d %s %s\n", offset, count, subkeys, subsdbs);
 
         s_sis_disk_var var = sis_disk_reader_map_fget_var_range(context->fget_reader, subkeys, subsdbs, offset, count);
         if (var.memory)
@@ -412,7 +412,7 @@ int cmd_sisdb_rmap_fget (void *worker_, void *argv_)
             sis_message_set(msg, "object", sis_object_create(SIS_OBJECT_MEMORY, var.memory), sis_object_destroy);
             sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
         }
-        LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
+        LOG(8)("get map stop. ok  %d %p\n", context->status, var.memory);
     }
     else
     {
@@ -431,7 +431,7 @@ int cmd_sisdb_rmap_fget (void *worker_, void *argv_)
             stopdate = stopdate > 0 ? stopdate : sis_time_get_idate(0);
             pair.stop = sis_time_make_msec(stopdate, 235959, 999);
         }
-        LOG(5)("get map open. %lld-%lld %d-%d %s %s\n", pair.start, pair.stop, 
+        LOG(8)("get map open. %lld-%lld %d-%d %s %s\n", pair.start, pair.stop, 
             sis_msec_get_idate(pair.start), sis_msec_get_idate(pair.stop), subkeys, subsdbs);
 
         s_sis_disk_var var = sis_disk_reader_map_fget_var(context->fget_reader, subkeys, subsdbs, &pair);
@@ -442,7 +442,7 @@ int cmd_sisdb_rmap_fget (void *worker_, void *argv_)
             sis_dynamic_db_incr(var.dbinfo);
             sis_message_set(msg, "dbinfo", var.dbinfo, sis_dynamic_db_destroy);
         }
-        LOG(5)("get map stop. ok  %d %p\n", context->status, var.memory);
+        LOG(8)("get map stop. ok  %d %p\n", context->status, var.memory);
     }
     if (!sis_message_exist(msg, "object"))
     {

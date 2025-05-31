@@ -396,7 +396,7 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
     {
         sis_disk_io_map_read_varblks(fctrl, ksctrl);
     }
-    LOG(0)("=== %d %d  %d |%d %d\n", start, startindex, ksctrl->varblks->count, ksctrl->mindex_r.sumrecs, ksctrl->mindex_r.perrecs);
+    // LOG(0)("=== %d %d  %d |%d %d\n", start, startindex, ksctrl->varblks->count, ksctrl->mindex_r.sumrecs, ksctrl->mindex_r.perrecs);
         
     for (int i = startindex; i < ksctrl->varblks->count; i++)
     {
@@ -413,7 +413,7 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
         {
             var += ksctrl->mindex_r.recsize * startreci;
         }
-        LOG(0)("%d %d | %d %d %d\n", startreci, recs, ksctrl->mindex_r.currecs, ksctrl->mindex_r.perrecs, ksctrl->mindex_p->sumrecs);
+        // LOG(0)("%d %d | %d %d %d\n", startreci, recs, ksctrl->mindex_r.currecs, ksctrl->mindex_r.perrecs, ksctrl->mindex_p->sumrecs);
         for (int k = startreci; k < recs; k++)
         {
             sis_memory_cat(memory, var, ksctrl->sdict->table->size);

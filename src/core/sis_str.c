@@ -747,6 +747,7 @@ void sis_str_get_random(char *out_, size_t olen_)
 	{
 		out_[i] = sign[rand() % maxsize];
 	}
+    out_[olen_ - 1] = 0;
 }
 bool sis_str_get_id(char *out_, size_t olen_)
 {
