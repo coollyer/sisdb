@@ -21,6 +21,8 @@ size_t sis_base64_encode(const char *in_, size_t ilen_, char *out_, size_t olen_
 // olen 申请空间大于等于 SIS_BASE64_DECODE_OUT_SIZE
 size_t sis_base64_decode(const char *in_, size_t ilen_, char *out_, size_t olen_);
 
+int sis_check_utf8_format(const char *rbuffer, size_t rsize);
+
 #ifdef __cplusplus
 }
 #endif

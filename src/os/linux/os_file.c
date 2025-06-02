@@ -320,6 +320,17 @@ void sis_file_getname(const char *fn_, char *out_, int olen_)
 	sis_strncpy(out_, olen_, fn_, len);
 	out_[len] = 0;
 }
+long long get_file_size(const char *fn_) 
+{
+    struct stat file_info; // Unix/Linux 使用 struct stat
+    // 获取文件元数据
+    int ret = stat(fn_, &file_info); // Unix/Linux
+    if (ret != 0) 
+    {
+        return -1;
+    }
+    return file_info.st_size; // 文件大小（字节）
+}
 
 bool sis_file_exists(const char *fn_)
 {
@@ -464,7 +475,7 @@ char *sis_path_get_files(const char *path_, int mode_)
 			}
 		}
 	}
-	closedir(dirp);
+	closedir(dirp);				
 	return o;
 }
 
@@ -511,7 +522,17 @@ void sis_path_del_files(char *path_)
 		remove(path_);
 	}
 }
+#if 0
+int main()
+{
+    char *paths = sis_path_get_files("../../data/former/femny/", SIS_FINDPATH);
+    printf("--------path:\n%s\n--------\n", paths);
+    char *files = sis_path_get_files("../../data/former/femny/20250602-121133-T5/worker.conf", SIS_FINDFILE | SIS_FINDONE);
+    printf("--------file:\n%s\n", files);
+    return 0;
+}
 
+#endif
 // #include <fnmatch.h>
 
 // int limit_path_filecount(char *FindName, int limit)

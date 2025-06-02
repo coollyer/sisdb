@@ -118,6 +118,8 @@ int sis_file_fsync(s_sis_file_handle fp_);
 void sis_file_getpath(const char *fn_, char *out_, int olen_);
 void sis_file_getname(const char *fn_, char *out_, int olen_);
 
+long long get_file_size(const char *fn_);
+ 
 bool sis_file_exists(const char *fn_);
 bool sis_path_exists(const char *path_);
 

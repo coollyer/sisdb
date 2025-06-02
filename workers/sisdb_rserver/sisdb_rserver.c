@@ -24,6 +24,10 @@ struct s_sis_method sisdb_rserver_methods[] = {
 
     {"get",      cmd_sisdb_rserver_get,     SIS_METHOD_ACCESS_READ, NULL},   // 打开一个数据集
     // {"getdb",    cmd_sisdb_rserver_getdb,   SIS_METHOD_ACCESS_READ, NULL},   // 打开一个数据集
+
+    {"path",      cmd_sisdb_rserver_path,     SIS_METHOD_ACCESS_READ, NULL},   // 打开一个数据集
+    {"file",      cmd_sisdb_rserver_file,     SIS_METHOD_ACCESS_READ, NULL},   // 打开一个数据集
+
 };
 // 共享内存数据库
 s_sis_modules sis_modules_sisdb_rserver = {
@@ -433,6 +437,7 @@ int cmd_sisdb_rserver_unsub(void *worker_, void *argv_)
     }
     return SIS_METHOD_OK;
 }
+
 void _sisdb_rserver_read_pubinfo(s_sis_json_handle *handle, s_sis_message *msg)
 {
     if (sis_json_cmp_child_node(handle->node, "fields")) 
@@ -712,4 +717,140 @@ void rserver_worker_closed(s_rserver_worker *rworker, s_rserver_task *curtask)
         LOG(0)("closes : %p %p %p\n", rworker, rworker->workers, curtask);
         sis_pointer_list_find_and_delete(rworker->workers, curtask);
     }
+}
+// 得到当前匹配的目录列表
+// index,path
+// 
+int cmd_sisdb_rserver_path(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rserver_cxt *context = (s_sisdb_rserver_cxt *)worker->context;
+    s_sis_net_message *netmsg = (s_sis_net_message *)argv_;
+
+    s_rserver_worker *rworker = sis_map_kint_get(context->user_work, netmsg->cid);
+    if (!rworker || !rworker->authed)
+    {
+        sisdb_rserver_reply_no_auth(context, netmsg);
+        return SIS_METHOD_ERROR;
+    }
+    char fpath[255];
+    sis_sprintf(fpath, 255, "%s/%s", context->work_path, netmsg->service);
+    char *paths = sis_path_get_files(fpath, SIS_FINDPATH);
+    if (paths)
+    {
+        printf("%s \n %s\n", fpath, paths);
+        s_sis_string_list *slists = sis_string_list_create();
+        sis_string_list_load(slists, paths, sis_strlen(paths), ":");
+        int count = sis_string_list_getsize(slists);
+        if (count > 0)
+        {
+            s_sis_memory *rm = sis_memory_create();
+            sis_memory_cat(rm, "{\"fields\":{\"index\":0,\"pathname\":1},\"datas\":", 43);
+            
+            sis_memory_cat(rm, "[", 1);
+            char fstr[512];
+            for (int i = 0; i < count; i++)
+            {
+                // printf("%s\n", sis_string_list_get(slists, i));
+                if (i == count - 1)
+                {
+                    sis_sprintf(fstr, 512, "[%d,\"%s\"]", i, sis_string_list_get(slists, i));
+                }
+                else
+                {
+                    sis_sprintf(fstr, 512, "[%d,\"%s\"],", i, sis_string_list_get(slists, i));
+                }
+                sis_memory_cat(rm, fstr, sis_strlen(fstr));
+                printf("%s\n%s\n", fstr, sis_memory(rm));
+            }
+            sis_memory_cat(rm, "]}", 2);
+            sis_net_message_set_info(netmsg, sis_memory(rm), sis_memory_get_size(rm));
+            sisdb_rserver_reply_ok(context, netmsg);
+            sis_memory_destroy(rm);
+        }
+        else
+        {
+            sis_net_msg_tag_error(netmsg, "no data.", 9);
+            sis_net_class_send(context->socket, netmsg);
+        }
+        sis_string_list_destroy(slists);
+        sis_free(paths);
+    }
+    else
+    {
+        sis_net_msg_tag_error(netmsg, "call get error.", 16);
+        sis_net_class_send(context->socket, netmsg);
+    }
+    return SIS_METHOD_OK;
+}
+
+s_sis_sds sis_file_maynet_read(const char *fn_)
+{
+	s_sis_file_handle fp = sis_file_open(fn_, SIS_FILE_IO_READ, 0);
+	if (!fp)
+	{
+		LOG(3)("cann't open file [%s].\n", fn_);
+		return NULL;
+	}
+	size_t size = sis_file_size(fp);
+	sis_file_seek(fp, 0, SEEK_SET);
+	s_sis_sds rbuffer = sis_sdsnewlen(NULL, size + 1);
+	sis_file_read(fp, rbuffer, size);
+    sis_file_close(fp);
+    if (sis_check_utf8_format(rbuffer, size))
+    {
+        LOG(3)("%s not utf8 format.\n", fn_);
+        sis_sdsfree(rbuffer);
+        return NULL;
+    }
+	return rbuffer;
+}
+// 得到当前匹配的文件内容
+// 直接返回文件内容 需要保证文件为网络可以传输的文件
+// 文件长度不能超过500K
+int cmd_sisdb_rserver_file(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rserver_cxt *context = (s_sisdb_rserver_cxt *)worker->context;
+    s_sis_net_message *netmsg = (s_sis_net_message *)argv_;
+
+    s_rserver_worker *rworker = sis_map_kint_get(context->user_work, netmsg->cid);
+    if (!rworker || !rworker->authed)
+    {
+        sisdb_rserver_reply_no_auth(context, netmsg);
+        return SIS_METHOD_ERROR;
+    }
+    char fpath[255];
+    sis_sprintf(fpath, 255, "%s/%s", context->work_path, netmsg->service);
+    if (sis_file_exists(fpath))
+    {
+        int64 size = get_file_size(fpath);
+        if (size < 0 || size > 500 * 1024)
+        {
+            sis_net_msg_tag_error(netmsg, "file too big.", 14);
+            sis_net_class_send(context->socket, netmsg);
+        }
+        else 
+        {
+            s_sis_sds fileinfo = sis_file_maynet_read(fpath);
+            if (fileinfo)
+            {
+                sis_net_message_set_info(netmsg, fileinfo, sis_sdslen(fileinfo));
+                sisdb_rserver_reply_ok(context, netmsg);
+                sis_sdsfree(fileinfo);
+            }
+            else
+            {
+                sis_net_msg_tag_error(netmsg, "file no utf format.", 20);
+                sis_net_class_send(context->socket, netmsg);
+            }
+        }
+    }
+    else
+    {
+        sis_net_msg_tag_error(netmsg, "no data.", 9);
+        sis_net_class_send(context->socket, netmsg);
+    }
+    
+    return SIS_METHOD_OK;
 }

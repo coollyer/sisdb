@@ -9,6 +9,7 @@
 #include "worker.h"
 #include "sis_dynamic.h"
 #include "sisdb_sys.h"
+#include "sis_utf8.h"
 
 #define SISDB_STATUS_NONE  0
 #define SISDB_STATUS_INIT  1
@@ -84,6 +85,9 @@ int cmd_sisdb_rserver_unsub(void *worker_, void *argv_);
 
 int cmd_sisdb_rserver_get(void *worker_, void *argv_);
 // int cmd_sisdb_rserver_getdb(void *worker_, void *argv_);
+
+int cmd_sisdb_rserver_path(void *worker_, void *argv_);
+int cmd_sisdb_rserver_file(void *worker_, void *argv_);
 
 
 #endif

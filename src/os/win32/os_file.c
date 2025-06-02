@@ -175,6 +175,17 @@ void sis_file_getname(const char *fn_, char *out_, int olen_)
 	sis_strncpy(out_, olen_, fn_, len);
 	out_[len] = 0;
 }
+long long get_file_size(const char *fn_) 
+{
+    struct _stat file_info; // Windows 使用 struct _stat
+
+    // 获取文件元数据
+    int ret = _stat(fn_, &file_info);   // Windows
+    if (ret != 0) {
+        return -1;
+    }
+    return file_info.st_size; // 文件大小（字节）
+}
 bool sis_file_exists(const char *fn_)
 {
 	sis_file_fixpath((char *)fn_);

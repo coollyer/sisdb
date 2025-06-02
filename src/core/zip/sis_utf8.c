@@ -406,3 +406,270 @@ int main()
 
 
 #endif
+
+
+// #include <stdio.h>
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <errno.h>
+
+// // 枚举UTF-16子类型
+// typedef enum {
+//     UTF16_NONE,     // 非UTF-16
+//     UTF16_LE,       // UTF-16小端
+//     UTF16_BE        // UTF-16大端
+// } UTF16Type;
+
+// // 检测BOM并返回UTF-16类型（若不是则返回UTF16_NONE）
+// UTF16Type _utf16_bom_exists(s_sis_file_handle fp)
+// {
+//     uint8_t bom[2] = {0};
+//     // 读取前2字节（BOM至少需要2字节）
+//     if (fread(bom, 1, 2, fp) != 2)
+//     {
+//         return UTF16_NONE; // 文件太小，无法判断
+//     }
+
+//     if (bom[0] == 0xFF && bom[1] == 0xFE)
+//     {
+//         return UTF16_LE; // 小端BOM
+//     }
+//     else if (bom[0] == 0xFE && bom[1] == 0xFF)
+//     {
+//         return UTF16_BE; // 大端BOM
+//     }
+//     else
+//     {
+//         return UTF16_NONE; // 无UTF-16 BOM
+//     }
+// }
+
+// // 验证UTF-16编码规则（根据字节序）
+// bool _utf16_validate(s_sis_file_handle fp, UTF16Type type)
+// {
+//     uint8_t buffer[2]; // 每次读取2字节（一个代码单元）
+//     uint16_t code_unit;
+
+//     while (1)
+//     {
+//         // 读取一个代码单元（2字节）
+//         size_t read_bytes = fread(buffer, 1, 2, fp);
+//         if (read_bytes == 0)
+//             break; // 文件结束
+//         if (read_bytes != 2)
+//         { // 剩余字节不足2，无效
+//             return false;
+//         }
+
+//         // 根据字节序组合为16位值
+//         if (type == UTF16_LE)
+//         {
+//             code_unit = (buffer[1] << 8) | buffer[0]; // 小端：低位在前
+//         }
+//         else
+//         {
+//             code_unit = (buffer[0] << 8) | buffer[1]; // 大端：高位在前
+//         }
+
+//         // 验证代码单元是否符合UTF-16规则
+//         if (code_unit >= 0xD800 && code_unit <= 0xDBFF)
+//         {
+//             // 高代理项，需检查下一个代码单元是否为低代理项（0xDC00-0xDFFF）
+//             size_t next_read = fread(buffer, 1, 2, fp);
+//             if (next_read != 2)
+//             { // 无后续字节，高代理无低代理配对
+//                 return false;
+//             }
+//             uint16_t next_code;
+//             if (type == UTF16_LE)
+//             {
+//                 next_code = (buffer[1] << 8) | buffer[0];
+//             }
+//             else
+//             {
+//                 next_code = (buffer[0] << 8) | buffer[1];
+//             }
+//             if (next_code < 0xDC00 || next_code > 0xDFFF)
+//             {
+//                 return false; // 低代理项无效
+//             }
+//         }
+//         else if (code_unit >= 0xDC00 && code_unit <= 0xDFFF)
+//         {
+//             return false; // 单独的低代理项无效
+//         }
+//         else if (code_unit > 0x10FFFF)
+//         {
+//             return false; // 超过Unicode最大码点（0x10FFFF）
+//         }
+//     }
+//     return true; // 所有代码单元有效
+// }
+
+// int sis_check_utf16_format(s_sis_file_handle fp)
+// {
+//     // 检测BOM确定UTF-16类型
+//     UTF16Type utf16_type = _utf16_bom_exists(fp);
+//     if (utf16_type == UTF16_NONE)
+//     {
+//         return -1;
+//     }
+
+//     // 验证文件内容是否符合UTF-16规则
+//     bool is_valid = _utf16_validate(fp, utf16_type);
+//     if (!is_valid)
+//     {
+//         return -2;
+//     }
+//     return 0;
+// }
+
+// 检测文件是否以 UTF-8 BOM 开头（可选）
+bool _utf8_bom_exists(const char *rbuffer, size_t rsize)
+{
+    // 读取前3字节（BOM需要3字节）
+    if (rsize < 3)
+    {
+        return false; // 文件太小，无BOM
+    }
+    return (rbuffer[0] == 0xEF && rbuffer[1] == 0xBB && rbuffer[2] == 0xBF);
+}
+// 验证文件内容是否符合 UTF-8 编码规则
+bool _utf8_validate(const char *rbuffer, size_t rsize, int iswhole)
+{
+    int nowpos = 0;
+    if (_utf8_bom_exists(rbuffer, rsize))
+    {
+        nowpos = 3;   // 跳过BOM的3字节
+    }
+    uint8 *rbyte = rbuffer;
+    int remaining = 0; // 剩余需要检查的续字节数
+    while (nowpos < rsize)
+    {
+        if (remaining == 0)
+        {
+            // 处理首字节
+            if ((rbyte[nowpos] & 0x80) == 0)
+            {
+                // 1字节字符（0x00-0x7F）
+                nowpos++;
+                continue;
+            }
+            else if ((rbyte[nowpos] & 0xE0) == 0xC0)
+            {
+                // 2字节字符：110xxxxx（0xC2-0xDF）
+                if (rbyte[nowpos] < 0xC2 || rbyte[nowpos] > 0xDF)
+                {
+                    return false; // 无效的2字节首字节
+                }
+                remaining = 1;
+            }
+            else if ((rbyte[nowpos] & 0xF0) == 0xE0)
+            {
+                // 3字节字符：1110xxxx（0xE0-0xEF）
+                if (rbyte[nowpos] == 0xE0)
+                {
+                    // 0xE0的后续4位不能小于0x02（排除0xE0 0x80-0x9F）
+                    if ((rbyte[nowpos] & 0x0F) < 0x02)
+                    {
+                        return false;
+                    }    
+                }
+                else if (rbyte[nowpos] == 0xED)
+                {
+                    // 0xED的后续4位不能大于0x0F（排除代理对0xED 0xA0-0xBF）
+                    if ((rbyte[nowpos] & 0x0F) > 0x0F)
+                        return false;
+                }
+                remaining = 2;
+            }
+            else if ((rbyte[nowpos] & 0xF8) == 0xF0)
+            {
+                // 4字节字符：11110xxx（0xF0-0xF4）
+                if (rbyte[nowpos] < 0xF0 || rbyte[nowpos] > 0xF4)
+                {
+                    return false; // 超出UTF-8范围（0xF0-0xF4）
+                }
+                if (rbyte[nowpos] == 0xF0)
+                {
+                    // 0xF0的后续3位不能小于0x01（排除0xF0 0x80-0x8F）
+                    if ((rbyte[nowpos] & 0x07) < 0x01)
+                    {
+                        return false;
+                    }    
+                }
+                else if (rbyte[nowpos] == 0xF4)
+                {
+                    // 0xF4的后续3位不能大于0x04（排除0xF4 0x90-0xBF，超过0x10FFFF）
+                    if ((rbyte[nowpos] & 0x07) > 0x04)
+                    {
+                        return false;
+                    }
+                }
+                remaining = 3;
+            }
+            else
+            {
+                // 无效的首字节（如11111xxx或10xxxxxx）
+                return false;
+            }
+        }
+        else
+        {
+            // 处理续字节（必须是10xxxxxx）
+            if ((rbyte[nowpos] & 0xC0) != 0x80)
+            {
+                return false; // 续字节格式错误
+            }
+            remaining--;
+        }
+        nowpos++;
+    }
+
+    // 所有多字节字符必须完整（无残留未处理的续字节）
+    return remaining == 0;
+}
+
+int sis_check_utf8_format(const char *rbuffer, size_t rsize)
+{
+    // 验证UTF-8编码
+    bool valid = _utf8_validate(rbuffer, rsize, 1);
+    if (!valid)
+    {
+        return -1;
+    }
+    // printf("文件是有效的UTF-8格式%s\n", skipbom ? "（含BOM）" : "（无BOM）");
+    return 0;
+}
+
+#if 0
+int main() {
+    const char *filename = "test_utf16le.txt";
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        perror("无法打开文件");
+        return 1;
+    }
+
+    // 检测BOM确定UTF-16类型
+    UTF16Type utf16_type = detect_utf16_bom(file);
+    if (utf16_type == UTF16_NONE) {
+        printf("文件不是UTF-16格式\n");
+        fclose(file);
+        return 0;
+    }
+
+    // 验证文件内容是否符合UTF-16规则
+    bool is_valid = _utf8_validate(file, utf16_type);
+    if (is_valid) {
+        printf("文件是有效的UTF-16格式（%s）\n", 
+              utf16_type == UTF16_LE ? "小端LE" : "大端BE");
+    } else {
+        printf("文件是UTF-16格式但内容无效（如代理对不完整）\n");
+    }
+
+    fclose(file);
+    return 0;
+}
+
+#endif
