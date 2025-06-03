@@ -194,7 +194,7 @@ void _csv2sno_start_read(s_csv2db_cxt *context, int idate)
 int sis_str_gettype(const char *in_, size_t ilen_)
 {
     // strchr("-.0123456789e"
-    int dt = SIS_DT_NUMBER;
+    int dt = ilen_ < 1 ? SIS_DT_STRING : SIS_DT_NUMBER;
     int fs = 0;
     int es = 0;
     int ds = 0;

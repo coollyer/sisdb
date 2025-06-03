@@ -485,26 +485,34 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             sis_str_divide_last(netmsg->subject, '.', kname, sname);
             sis_message_set_str(msg, "sub-keys", kname, sis_strlen(kname));
             sis_message_set_str(msg, "sub-sdbs", sname, sis_strlen(sname));
-            s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
-            if (handle)
+            if (netmsg->info)
             {
-                if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
+                if (handle)
                 {
-                    int subdate = sis_json_get_int(handle->node, "sub-date", 0);
-                    sis_message_set_int(msg, "sub-date", subdate);
+                    if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                    {
+                        int subdate = sis_json_get_int(handle->node, "sub-date", 0);
+                        sis_message_set_int(msg, "sub-date", subdate);
+                    }
+                    else if (sis_json_cmp_child_node(handle->node, "start-date")) 
+                    {
+                        int subdate = sis_json_get_int(handle->node, "start-date", 0);
+                        sis_message_set_int(msg, "sub-date", subdate);
+                    } 
+                    else if (sis_json_cmp_child_node(handle->node, "stop-date")) 
+                    {
+                        int subdate = sis_json_get_int(handle->node, "stop-date", 0);
+                        sis_message_set_int(msg, "sub-date", subdate);
+                    }
+                    _sisdb_rserver_read_pubinfo(handle, msg);
+                    sis_json_close(handle);
                 }
-                else if (sis_json_cmp_child_node(handle->node, "start-date")) 
-                {
-                    int subdate = sis_json_get_int(handle->node, "start-date", 0);
-                    sis_message_set_int(msg, "sub-date", subdate);
-                } 
-                else if (sis_json_cmp_child_node(handle->node, "stop-date")) 
-                {
-                    int subdate = sis_json_get_int(handle->node, "stop-date", 0);
-                    sis_message_set_int(msg, "sub-date", subdate);
-                }
-                _sisdb_rserver_read_pubinfo(handle, msg);
-                sis_json_close(handle);
+            }
+            else
+            {
+                sis_message_set_int(msg, "sub-date", 0);
+                sis_message_set_int(msg, "offset", 0);
             }
         }
         else if (curtask->stype == SIS_DTYPE_MAP)
@@ -514,21 +522,30 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             sis_str_divide_last(netmsg->subject, '.', kname, sname);
             sis_message_set_str(msg, "sub-keys", kname, sis_strlen(kname));
             sis_message_set_str(msg, "sub-sdbs", sname, sis_strlen(sname));
-            s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
-            if (handle)
+            if (netmsg->info)
             {
-                int startdate = sis_json_get_int(handle->node, "start-date", 0);
-                int stopdate = sis_json_get_int(handle->node, "stop-date", 0);
-                if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
+                if (handle)
                 {
-                    startdate = sis_json_get_int(handle->node, "sub-date", 0);
-                    stopdate  = startdate;
-                }
-                sis_message_set_int(msg, "start-date", startdate);
-                sis_message_set_int(msg, "stop-date", stopdate);
+                    int startdate = sis_json_get_int(handle->node, "start-date", 0);
+                    int stopdate = sis_json_get_int(handle->node, "stop-date", 0);
+                    if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                    {
+                        startdate = sis_json_get_int(handle->node, "sub-date", 0);
+                        stopdate  = startdate;
+                    }
+                    sis_message_set_int(msg, "start-date", startdate);
+                    sis_message_set_int(msg, "stop-date", stopdate);
 
-                _sisdb_rserver_read_pubinfo(handle, msg);
-                sis_json_close(handle);
+                    _sisdb_rserver_read_pubinfo(handle, msg);
+                    sis_json_close(handle);
+                }
+            }
+            else
+            {
+                sis_message_set_int(msg, "start-date", 0);
+                sis_message_set_int(msg, "stop-date", 0);
+                sis_message_set_int(msg, "offset", 0);
             }
         }
         else // if (curtask->stype == SIS_DTYPE_CSV)
@@ -536,26 +553,34 @@ int cmd_sisdb_rserver_get(void *worker_, void *argv_)
             sis_message_set_int(msg, "sub-mode", 1);  // 获取原始数据
             sis_message_set_str(msg, "sub-keys", "*", 1);
             sis_message_set_str(msg, "sub-sdbs", netmsg->subject, sis_strlen(netmsg->subject));
-            s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
-            if (handle)
+            if (netmsg->info)
             {
-                if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                s_sis_json_handle *handle = sis_json_load(netmsg->info, sis_sdslen(netmsg->info));
+                if (handle)
                 {
-                    int subdate = sis_json_get_int(handle->node, "sub-date", 0);
-                    sis_message_set_int(msg, "sub-date", subdate);
+                    if (sis_json_cmp_child_node(handle->node, "sub-date")) 
+                    {
+                        int subdate = sis_json_get_int(handle->node, "sub-date", 0);
+                        sis_message_set_int(msg, "sub-date", subdate);
+                    }
+                    else if (sis_json_cmp_child_node(handle->node, "start-date")) 
+                    {
+                        int subdate = sis_json_get_int(handle->node, "start-date", 0);
+                        sis_message_set_int(msg, "sub-date", subdate);
+                    } 
+                    else if (sis_json_cmp_child_node(handle->node, "stop-date")) 
+                    {
+                        int subdate = sis_json_get_int(handle->node, "stop-date", 0);
+                        sis_message_set_int(msg, "sub-date", subdate);
+                    }
+                    _sisdb_rserver_read_pubinfo(handle, msg);
+                    sis_json_close(handle);
                 }
-                else if (sis_json_cmp_child_node(handle->node, "start-date")) 
-                {
-                    int subdate = sis_json_get_int(handle->node, "start-date", 0);
-                    sis_message_set_int(msg, "sub-date", subdate);
-                } 
-                else if (sis_json_cmp_child_node(handle->node, "stop-date")) 
-                {
-                    int subdate = sis_json_get_int(handle->node, "stop-date", 0);
-                    sis_message_set_int(msg, "sub-date", subdate);
-                }
-                _sisdb_rserver_read_pubinfo(handle, msg);
-                sis_json_close(handle);
+            }
+            else
+            {
+                sis_message_set_int(msg, "sub-date", 0);
+                sis_message_set_int(msg, "offset", 0);
             }
         }
         LOG(0)("closes : ==1.1== %p %p %p %p \n", rworker, rworker->workers, curtask, curtask->worker);

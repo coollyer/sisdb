@@ -506,7 +506,7 @@ static inline void sis_dynamic_field_to_array(s_sis_json_node *in_, s_sis_dynami
 				}
 				break;
 			case SIS_DYNAMIC_TYPE_CHAR:
-				sis_json_array_add_string(in_, val_ + field_->offset + index*field_->len, field_->len);
+				sis_json_array_add_string(in_, val_ + field_->offset + index * field_->len, field_->len);
 				break;
 			default:
 				sis_json_array_add_string(in_, " ", 1);
@@ -556,7 +556,7 @@ static inline void sis_dynamic_field_to_object(s_sis_json_node *in_, s_sis_dynam
 				sis_json_object_add_string(in_, fname, val_ + field_->offset + index*field_->len, field_->len);
 				break;
 			default:
-				// sis_json_object_add_string(in_, fname, " ", 1);
+				sis_json_object_add_string(in_, fname, " ", 1);
 				break;
 			}
 		}
