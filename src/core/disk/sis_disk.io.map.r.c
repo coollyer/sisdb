@@ -396,7 +396,7 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
     {
         sis_disk_io_map_read_varblks(fctrl, ksctrl);
     }
-    LOG(0)("=== %d %d  %d |%d %d\n", start, startindex, ksctrl->varblks->count, ksctrl->mindex_r.sumrecs, ksctrl->mindex_r.perrecs);
+    // LOG(0)("=== %d %d  %d |%d %d\n", start, startindex, ksctrl->varblks->count, ksctrl->mindex_r.sumrecs, ksctrl->mindex_r.perrecs);
         
     for (int i = startindex; i < ksctrl->varblks->count; i++)
     {
@@ -413,7 +413,7 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
         {
             var += ksctrl->mindex_r.recsize * startreci;
         }
-        LOG(0)("%d %d | %d %d %d\n", startreci, recs, ksctrl->mindex_r.currecs, ksctrl->mindex_r.perrecs, ksctrl->mindex_p->sumrecs);
+        // LOG(0)("%d %d | %d %d %d\n", startreci, recs, ksctrl->mindex_r.currecs, ksctrl->mindex_r.perrecs, ksctrl->mindex_p->sumrecs);
         for (int k = startreci; k < recs; k++)
         {
             sis_memory_cat(memory, var, ksctrl->sdict->table->size);
@@ -456,8 +456,8 @@ s_sis_memory *sis_disk_io_map_r_get_range_mem(s_sis_map_fctrl *fctrl, const char
     s_sis_memory *memory = sis_memory_create();
 
     _disk_io_map_r_get_range(fctrl, memory, ksctrl, 0, offset, count);
-    printf("===1=== %d %d %d %zu %zu\n", ksctrl->varblks->count, offset, count, sis_memory_get_size(memory), sdict->table->size);
-    sis_out_binary(":::::", sis_memory(memory), 128); 
+    // printf("===1=== %d %d %d %zu %zu\n", ksctrl->varblks->count, offset, count, sis_memory_get_size(memory), sdict->table->size);
+    // sis_out_binary(":::::", sis_memory(memory), 128); 
     if (sis_memory_get_size(memory) > 0)
     {
         return memory;
@@ -602,7 +602,7 @@ int sis_map_subctrl_init(s_sis_map_subctrl *subctrl, s_sis_map_fctrl *fctrl)
 {
     sis_pointer_list_clear(subctrl->subvars);
     
-    int count = sis_map_kints_getsize(fctrl->map_kscs);
+    // int count = sis_map_kints_getsize(fctrl->map_kscs);
     // printf("== init == : %d %d %d\n", count, fctrl->mhead_r.keynums, fctrl->mhead_r.sdbnums);
 
     s_sis_map_ksctrl *ksctrl;
