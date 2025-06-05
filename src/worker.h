@@ -80,8 +80,6 @@ s_sis_worker *sis_worker_create_of_conf(s_sis_worker *worker_, const char *name_
 s_sis_worker *sis_worker_create(s_sis_worker *worker_, s_sis_json_node *);
 void sis_worker_destroy(void *);
 
-s_sis_worker *sis_worker_load(s_sis_worker *worker_, s_sis_json_node *);
-
 // 在 worker_ 下根据 node 配置生成多个子 worker, worker_ 为空表示依赖于 server
 int sis_worker_init_multiple(s_sis_worker *worker_, s_sis_json_node *);
 
