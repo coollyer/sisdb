@@ -532,7 +532,7 @@ bool _utf8_bom_exists(const char *rbuffer, size_t rsize)
     {
         return false; // 文件太小，无BOM
     }
-    return (rbuffer[0] == 0xEF && rbuffer[1] == 0xBB && rbuffer[2] == 0xBF);
+    return ((uint8)rbuffer[0] == 0xEF && (uint8)rbuffer[1] == 0xBB && (uint8)rbuffer[2] == 0xBF);
 }
 // 验证文件内容是否符合 UTF-8 编码规则
 bool _utf8_validate(const char *rbuffer, size_t rsize, int iswhole)
@@ -542,7 +542,7 @@ bool _utf8_validate(const char *rbuffer, size_t rsize, int iswhole)
     {
         nowpos = 3;   // 跳过BOM的3字节
     }
-    uint8 *rbyte = rbuffer;
+    uint8 *rbyte = (uint8 *)rbuffer;
     int remaining = 0; // 剩余需要检查的续字节数
     while (nowpos < rsize)
     {
