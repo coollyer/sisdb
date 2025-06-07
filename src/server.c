@@ -315,6 +315,7 @@ void sis_server_exit()
 int main(int argc, char *argv[])
 {
 
+	sis_sprintf(_server.exec_name, 1024, "%s", argv[0]);
 	sis_sprintf(_server.conf_name, 1024, "%s.conf", argv[0]);
 	sis_sprintf(_server.json_name, 1024, "%s.json", argv[0]);
 	int c = 1;

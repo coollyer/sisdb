@@ -805,7 +805,19 @@ int64 sis_str_read_long(char *s)
 
     return mult*v;
 }
-
+// 转换文件大小为人类可读格式
+void sis_format_file_size(size_t bytes, char* buffer, size_t buffer_size) 
+{
+    const char* units[] = {"B", "KB", "MB", "GB"};
+    int unit_index = 0;
+    double size = (double)bytes;
+    
+    while (size >= 1024 && unit_index < 3) {
+        size /= 1024;
+        unit_index++;
+    }
+    sis_sprintf(buffer, buffer_size, "%.2f %s", size, units[unit_index]);
+}
 void sis_str_change(char *outs_, int olen_, const char *ins_, const char *cuts_, const char *news_)
 {
 	outs_[0] = 0;

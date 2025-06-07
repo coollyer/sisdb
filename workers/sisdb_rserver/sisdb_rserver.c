@@ -849,7 +849,7 @@ int cmd_sisdb_rserver_file(void *worker_, void *argv_)
     sis_sprintf(fpath, 255, "%s/%s", context->work_path, netmsg->service);
     if (sis_file_exists(fpath))
     {
-        int64 size = get_file_size(fpath);
+        int64 size = sis_get_file_size(fpath);
         if (size < 0 || size > 500 * 1024)
         {
             sis_net_msg_tag_error(netmsg, "file too big.", 14);

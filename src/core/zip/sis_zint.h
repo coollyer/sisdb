@@ -120,6 +120,9 @@ static inline double sis_zint32_to_double(zint32 in_)
     // printf("32 : %d %d %d %f \n", in_.sign, in_.attr, in_.zint, f);
 	return !in_.sign ? f : -f;
 };
+
+#define sis_zint32_f sis_zint32_to_double
+
 static inline double sis_int32_to_double(int32 in_)
 {
     zint32 *in = (zint32 *)&in_;

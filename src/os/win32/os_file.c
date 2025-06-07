@@ -175,7 +175,7 @@ void sis_file_getname(const char *fn_, char *out_, int olen_)
 	sis_strncpy(out_, olen_, fn_, len);
 	out_[len] = 0;
 }
-long long get_file_size(const char *fn_) 
+long long sis_get_file_size(const char *fn_) 
 {
     struct _stat file_info; // Windows 使用 struct _stat
 
@@ -185,6 +185,38 @@ long long get_file_size(const char *fn_)
         return -1;
     }
     return file_info.st_size; // 文件大小（字节）
+}
+const char *sis_get_file_create_time(const char *fn_)
+{
+    static char time_str[64] = {0};
+    FILETIME create_time, access_time, write_time;
+    SYSTEMTIME st;
+    
+    HANDLE hFile = CreateFileA(
+        path, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
+    );
+    
+    if (hFile == INVALID_HANDLE_VALUE) {
+        strcpy(time_str, "无法获取");
+        return time_str;
+    }
+    
+    // 获取文件时间信息
+    if (!GetFileTime(hFile, &create_time, &access_time, &write_time)) {
+        strcpy(time_str, "无法获取");
+    } else {
+        // 转换为本地时间
+        FileTimeToLocalFileTime(&create_time, &create_time);
+        FileTimeToSystemTime(&create_time, &st);
+        
+        // 格式化为字符串
+        sprintf(time_str, "%04d-%02d-%02d %02d:%02d:%02d",
+            st.wYear, st.wMonth, st.wDay,
+            st.wHour, st.wMinute, st.wSecond);
+    }
+    CloseHandle(hFile);
+    return time_str;
 }
 bool sis_file_exists(const char *fn_)
 {

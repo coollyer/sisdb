@@ -2,6 +2,7 @@
 #include <os_file.h>
 #include <dirent.h>
 #include <fnmatch.h>
+#include <os_time.h>
 
 /* Replace \ to / in the path string */
 void sis_file_fixpath(char *in_)
@@ -320,7 +321,7 @@ void sis_file_getname(const char *fn_, char *out_, int olen_)
 	sis_strncpy(out_, olen_, fn_, len);
 	out_[len] = 0;
 }
-long long get_file_size(const char *fn_) 
+long long sis_get_file_size(const char *fn_) 
 {
     struct stat file_info; // Unix/Linux 使用 struct stat
     // 获取文件元数据
@@ -330,6 +331,21 @@ long long get_file_size(const char *fn_)
         return -1;
     }
     return file_info.st_size; // 文件大小（字节）
+}
+const char *sis_get_file_create_time(const char *fn_)
+{
+    static char time_str[64] = {0};
+    struct stat statbuf;
+    
+    if (stat(fn_, &statbuf) != 0) {
+        return NULL;
+    }
+    
+    // Linux/macOS使用st_ctime（文件状态改变时间）
+    // Windows使用st_ctime（文件创建时间）
+    struct tm* tm_info = localtime(&statbuf.st_ctime);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+    return time_str;
 }
 
 bool sis_file_exists(const char *fn_)

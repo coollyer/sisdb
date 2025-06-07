@@ -29,6 +29,7 @@ typedef struct s_sis_server
 	
 	int  fmt_trans;    // 格式转换
 	int  load_mode;    // 0 conf 1 json
+	char exec_name[SIS_PATH_LEN];  // 配置文件路径
 	char conf_name[SIS_PATH_LEN];  // 配置文件路径
 	char json_name[SIS_PATH_LEN];  // 配置文件路径
 
