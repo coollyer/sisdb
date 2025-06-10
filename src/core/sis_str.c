@@ -108,7 +108,7 @@ int sis_strncmp(const char *s1_, const char *s2_, size_t len_)
 	//tolower(*(const unsigned char *)s1_) - tolower(*(const unsigned char *)s2_);
 }
 
-char *sis_strdup(const char *str_, size_t len_) SIS_NEW
+char *sis_strdup(const char *str_, size_t len_)
 {
 	if (!str_)
 	{
@@ -123,6 +123,60 @@ char *sis_strdup(const char *str_, size_t len_) SIS_NEW
 	memmove(buffer, str_, len);
 	buffer[len] = 0;
 	return buffer;
+}
+/**
+ * 去除字符串左右的控制字符（包括空格、制表符、换行符等）
+ * @param str 待处理的字符串（会被修改）
+ * @return 处理后的字符串指针
+ */
+char *sis_str_trim(char *str) 
+{
+    const char lstr[] = " \\\t\n\v\f\r\"";
+    if (str == NULL || *str == '\0') 
+    {
+        return str;
+    }
+
+    // 查找左侧第一个非控制字符
+    char *start = str;
+    while (strchr(lstr, (unsigned char)*start)) 
+    {
+        start++;
+    }
+
+    // 查找右侧第一个非控制字符
+    char *stop = start + 1;
+    // while (stop <= str + strlen(str) - 1)
+    // {
+    //     printf("%d %p %c %d\n", strlen(str), strchr(lstr, (unsigned char)*stop), (unsigned char)*stop, stop >= start);
+    //     stop++;
+    // }
+    while (stop <= str + strlen(str) - 1) 
+    {
+        if (!strchr(lstr, (unsigned char)*stop))
+        {
+            stop++;
+        }
+        else
+        {
+            stop--;
+            break;
+        }
+    }
+
+    // 计算有效字符长度
+    size_t length = (stop >= start) ? (stop - start + 1) : 0;
+
+    // 移动有效字符到字符串开头
+    if (start != str || length < strlen(str)) 
+    {
+        memmove(str, start, length);
+    }
+
+    // 添加字符串结束符
+    str[length] = '\0';
+
+    return str;
 }
 
 // char *sis_str_sprintf(size_t mlen_, const char *fmt_, ...) SIS_NEW

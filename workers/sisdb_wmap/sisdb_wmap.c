@@ -35,10 +35,13 @@ bool sisdb_wmap_init(void *worker_, void *node_)
     {
         context->work_path = sis_sds_save_create(sis_json_get_str(node, "work-path"), "data");   
         context->work_name = sis_sds_save_create(sis_json_get_str(node, "work-name"), "mapdb");   
-        context->work_type = sis_json_get_int(node, "work-type", 0) == 0 ? SIS_DISK_TYPE_MDB : SIS_DISK_TYPE_MSN;  
+        context->work_type = sis_json_get_int(node, "work-type", 0) == 0 ? SIS_DISK_TYPE_MDB : SIS_DISK_TYPE_MSN; 
+        context->covermode = sis_json_get_int(node, "covermode", 0);
+        context->overwrite = sis_json_get_int(node, "overwrite", 0); 
     }     
     context->work_sdbs = sis_sdsnew("*");
     context->work_keys = sis_sdsnew("*");
+
     return true;
 }
 
@@ -248,9 +251,14 @@ int cmd_sisdb_wmap_getcb(void *worker_, void *argv_)
     
     sis_sds_save_set(context->work_path, sis_message_get_str(msg, "work-path"));
     sis_sds_save_set(context->work_name, sis_message_get_str(msg, "work-name"));
-    
-    context->overwrite = sis_message_get_int(msg, "overwrite");
-    context->covermode = sis_message_get_int(msg, "covermode");
+    if (sis_message_exist(msg, "overwrite"))
+    {
+        context->overwrite = sis_message_get_int(msg, "overwrite");
+    }
+    if (sis_message_exist(msg, "covermode"))
+    {
+        context->covermode = sis_message_get_int(msg, "covermode");
+    }
 
     sis_message_set(msg, "cb_source", worker, NULL);
     sis_message_set_method(msg, "cb_sub_open"    ,cb_sub_open);

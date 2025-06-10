@@ -54,9 +54,6 @@ typedef struct s_csv2db_cxt
     
     s_sis_pointer_list             *flist;      // s_csvdb_field
 
-    // 
-    
-
     void              *cb_source;      // 要将行情发往的目的地，一般是目标工作者的对象指针
     sis_method_define *cb_sub_start;    // 一日行情订阅开始时执行的回调函数，日期必须是字符格式的日期
     sis_method_define *cb_sub_stop;     // 一日行情订阅结束时执行的回调函数，日期必须是字符格式的日期

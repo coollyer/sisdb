@@ -257,6 +257,7 @@ int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int s
         sis_sdsfree(fname);
         return 1;
     }
+    sis_sdsfree(fname);
     return 0;
 }
 
