@@ -59,6 +59,7 @@ int cmd_sisdb_rmap_unsub(void *worker_, void *argv_);
 int cmd_sisdb_rmap_setcb(void *worker_, void *argv_);
 
 int cmd_sisdb_rmap_fopen(void *worker_, void *argv_);
+int cmd_sisdb_rmap_fkeys(void *worker_, void *argv_);
 int cmd_sisdb_rmap_fget (void *worker_, void *argv_);
 int cmd_sisdb_rmap_fstop(void *worker_, void *argv_);
 

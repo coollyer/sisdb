@@ -12,6 +12,7 @@
 // 从行情流文件中获取数据源
 static s_sis_method _sisdb_rmap_methods[] = {
   {"fopen",  cmd_sisdb_rmap_fopen, 0, NULL},
+  {"fkeys",  cmd_sisdb_rmap_fkeys , 0, NULL},
   {"fget",   cmd_sisdb_rmap_fget , 0, NULL},
   {"fstop",  cmd_sisdb_rmap_fstop, 0, NULL},
   {"get",    cmd_sisdb_rmap_get, 0, NULL},
@@ -387,7 +388,25 @@ int cmd_sisdb_rmap_fopen(void *worker_, void *argv_)
     }
     return SIS_METHOD_OK;
 }
-int cmd_sisdb_rmap_fget (void *worker_, void *argv_)
+int cmd_sisdb_rmap_fkeys(void *worker_, void *argv_)
+{
+    s_sis_worker *worker = (s_sis_worker *)worker_; 
+    s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;
+    if (!context->fget_reader)
+    {
+        return SIS_METHOD_NIL;
+    }
+    s_sis_message *msg = (s_sis_message *)argv_; 
+    s_sis_object *obj = sis_disk_reader_map_fkeys(context->fget_reader);
+    if (!obj)
+    {
+        return SIS_METHOD_NIL;
+    }
+    sis_message_set(msg, "object", obj, sis_object_destroy);
+
+    return SIS_METHOD_OK;
+}
+int cmd_sisdb_rmap_fget(void *worker_, void *argv_)
 {
     s_sis_worker *worker = (s_sis_worker *)worker_; 
     s_sisdb_rmap_cxt *context = (s_sisdb_rmap_cxt *)worker->context;

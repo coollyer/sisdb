@@ -978,6 +978,18 @@ s_sis_disk_var sis_disk_reader_map_fget_var(s_sis_disk_reader *reader_, const ch
 
     return var;
 }
+s_sis_object *sis_disk_reader_map_fkeys(s_sis_disk_reader *reader_)
+{
+    s_sis_object *obj = NULL;
+    s_sis_sds fkeys = sis_disk_io_map_as_keys(reader_->map_fctrl->map_keys);
+    if (fkeys)
+    {
+        obj = sis_object_create(SIS_OBJECT_SDS, fkeys);
+
+    }
+    return obj;
+}
+
 s_sis_disk_var sis_disk_reader_map_fget_var_range(s_sis_disk_reader *reader_, const char *kname_, const char *sname_, int offset, int count)
 {
     s_sis_disk_var var = {0};
