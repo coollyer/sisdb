@@ -34,13 +34,12 @@ void sis_disk_io_map_read_mindex(s_sis_map_fctrl *fctrl)
             index++;
             curblk = sis_map_block_head(fctrl, curblk->next);
         }
-        for (int i = 0; i < sdict->ksiblks->count; i++)
-        {
-            printf("read mindex : %d %lld\n", sdict->index, sis_int_list_get(sdict->ksiblks,i));
-        }
+        // for (int i = 0; i < sdict->ksiblks->count; i++)
+        // {
+        //     printf("read mindex : %d %lld\n", sdict->index, sis_int_list_get(sdict->ksiblks,i));
+        // }
         
     }
-
 }
 
 int sis_disk_io_map_read_varblks(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl)
@@ -179,7 +178,7 @@ int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
     // {
     //     return SIS_MAP_STYLE_ERR;
     // }
-    sis_map_rwlock_r_incr(fctrl->rwlock);
+    sis_mrwlock_r_incr(fctrl->rwlock);
     if (sis_disk_io_map_check_mhead(fctrl, fctrl->mapmem) == SIS_MAP_OPEN_OK)
     {
         // 开始读取
@@ -193,7 +192,7 @@ int sis_disk_io_map_load(s_sis_map_fctrl *fctrl)
         // SIS_DISK_HID_MAP_DATA
         sis_disk_io_map_read_ksctrl(fctrl);
     }
-    sis_map_rwlock_r_decr(fctrl->rwlock);
+    sis_mrwlock_r_decr(fctrl->rwlock);
 
     return SIS_MAP_OPEN_OK;
 }
@@ -290,7 +289,15 @@ int sis_disk_io_map_r_sub(s_sis_map_fctrl *fctrl, const char *keys_, const char 
     sis_map_subctrl_destroy(msubctrl);
     return 0;
 }
-
+void sis_disk_io_map_r_flush(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl)
+{
+    sis_mrwlock_r_incr(fctrl->rwlock);  
+    if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
+    {
+        sis_disk_io_map_read_varblks(fctrl, ksctrl);
+    }
+    sis_mrwlock_r_decr(fctrl->rwlock);  
+}
 s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, s_sis_msec_pair *smsec_)
 {
     s_sis_map_sdict *sdict = sis_map_list_get(fctrl->map_sdbs, sname_);
@@ -308,10 +315,8 @@ s_sis_memory *sis_disk_io_map_r_get_mem(s_sis_map_fctrl *fctrl, const char *knam
     {
         return NULL;
     }
-    if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
-    {
-        sis_disk_io_map_read_varblks(fctrl, ksctrl);
-    }
+    sis_disk_io_map_r_flush(fctrl, ksctrl);
+
     s_sis_memory *memory = sis_memory_create();
     // printf("===1=== %d %lld %lld\n", ksctrl->varblks->count, smsec_->start, smsec_->stop );
     for (int i = 0; i < ksctrl->varblks->count; i++)
@@ -392,10 +397,8 @@ void _disk_io_map_r_get_range(s_sis_map_fctrl *fctrl, s_sis_memory *memory, s_si
     }
     start = sis_between(start, 0, ksctrl->mindex_r.sumrecs - 1);
     int startindex = start / ksctrl->mindex_r.perrecs;
-    if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
-    {
-        sis_disk_io_map_read_varblks(fctrl, ksctrl);
-    }
+
+    sis_disk_io_map_r_flush(fctrl, ksctrl);
     // LOG(0)("=== %d %d  %d |%d %d\n", start, startindex, ksctrl->varblks->count, ksctrl->mindex_r.sumrecs, ksctrl->mindex_r.perrecs);
         
     for (int i = startindex; i < ksctrl->varblks->count; i++)
@@ -521,11 +524,8 @@ int sis_map_ksctrl_find_start_cursor(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *k
         }
         else
         {
-        
-            if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
-            {
-                sis_disk_io_map_read_varblks(fctrl, ksctrl);
-            }
+            sis_disk_io_map_r_flush(fctrl, ksctrl);
+            
             for (int i = 0; i < ksctrl->varblks->count; i++)
             {
                 int blkno = sis_int_list_get(ksctrl->varblks, i);
@@ -1035,7 +1035,7 @@ int sis_map_subctrl_check(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
     int newsdb = 0;
     int newkey = 0;
     int reload = 0;
-    sis_map_rwlock_r_incr(fctrl->rwlock);
+    sis_mrwlock_r_incr(fctrl->rwlock);
     if (fctrl->mhead_p->sdbnums > fctrl->mhead_r.sdbnums)
     {
         newsdb = 1;
@@ -1055,14 +1055,14 @@ int sis_map_subctrl_check(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
         if (mmap == NULL)
         {
             LOG(5)("mmap open fail.[%s] %d\n", fctrl->fname, errno);
-            sis_map_rwlock_r_decr(fctrl->rwlock);
+            sis_mrwlock_r_decr(fctrl->rwlock);
             return SIS_MAP_MMAP_ERR;
         }
         int o = sis_disk_io_map_check_mhead(fctrl, mmap);
         if (o != SIS_MAP_OPEN_OK)
         {
             sis_unmmap(mmap, fsize);
-            sis_map_rwlock_r_decr(fctrl->rwlock);
+            sis_mrwlock_r_decr(fctrl->rwlock);
             return o;
         }
         sis_unmmap(fctrl->mapmem, fctrl->mhead_r.fsize);
@@ -1112,12 +1112,11 @@ int sis_map_subctrl_check(s_sis_map_subctrl *msubctrl, s_sis_map_fctrl *fctrl)
         }
         if (MAP_GET_BLKS(ksctrl->mindex_p->sumrecs, ksctrl->mindex_r.perrecs) > ksctrl->varblks->count)
         {
-            sis_disk_io_map_read_varblks(fctrl, ksctrl);
-            
+            sis_disk_io_map_read_varblks(fctrl, ksctrl);      
         }
         memmove(&ksctrl->mindex_r, ksctrl->mindex_p, sizeof(s_sis_map_index));                
     }
-    sis_map_rwlock_r_decr(fctrl->rwlock);  
+    sis_mrwlock_r_decr(fctrl->rwlock);  
 
     return 0;
 }

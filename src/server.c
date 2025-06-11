@@ -49,8 +49,12 @@ int _server_open_workers()
 	return sis_map_pointer_getsize(_server.workers);
 }
 
-void _sig_kill(int sn)
+void _sig_kill(int signum)
 {
+    // if (signum == SIGINT || signum == SIGTERM) 
+    // {
+    //     rwlock_rdunlock(); // 确保读锁释放
+    // }
 	// 最简单的方法
 	if (sis_get_signal() == SIS_SIGNAL_EXIT)
 	{

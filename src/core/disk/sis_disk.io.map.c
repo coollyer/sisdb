@@ -89,7 +89,7 @@ s_sis_map_fctrl *sis_map_fctrl_create(const char *fpath, const char *fname, int 
     fctrl->map_sdbs = sis_map_list_create(sis_map_sdict_destroy);   
     fctrl->map_kscs = sis_map_kints_create(sis_map_ksctrl_destroy);
     
-    fctrl->rwlock   = sis_map_rwlock_create(fname);
+    fctrl->rwlock   = sis_mrwlock_create(fname);
 
     fctrl->ksirecs = SIS_MAP_MAYUSE_LEN / sizeof(s_sis_map_index);
 
@@ -105,7 +105,7 @@ void sis_map_fctrl_destroy(void *fctrl_)
     {
         sis_unmmap(fctrl->mapmem, fctrl->mhead_r.fsize);
     }
-    sis_map_rwlock_destroy(fctrl->rwlock);
+    sis_mrwlock_destroy(fctrl->rwlock);
 
     sis_sdsfree(fctrl->fname);
     sis_sdsfree(fctrl->wkeys);
@@ -263,7 +263,7 @@ int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int s
 
 #if 0
 
-#define FNAME  "mymap"
+#define FNAME  "./mymap"
 
 // 测试MAP文件读写
 static int    __read_nums = 0;
@@ -459,32 +459,32 @@ void write_sdb(s_sis_disk_writer *cxt)
         __write_size += sis_disk_writer_data(cxt, "k4", "stsec", &data, sizeof(s_tsec));
     }
 
-    // __write_size += sis_disk_writer_data(cxt, "k1", "info", &info_data[0], sizeof(s_info));
-    // __write_size += sis_disk_writer_data(cxt, "k2", "info", &info_data[1], sizeof(s_info));
-    // __write_size += sis_disk_writer_data(cxt, "k3", "info", &info_data[2], sizeof(s_info));
-    // // for (int k = 0; k < count; k++)
-    // {
-    //     for (int i = 0; i < 10; i++) // 4
-    //     {
-    //         s_tsec data;
-    //         data.time = snap_data[i].time;
-    //         for (int k = 0; k < count; k++)
-    //         {
-    //             data.value = k * 10 + i;
-    //             if (i > 5) {
-    //                 __write_size += sis_disk_writer_data(cxt, "k4", "stsec", &data, sizeof(s_tsec));
-    //             }
-    //             if (i < 8) 
-    //             {
-    //                 __write_size += sis_disk_writer_data(cxt, "k2", "stsec", &data, sizeof(s_tsec));
-    //             }
-    //             if (i < 5) 
-    //             {
-    //                 __write_size += sis_disk_writer_data(cxt, "k3", "smsec", &snap_data[i], sizeof(s_msec));
-    //             }
-    //         }
-    //     }
-    // }
+    __write_size += sis_disk_writer_data(cxt, "k1", "info", &info_data[0], sizeof(s_info));
+    __write_size += sis_disk_writer_data(cxt, "k2", "info", &info_data[1], sizeof(s_info));
+    __write_size += sis_disk_writer_data(cxt, "k3", "info", &info_data[2], sizeof(s_info));
+    for (int k = 0; k < count; k++)
+    {
+        for (int i = 0; i < 10; i++) // 4
+        {
+            s_tsec data;
+            data.time = snap_data[i].time;
+            for (int k = 0; k < count; k++)
+            {
+                data.value = k * 10 + i;
+                if (i > 5) {
+                    __write_size += sis_disk_writer_data(cxt, "k4", "stsec", &data, sizeof(s_tsec));
+                }
+                if (i < 8) 
+                {
+                    __write_size += sis_disk_writer_data(cxt, "k2", "stsec", &data, sizeof(s_tsec));
+                }
+                if (i < 5) 
+                {
+                    __write_size += sis_disk_writer_data(cxt, "k3", "smsec", &snap_data[i], sizeof(s_msec));
+                }
+            }
+        }
+    }
     sis_disk_writer_close(cxt);
     printf("write end %d %zu | cost: %lld.\n", __write_nums, __write_size, sis_time_get_now_msec() - __write_msec);
 }
@@ -492,12 +492,13 @@ int main(int argc, char **argv)
 {
     if (argc > 1 && argv[1][0] == 'f')
     {
-        sis_map_rwlock_clear(".mymap.sem", 0);
+        // sis_map_rwlock_clear(".mymap.sem", 0);
         return 0;
     }
     safe_memory_start();
     // s_sis_map_fctrl *fctrl = sis_map_fctrl_create("./", FNAME);
     
+    // s_sis_map_fctrl *fctrl = sis_map_fctrl_create("./", FNAME);
     if (argc < 1)
     {
         exit(0);

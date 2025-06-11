@@ -4,7 +4,7 @@
 #include "sis_disk.h"
 #include "sis_dynamic.h"
 #include "sis_utils.h"
-#include "sis_sem.h"
+#include "sis_mrwlock.h"
 
 // 映射文件 方便实时数据获取 采用固定32K大小存储 不压缩
 // 作用：实时数据写入和共享 多个因子各自写入文件 其他不同用户筛选读取
@@ -236,7 +236,7 @@ typedef struct s_sis_map_fctrl {
     //  数增加 写 ｜
     //        读 ｜
     ///////////////////////////////
-    s_sis_map_rwlock   *rwlock;   // 用一个全局锁
+    s_sis_mrwlock   *rwlock;   // 用一个全局锁
     // 一是为了防止文件句柄数不足, 另外不管是keys sdbs head 信息变化都会相互影响
     // 不如就设置一把锁 我们需要做的就是读时尽量快速的读取索引信息 为写多留空间
 
@@ -336,22 +336,37 @@ int sis_disk_io_map_control_remove(const char *fpath_, const char *fname_, int s
 // 返回 1 表示打开成功 0 表示文件不在或者文件有错误等
 int sis_disk_io_map_w_open(s_sis_map_fctrl *fctrl, const char *fpath_, const char *fname_);
 
-// 写一个新文件相关函数
-void sis_disk_io_map_fw_mhead(s_sis_map_fctrl *fctrl);
-void sis_disk_io_map_fw_kdict(s_sis_map_fctrl *fctrl);
-void sis_disk_io_map_fw_sdict(s_sis_map_fctrl *fctrl);
-void sis_disk_io_map_fw_mindex(s_sis_map_fctrl *fctrl);
+// 关闭文件 做数据同步 释放mmap映射
+int sis_disk_io_map_close(s_sis_map_fctrl *fctrl);
 
 // 开始写文件 此时 key 和 sdb 已经有基础数据了
 // 根据文件状态 新文件时就从头写数据 文件已经存在就增量写数据
 // 0 表示正常 非0 表示失败
 int sis_disk_writer_map_inited(s_sis_map_fctrl *fctrl, const char *keys_, size_t klen_, const char *sdbs_, size_t slen_);
 
-// 关闭文件 做数据同步 释放mmap映射
-int sis_disk_io_map_close(s_sis_map_fctrl *fctrl);
+// 写入数据
+int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, void *in_, size_t ilen_);
 
-//////////
-// 这里都是牵涉到加锁数据的函数
+int sis_disk_io_map_sync_data(s_sis_map_fctrl *fctrl);
+// 删除指定数据 指定时间段的数据
+// 对于无时序的表 直接删除其所有数据 覆盖写入
+// 传入的必须有确定的值 不做匹配 
+// idate_ == -1 代表删除所有
+int sis_disk_io_map_del_data(s_sis_map_fctrl *fctrl, const char *keys_, const char *sdbs_, int idate_);
+// 删除某个key的所有数据
+int sis_disk_io_map_del_keys(s_sis_map_fctrl *fctrl, const char *keys_);
+// 删除某个sdb的所有数据
+int sis_disk_io_map_del_sdbs(s_sis_map_fctrl *fctrl, const char *sdbs_);
+
+////////////////////////////////////////
+// 以下函数执行前都需要 先加锁
+////////////////////////////////////////
+
+// 写一个新文件相关函数
+void sis_disk_io_map_fw_mhead(s_sis_map_fctrl *fctrl);
+void sis_disk_io_map_fw_kdict(s_sis_map_fctrl *fctrl);
+void sis_disk_io_map_fw_sdict(s_sis_map_fctrl *fctrl);
+void sis_disk_io_map_fw_mindex(s_sis_map_fctrl *fctrl);
 
 // 只更新和地址有关的信息
 // 只需修改以下内容就可以重新定位数据了
@@ -363,8 +378,11 @@ void sis_disk_io_map_mmap_change(s_sis_map_fctrl *fctrl);
 int sis_disk_io_map_get_newblk(s_sis_map_fctrl *fctrl);
 
 // 修改数据
-void sis_disk_io_map_rw_ksctrl(s_sis_map_fctrl *fctrl);
-void sis_disk_io_map_rw_mindex(s_sis_map_fctrl *fctrl);
+// void sis_disk_io_map_rw_ksctrl(s_sis_map_fctrl *fctrl);
+// void sis_disk_io_map_rw_mindex(s_sis_map_fctrl *fctrl);
+
+// 回收块
+void sis_disk_io_map_recy_blk(s_sis_map_fctrl *fctrl, s_sis_map_block *curblk);
 
 // 修改key sdb
 void sis_disk_io_map_rw_kdict(s_sis_map_fctrl *fctrl);
@@ -386,20 +404,6 @@ s_sis_map_block *sis_map_ksctrl_incr_bhead(s_sis_map_fctrl *fctrl, s_sis_map_ksc
 int sis_mdb_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
 // 写入数据 不判断顺序 按写入顺序直接写 msn文件不能插入 只能追加
 int sis_msn_ksctrl_incr_data(s_sis_map_fctrl *fctrl, s_sis_map_ksctrl *ksctrl, s_sis_map_block *curblk, char *inmem);
-
-// 写入数据
-int sis_disk_io_map_w_data(s_sis_map_fctrl *fctrl, const char *kname_, const char *sname_, void *in_, size_t ilen_);
-
-int sis_disk_io_map_sync_data(s_sis_map_fctrl *fctrl);
-// 删除指定数据 指定时间段的数据
-// 对于无时序的表 直接删除其所有数据 覆盖写入
-// 传入的必须有确定的值 不做匹配 
-// idate_ == -1 代表删除所有
-int sis_disk_io_map_del_data(s_sis_map_fctrl *fctrl, const char *keys_, const char *sdbs_, int idate_);
-// 删除某个key的所有数据
-int sis_disk_io_map_del_keys(s_sis_map_fctrl *fctrl, const char *keys_);
-// 删除某个sdb的所有数据
-int sis_disk_io_map_del_sdbs(s_sis_map_fctrl *fctrl, const char *sdbs_);
 
 ////////////////////
 // read 

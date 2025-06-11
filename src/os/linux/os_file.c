@@ -133,9 +133,15 @@ char *sis_mmap_open_r(const char *fn, size_t minsize, size_t *fsize)
 }
 char *sis_mmap_open_w(const char *fn, size_t fsize)
 {
-	s_sis_handle fd = sis_open(fn, SIS_FILE_IO_RDWR | SIS_FILE_IO_CREATE, 0666);
+    int mode = SIS_FILE_IO_RDWR;
+    if (!sis_file_exists(fn))
+    {
+        mode |= SIS_FILE_IO_CREATE;
+    }
+	s_sis_handle fd = sis_open(fn, mode, 0666);
     if (fd == -1)
     {
+        printf("error open the file.\n");
         return NULL;
     }
 	if (fsize > 0)
@@ -157,7 +163,8 @@ char *sis_mmap_open_w(const char *fn, size_t fsize)
 	else
 	{
 		struct stat stat;
-		if (fstat(fd, &stat) == -1) {
+		if (fstat(fd, &stat) == -1) 
+        {
 			printf("error getting file status.\n");
 			sis_close(fd);
 			return NULL;
