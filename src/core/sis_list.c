@@ -222,13 +222,18 @@ void *sis_struct_list_offset(s_sis_struct_list *list_, void *current_, int offse
 		return NULL;
 	}	
 }
+// 不会缩小内存
 void sis_struct_list_set_count(s_sis_struct_list *list_, int count)
 {
-    if (list_->buffer)
+    if (count > list_->maxcount && list_->buffer)
 	{
 		sis_free(list_->buffer);
+        list_->buffer = NULL;
 	}
-	list_->buffer = sis_malloc(count * list_->len);
+    if (!list_->buffer)
+    {
+        list_->buffer = sis_malloc(count * list_->len);
+    }
     memset(list_->buffer, 0, count * list_->len);
 	list_->count = count;
 	list_->start = 0;
